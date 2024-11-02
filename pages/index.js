@@ -9,6 +9,7 @@ export default function Home() {
   const currentTab = tab || "runOfShow";
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [selectedEvent, setSelectedEvent] = useState(null);
 
   useEffect(() => {
     async function authenticate() {
@@ -52,6 +53,8 @@ export default function Home() {
             
           console.log('Attempting redirect to event:', targetEventId);
           await router.push(`/?eventId=${targetEventId}&tab=Run%20of%20Show`);
+          setSelectedEvent(userData.events[targetEventId]);
+          console.log(userData.events[targetEventId])
           console.log('Redirect completed');
         }
       } catch (error) {
@@ -62,6 +65,12 @@ export default function Home() {
 
     authenticate();
   }, []);
+
+  useEffect(() => {
+    if (user && eventId && user.events[eventId]) {
+      setSelectedEvent(user.events[eventId]);
+    }
+  }, [user, eventId]);
 
   console.log('Current router query:', router.query);
   console.log('Current loading state:', loading);
@@ -88,6 +97,20 @@ export default function Home() {
           user={user} 
           onUserUpdate={handleUserUpdate} 
         />
+        {currentTab == "Run of Show" && 
+        <div style={{
+          flex: 1,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: "24px",
+          color: "#59636E"
+        }}>
+          {selectedEvent.startTime} - {selectedEvent.endTime}
+        </div>        
+        }
+        {currentTab != "Run of Show" && 
+
         <div style={{
           flex: 1,
           display: "flex",
@@ -97,7 +120,7 @@ export default function Home() {
           color: "#59636E"
         }}>
           {currentTab}
-        </div>
+        </div>}
       </div>
     </>
   );
