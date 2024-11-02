@@ -11,6 +11,29 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+.nav-item {
+  border-radius: 2px;
+  transition: background-color 0.2s ease;
+}
+
+.nav-item:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.create-event-button {
+  transition: all 0.2s ease;
+  border-radius: 8px;
+  color: #0969DA !important;
+}
+
+.create-event-button:hover {
+  background-color: #0969DA !important;
+  color: white !important;
+}
+
+.create-event-button:hover img {
+  filter: brightness(0) invert(1);
+}
 
 @media (prefers-color-scheme: dark) {
   html {
