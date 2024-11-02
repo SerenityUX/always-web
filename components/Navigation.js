@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import ProfileImage from './ProfileImage';
 import ProfilePictureUpload from './ProfilePictureUpload';
 
-export default function Navigation({ user, onUserUpdate }) {
+export default function Navigation({ user, onUserUpdate, selectedEventId, onEventSelect }) {
   const router = useRouter();
   const [showProfile, setShowProfile] = useState(false);
   const profileRef = useRef(null);
@@ -19,9 +19,7 @@ export default function Navigation({ user, onUserUpdate }) {
     : [];
 
   // Find current event from URL parameter
-  const currentEvent = event ? 
-    eventsList.find(e => e.id.toString() === event) 
-    : null;
+  const currentEvent = user?.events[selectedEventId];
 
   // Use currentEvent from URL, or lastVisited, or first event as fallback
   const defaultEvent = currentEvent || 
@@ -81,10 +79,10 @@ export default function Navigation({ user, onUserUpdate }) {
   };
 
   const handleEventSelect = (eventObj) => {
-    setSelectedEvent(eventObj);
+    onEventSelect(eventObj.id);
     setShowEventDropdown(false);
     localStorage.setItem('lastVisited', eventObj.id);
-    router.push(`/?event=${eventObj.id}${tab ? `&tab=${tab}` : ''}`, undefined, { shallow: true });
+    router.push(`/?eventId=${eventObj.id}${tab ? `&tab=${tab}` : ''}`, undefined, { shallow: true });
   };
 
   const handleLogout = () => {
@@ -133,7 +131,7 @@ export default function Navigation({ user, onUserUpdate }) {
               textOverflow: "ellipsis", 
               whiteSpace: "nowrap"
             }}>
-              {selectedEvent?.title || 'Select Event'}
+              {currentEvent?.title || 'Select Event'}
             </p>
             <img 
               style={{

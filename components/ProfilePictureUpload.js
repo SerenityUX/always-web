@@ -17,9 +17,9 @@ export default function ProfilePictureUpload({ onUpload, children }) {
         body: formData,
       });
 
-      if (!response.ok) {
-        throw new Error('Upload failed');
-      }
+    //   if (!response.ok) {
+    //     throw new Error('Upload failed');
+    //   }
 
       const data = await response.json();
       onUpload(data.profilePictureUrl);

@@ -10,6 +10,7 @@ export default function Home() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [selectedEventId, setSelectedEventId] = useState(null);
 
   useEffect(() => {
     async function authenticate() {
@@ -32,10 +33,6 @@ export default function Home() {
           body: JSON.stringify({ token }),
         });
 
-        if (!response.ok) {
-          throw new Error('Authentication failed');
-        }
-
         const userData = await response.json();
         console.log('Auth response received:', userData);
         
@@ -45,7 +42,7 @@ export default function Home() {
         setUser(userData);
         setLoading(false);
 
-        if (eventIds.length > 0) {
+        if (!router.query.eventId && eventIds.length > 0) {
           const lastVisited = localStorage.getItem('lastVisited');
           const targetEventId = lastVisited && eventIds.includes(lastVisited) 
             ? lastVisited 
@@ -53,9 +50,9 @@ export default function Home() {
             
           console.log('Attempting redirect to event:', targetEventId);
           await router.push(`/?eventId=${targetEventId}&tab=Run%20of%20Show`);
+          setSelectedEventId(targetEventId);
           setSelectedEvent(userData.events[targetEventId]);
-          console.log(userData.events[targetEventId])
-          console.log('Redirect completed');
+          localStorage.setItem('lastVisited', targetEventId);
         }
       } catch (error) {
         console.error('Auth error:', error);
@@ -68,7 +65,9 @@ export default function Home() {
 
   useEffect(() => {
     if (user && eventId && user.events[eventId]) {
+      setSelectedEventId(eventId);
       setSelectedEvent(user.events[eventId]);
+      localStorage.setItem('lastVisited', eventId);
     }
   }, [user, eventId]);
 
@@ -76,8 +75,12 @@ export default function Home() {
   console.log('Current loading state:', loading);
   console.log('Current user state:', user);
 
-  const handleUserUpdate = (updatedUser) => {
+  const handleUserUpdate = (updatedUser, eventId) => {
     setUser(updatedUser);
+    if (eventId) {
+      setSelectedEventId(eventId);
+      setSelectedEvent(updatedUser.events[eventId]);
+    }
   };
 
   if (loading) {
@@ -95,18 +98,144 @@ export default function Home() {
       <div style={{width: "100%", height: "100vh", display: "flex", flexDirection: "column"}}>
         <Navigation 
           user={user} 
-          onUserUpdate={handleUserUpdate} 
+          onUserUpdate={handleUserUpdate}
+          selectedEventId={selectedEventId}
+          onEventSelect={(eventId) => {
+            setSelectedEventId(eventId);
+            setSelectedEvent(user.events[eventId]);
+          }}
         />
         {currentTab == "Run of Show" && 
         <div style={{
           flex: 1,
           display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: "24px",
-          color: "#59636E"
+          color: "#59636E",
+          position: "relative"
         }}>
-          {selectedEvent?.startTime} - {selectedEvent?.endTime}
+          {(() => {
+            // Safety check for selectedEvent and valid dates
+            if (!selectedEvent?.startTime || !selectedEvent?.endTime) {
+              return null;
+            }
+
+            // Calculate total hours between start and end time
+            const startDate = new Date(selectedEvent.startTime);
+            const endDate = new Date(selectedEvent.endTime);
+            const hoursDiff = Math.ceil((endDate - startDate) / (1000 * 60 * 60));
+
+            // Validate hoursDiff is a positive number
+            if (!hoursDiff || hoursDiff < 0 || !Number.isFinite(hoursDiff)) {
+              return null;
+            }
+            
+            return (
+              <>
+                {/* Fixed Event Schedule Column */}
+                <div style={{
+                  display: "flex", 
+                  flexDirection: "column", 
+                  flexShrink: 0,
+                  position: "sticky",
+                  left: 0,
+                  backgroundColor: "white",
+                  zIndex: 1
+                }}>
+                  <p style={{
+                    margin: 0, 
+                    height: 22, 
+                    width: 185,
+                    borderRight: "1px solid #EBEBEB", 
+                    borderBottom: "1px solid #EBEBEB", 
+                    paddingLeft: 32, 
+                    paddingTop: 6, 
+                    paddingBottom: 5
+                  }}>Event Schedule</p>
+                  {Array.from({ length: hoursDiff }).map((_, index) => {
+                    const cellTime = new Date(startDate.getTime() + (index * 60 * 60 * 1000));
+                    return (
+                      <div key={index} style={{
+                        width: 217,
+                        position: "relative",
+                        height: 100,
+                        borderRight: "1px solid #EBEBEB",
+                        borderBottom: "1px solid #EBEBEB",
+                        flexShrink: 0
+                      }}>
+                        <p style={{position: "absolute",
+                        fontSize: 9,
+                        paddingLeft: 2,
+                        width: 28, 
+                        marginTop: -6,
+                        backgroundColor: "#fff"
+
+                        }}>
+                          {cellTime.toLocaleTimeString('en-US', { 
+                          hour: 'numeric',
+                          timeZone: 'UTC',
+                          hour12: true 
+                        })}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Scrollable section */}
+                <div style={{
+                  display: "flex",
+                  overflowX: "auto"
+                }}>
+                  {/* You Column */}
+                  <div style={{display: "flex", flexDirection: "column", flexShrink: 0}}>
+                    <p style={{
+                      margin: 0, 
+                      height: 22, 
+                      width: 201,
+                      borderRight: "1px solid #EBEBEB", 
+                      borderBottom: "1px solid #EBEBEB", 
+                      paddingLeft: 16, 
+                      paddingTop: 6, 
+                      paddingBottom: 5
+                    }}>You</p>
+                    {Array.from({ length: hoursDiff }).map((_, index) => (
+                      <div key={index} style={{
+                        width: 217,
+                        height: 100,
+                        borderRight: "1px solid #EBEBEB",
+                        borderBottom: "1px solid #EBEBEB",
+                        flexShrink: 0
+                      }}></div>
+                    ))}
+                  </div>
+
+                  {/* Team Member Columns */}
+                  {selectedEvent?.teamMembers?.map((teamMember) => (
+                    <div key={teamMember.id} style={{display: "flex", flexDirection: "column", flexShrink: 0}}>
+                      <p style={{
+                        margin: 0, 
+                        height: 22, 
+                        width: 201,
+                        borderRight: "1px solid #EBEBEB",
+                        borderBottom: "1px solid #EBEBEB",
+                        paddingLeft: 16,
+                        paddingTop: 6,
+                        paddingBottom: 5
+                      }}>{teamMember.name}</p>
+                      {Array.from({ length: hoursDiff }).map((_, index) => (
+                        <div key={index} style={{
+                          width: 217,
+                          height: 100,
+                          borderRight: "1px solid #EBEBEB",
+                          borderBottom: "1px solid #EBEBEB",
+                          flexShrink: 0
+                        }}></div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </>
+            );
+          })()}
         </div>        
         }
         {currentTab != "Run of Show" && 
