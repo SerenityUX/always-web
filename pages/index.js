@@ -106,7 +106,7 @@ export default function Home() {
           fontSize: "24px",
           color: "#59636E"
         }}>
-          {selectedEvent.startTime} - {selectedEvent.endTime}
+          {selectedEvent?.startTime} - {selectedEvent?.endTime}
         </div>        
         }
         {currentTab != "Run of Show" && 
