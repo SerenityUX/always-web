@@ -397,6 +397,16 @@ export default function Home() {
                     paddingTop: 6, 
                     paddingBottom: 5
                   }}>Event Schedule</p>
+                  <div style={{position: "relative"}}>
+                    <div style={{position: "absolute", zIndex: 2, top: 76}}>
+                      <div style={{marginLeft: 24, marginTop: 0, padding: 8, height: (76 * 2) - 48}}>
+                        <div style={{backgroundColor: "#DA8000", borderRadius: 8, display: "flex", flexDirection: "column", justifyContent: "space-between", height: "100%", padding: 16,}}>
+                          <p style={{margin: 0, fontSize: 16, color: "#fff"}}>Attendees begin
+                          to arrive @ venue</p>
+                          <p style={{margin: 0, fontSize: 14, color: "#fff", opacity: 0.8}}>9am - 11am</p>
+                        </div>
+                      </div>
+                    </div>
                   {Array.from({ length: hoursDiff }).map((_, index) => {
                     const cellTime = new Date(startDate.getTime() + (index * 60 * 60 * 1000));
                     return (
@@ -425,6 +435,7 @@ export default function Home() {
                       </div>
                     );
                   })}
+                  </div>
                 </div>
                 {/* Scrollable section */}
                 <div style={{
