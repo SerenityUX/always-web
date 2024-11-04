@@ -143,20 +143,36 @@ export default function Login() {
                 borderRadius: '8px'
               }}
             />
-            <button 
-              type="button"
+            <div style={{display: "flex", width: "100%", flexDirection: "row", justifyContent: "space-between"}}>
+            <p 
               onClick={() => setShowPassword(!showPassword)}
               style={{
                 color: 'gray',
                 background: 'none',
                 border: 'none',
                 padding: '4px 0',
+                cursor: "pointer",
                 fontSize: '14px',
-                textAlign: 'left'
+                textAlign: 'left', margin: 0
               }}
             >
               {showPassword ? "Hide password" : "Show password"}
-            </button>
+            </p>
+            <p style={{
+            margin: 0,
+            color: 'gray',
+            background: 'none',
+            border: 'none',
+            padding: '4px 0',
+            cursor: "pointer",
+            fontSize: '14px',
+            textAlign: 'left', 
+            margin: 0,
+            textDecoration: "underline"
+          }} onClick={() => router.push('/forgot-password')}>
+            Forgot Password
+          </p>
+          </div>
           </div>
 
           <button 

@@ -1,19 +1,32 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 
 export default function Signup() {
   const router = useRouter();
+  const { name: urlName, email: urlEmail } = router.query;
   const [isLogin, setIsLogin] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
-  // Add form state
+  // Update form state to use URL parameters if available
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
     confirmPassword: ''
   });
+
+  // Add useEffect to update form when URL parameters are available
+  useEffect(() => {
+    if (urlName || urlEmail) {
+      setFormData(prev => ({
+        ...prev,
+        name: urlName || '',
+        email: urlEmail || ''
+      }));
+    }
+  }, [urlName, urlEmail]);
+
   const [error, setError] = useState('');
 
   // Add loading state near the top with other state declarations
@@ -188,7 +201,7 @@ export default function Signup() {
                 borderRadius: '8px'
               }}
             />
-            <button 
+            <p 
               type="button"
               onClick={() => setShowPassword(!showPassword)}
               style={{
@@ -196,12 +209,13 @@ export default function Signup() {
                 background: 'none',
                 border: 'none',
                 padding: '4px 0',
+                cursor: "pointer",
                 fontSize: '14px',
-                textAlign: 'left'
+                textAlign: 'left', margin: 0
               }}
             >
               {showPassword ? "Hide password" : "Show password"}
-            </button>
+            </p>
           </div>
 
           <div style={{
@@ -225,7 +239,7 @@ export default function Signup() {
                 borderRadius: '8px'
               }}
             />
-            <button 
+            <p 
               type="button"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
               style={{
@@ -233,12 +247,14 @@ export default function Signup() {
                 background: 'none',
                 border: 'none',
                 padding: '4px 0',
+                cursor: "pointer",
                 fontSize: '14px',
-                textAlign: 'left'
+                textAlign: 'left', 
+                margin: 0
               }}
             >
               {showConfirmPassword ? "Hide password" : "Show password"}
-            </button>
+            </p>
           </div>
 
           <button 

@@ -19,7 +19,7 @@ export default function Navigation({ user, onUserUpdate, selectedEventId, onEven
     : [];
 
   // Find current event from URL parameter
-  const currentEvent = user?.events[selectedEventId];
+  const currentEvent = user?.events && selectedEventId ? user.events[selectedEventId] : null;
 
   // Use currentEvent from URL, or lastVisited, or first event as fallback
   const defaultEvent = currentEvent || 
@@ -104,7 +104,7 @@ export default function Navigation({ user, onUserUpdate, selectedEventId, onEven
     <div style={{backgroundColor: "#F6F8FA", overflow: "visible", borderBottom: '1px solid #EBEBEB'}}>
       <div style={{display: "flex", alignItems: "center", justifyContent: "space-between", paddingLeft: 32, paddingTop: 16, paddingRight: 32}}>
         <div style={{display: "flex", alignItems: "center", justifyContent: "center", gap: 16}}>
-        <h1 style={{margin: 0, fontSize: 24, height: 24, fontWeight: 600, opacity: 0.9}}>Hack Mind</h1>
+        <h1 style={{margin: 0, fontSize: 24, height: 24, fontWeight: 600, opacity: 0.9}}>Hack Time</h1>
         <div ref={eventDropdownRef} style={{ position: "relative" }}>
           <div 
             onClick={() => setShowEventDropdown(!showEventDropdown)}
@@ -223,7 +223,7 @@ export default function Navigation({ user, onUserUpdate, selectedEventId, onEven
             />
           </div>
           {showProfile && (
-            <div style={{position: "fixed", display: "flex", gap: 8, flexDirection: "column", border: "1px solid #EBEBEB", width: 196, padding: 12, backgroundColor: "#fff", borderRadius: 16, top: 56, right: 32}}>
+            <div style={{position: "fixed", zIndex: 100, display: "flex", gap: 8, flexDirection: "column", border: "1px solid #EBEBEB", width: 196, padding: 12, backgroundColor: "#fff", borderRadius: 16, top: 56, right: 32}}>
               <div style={{display: "flex", border: "1px solid #EBEBEB", alignItems: "center", backgroundColor: "#F6F8FA", padding: 16, paddingTop: 8, gap: 14, borderRadius: 8, justifyContent: "center", flexDirection: "column"}}>
                 <div style={{height: 8, width: 8, border: "1px solid #EBEBEB", backgroundColor: "#fff", borderRadius: "100%"}}></div>
                 <div style={{position: "relative", height: 96, width: 96}}>
