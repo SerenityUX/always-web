@@ -3,14 +3,27 @@ import { useRouter } from 'next/router';
 import { useEffect, useState, useRef } from 'react';
 import Navigation from '../components/Navigation';
 
+// Keep these helper functions outside the component
+const isTimeOverlapping = (start1, end1, start2, end2) => {
+  return start1 < end2 && end1 > start2;
+};
+
+const isWithinEventBounds = (startTime, endTime, eventStartTime, eventEndTime) => {
+  return startTime >= eventStartTime && endTime <= eventEndTime;
+};
+
 export default function Home() {
   const router = useRouter();
   const { tab, eventId } = router.query;
-  const currentTab = tab || "runOfShow";
+  console.log("TAB IS", tab)
+
+  const currentTab = tab || "Run of Show";
+
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [selectedEventId, setSelectedEventId] = useState(null);
+  const [newEventId, setNewEventId] = useState(null);
 
   const [isInvitingNewUser, setIsInvitingNewUser] = useState(false);
 
@@ -69,10 +82,16 @@ export default function Home() {
             : eventIds[0];
             
           console.log('Attempting redirect to event:', targetEventId);
-          await router.push(`/?eventId=${targetEventId}&tab=Run%20of%20Show`);
+          const urlParams = new URLSearchParams(window.location.search);
+          const tabParam = urlParams.get('tab') ? `&tab=${urlParams.get('tab')}` : '&tab=Run of Show';
+          await router.push(`/?eventId=${targetEventId}${tabParam}`);
           setSelectedEventId(targetEventId);
           setSelectedEvent(userData.events[targetEventId]);
           localStorage.setItem('lastVisited', targetEventId);
+        } else if (router.query.eventId && eventIds.includes(router.query.eventId)) {
+          setSelectedEventId(router.query.eventId);
+          setSelectedEvent(userData.events[router.query.eventId]);
+          localStorage.setItem('lastVisited', router.query.eventId);
         }
       } catch (error) {
         console.error('Auth error:', error);
@@ -215,6 +234,74 @@ export default function Home() {
     document.addEventListener('keydown', handlePlusKey);
     return () => document.removeEventListener('keydown', handlePlusKey);
   }, []); // Empty dependency array since we don't need to re-run this effect
+
+  // Update the handleEventTitleUpdate function
+  const handleEventTitleUpdate = async (calendarEventId, newTitle) => {
+    try {
+      console.log('Updating event title:', { calendarEventId, newTitle });
+      
+      const response = await fetch('https://serenidad.click/hacktime/updateCalendarEvent', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          token: localStorage.getItem('token'),
+          calendarEventId: calendarEventId,
+          title: newTitle
+        }),
+      });
+
+      const data = await response.json();
+      console.log('Server response:', data);
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update event title');
+      }
+      
+      // Update the local state with the new title
+      setSelectedEvent(prev => ({
+        ...prev,
+        calendar_events: prev.calendar_events.map(evt => 
+          evt.id === calendarEventId ? { ...evt, title: newTitle } : evt
+        )
+      }));
+
+      console.log('Successfully updated event title');
+    } catch (error) {
+      console.error('Failed to update event title:', error);
+      alert('Failed to update event title: ' + error.message);
+    }
+  };
+
+  // Move handleDeleteCalendarEvent inside the component
+  const handleDeleteCalendarEvent = async (calendarEventId) => {
+    try {
+      const response = await fetch('https://serenidad.click/hacktime/deleteCalendarEvent', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          token: localStorage.getItem('token'),
+          calendarEventId
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete calendar event');
+      }
+
+      // Remove the event from local state
+      setSelectedEvent(prev => ({
+        ...prev,
+        calendar_events: prev.calendar_events.filter(event => event.id !== calendarEventId)
+      }));
+
+    } catch (error) {
+      console.error('Failed to delete calendar event:', error);
+    }
+  };
 
   if (loading) {
     return <div></div>;
@@ -397,44 +484,343 @@ export default function Home() {
                     paddingTop: 6, 
                     paddingBottom: 5
                   }}>Event Schedule</p>
-                  <div style={{position: "relative"}}>
-                    <div style={{position: "absolute", zIndex: 2, top: 76}}>
-                      <div style={{marginLeft: 24, marginTop: 0, padding: 8, height: (76 * 2) - 48}}>
-                        <div style={{backgroundColor: "#DA8000", borderRadius: 8, display: "flex", flexDirection: "column", justifyContent: "space-between", height: "100%", padding: 16,}}>
-                          <p style={{margin: 0, fontSize: 16, color: "#fff"}}>Attendees begin
-                          to arrive @ venue</p>
-                          <p style={{margin: 0, fontSize: 14, color: "#fff", opacity: 0.8}}>9am - 11am</p>
-                        </div>
-                      </div>
-                    </div>
-                  {Array.from({ length: hoursDiff }).map((_, index) => {
-                    const cellTime = new Date(startDate.getTime() + (index * 60 * 60 * 1000));
-                    return (
-                      <div key={index} style={{
-                        width: 217,
-                        position: "relative",
-                        height: 75,
-                        borderRight: "1px solid #EBEBEB",
-                        borderBottom: "1px solid #EBEBEB",
-                        flexShrink: 0
-                      }}>
-                        <p style={{position: "absolute",
-                        fontSize: 9,
-                        paddingLeft: 2,
-                        width: 28, 
-                        marginTop: -6,
-                        backgroundColor: "#fff"
+                  <div 
+                    style={{
+                      position: "relative",
+                      userSelect: "none"
+                    }}
+                    onMouseDown={(e) => {
+                      const targetElement = e.currentTarget;
+                      const rect = targetElement.getBoundingClientRect();
+                      const initialY = e.clientY;
+                      let dragStarted = false;
+                      let dragTimeout;
+                      
+                      // Store initial mouse position
+                      const initialMousePos = {
+                        x: e.clientX,
+                        y: e.clientY
+                      };
 
+                      const handleMouseMove = (moveEvent) => {
+                        // Calculate distance moved
+                        const distance = Math.sqrt(
+                          Math.pow(moveEvent.clientX - initialMousePos.x, 2) + 
+                          Math.pow(moveEvent.clientY - initialMousePos.y, 2)
+                        );
+
+                        // Only start drag if we've moved at least 5 pixels
+                        if (!dragStarted && distance < 5) {
+                          return;
+                        }
+                      };
+
+                      // Start listening for mouse movement immediately
+                      document.addEventListener('mousemove', handleMouseMove);
+
+                      // Set timeout for drag initialization
+                      dragTimeout = setTimeout(() => {
+                        const startY = initialY - rect.top;
+                        const hoursFromStart = Math.floor(startY / 76);
+                        const startTime = new Date(selectedEvent.startTime);
+                        const dragStartTime = new Date(startTime.getTime() + (hoursFromStart * 60 * 60 * 1000));
+                        let dragEndTime = dragStartTime;
+                        
+                        // Create preview element
+                        const preview = document.createElement('div');
+                        preview.style.position = 'absolute';
+                        preview.style.left = '40px';
+                        preview.style.width = 'calc(100% - 48px)';
+                        preview.style.backgroundColor = 'rgb(2, 147, 212)';
+                        preview.style.borderRadius = '8px';
+                        preview.style.zIndex = '1';
+                        preview.style.opacity = '0.8';
+                        targetElement.appendChild(preview);
+
+                        const updatePreview = (start, end) => {
+                          const startHours = Math.floor((start - startTime) / (1000 * 60 * 60));
+                          const endHours = Math.ceil((end - startTime) / (1000 * 60 * 60));
+                          
+                          const topPos = startHours * 76;
+                          const height = (endHours - startHours) * 76;
+                          
+                          preview.style.top = `${topPos}px`;
+                          preview.style.height = `${height}px`;
+                        };
+
+                        updatePreview(dragStartTime, dragEndTime);
+                        dragStarted = true;
+
+                        // Replace the initial mousemove handler with the drag handler
+                        document.removeEventListener('mousemove', handleMouseMove);
+                        
+                        const handleDragMove = (moveEvent) => {
+                          const endY = moveEvent.clientY - rect.top;
+                          const endHoursFromStart = Math.ceil(endY / 76);
+                          dragEndTime = new Date(startTime.getTime() + (endHoursFromStart * 60 * 60 * 1000));
+                          updatePreview(dragStartTime, dragEndTime);
+                        };
+
+                        document.addEventListener('mousemove', handleDragMove);
+
+                        const handleMouseUp = async () => {
+                          // Clean up event listeners
+                          document.removeEventListener('mousemove', handleDragMove);
+                          document.removeEventListener('mouseup', handleMouseUp);
+
+                          // If we haven't actually started dragging, just clean up and return
+                          if (!dragStarted) {
+                            return;
+                          }
+
+                          // Remove preview element
+                          if (preview.parentNode) {
+                            preview.remove();
+                          }
+
+                          const finalStartTime = dragStartTime < dragEndTime ? dragStartTime : dragEndTime;
+                          const finalEndTime = dragStartTime < dragEndTime ? dragEndTime : dragStartTime;
+
+                          // Add validation check
+                          const mainEventStart = new Date(selectedEvent.startTime);
+                          const mainEventEnd = new Date(selectedEvent.endTime);
+                          
+                          if (!isWithinEventBounds(finalStartTime, finalEndTime, mainEventStart, mainEventEnd)) {
+                            preview.remove();
+                            console.log('Events must be within the event start and end times');
+                            return;
+                          }
+
+                          // Check for overlaps with existing events
+                          const hasOverlap = selectedEvent?.calendar_events?.some(event => {
+                            const existingStart = new Date(event.startTime);
+                            const existingEnd = new Date(event.endTime);
+                            return isTimeOverlapping(
+                              finalStartTime,
+                              finalEndTime,
+                              existingStart,
+                              existingEnd
+                            );
+                          });
+
+                          if (hasOverlap) {
+                            preview.remove();
+                            console.log('Cannot create overlapping events');
+                            return;
+                          }
+
+                          try {
+                            const response = await fetch('https://serenidad.click/hacktime/createCalendarEvent', {
+                              method: 'POST',
+                              headers: {
+                                'Content-Type': 'application/json',
+                              },
+                              body: JSON.stringify({
+                                token: localStorage.getItem('token'),
+                                eventId: selectedEventId,
+                                calendarEventId: crypto.randomUUID(),
+                                title: '', // Start with empty title
+                                startTime: finalStartTime.toISOString(),
+                                endTime: finalEndTime.toISOString(),
+                                color: '2,147,212'
+                              }),
+                            });
+
+                            if (!response.ok) {
+                              throw new Error('Failed to create calendar event');
+                            }
+
+                            const newEvent = await response.json();
+                            
+                            setNewEventId(newEvent.id);
+                            
+                            setSelectedEvent(prev => ({
+                              ...prev,
+                              calendar_events: [...(prev.calendar_events || []), {
+                                ...newEvent,
+                                startTime: newEvent.start_time,
+                                endTime: newEvent.end_time
+                              }]
+                            }));
+
+                          } catch (error) {
+                            console.error('Failed to create calendar event:', error);
+                          }
+                        };
+
+                        document.addEventListener('mouseup', handleMouseUp);
+                      }, 500); // 500ms delay
+
+                      // Handle early mouse up (before drag starts)
+                      const handleEarlyMouseUp = () => {
+                        clearTimeout(dragTimeout);
+                        document.removeEventListener('mousemove', handleMouseMove);
+                        document.removeEventListener('mouseup', handleEarlyMouseUp);
+                      };
+                      document.addEventListener('mouseup', handleEarlyMouseUp);
+                    }}
+                  >
+                    {/* Map calendar events */}
+                    {selectedEvent?.calendar_events
+                      ?.filter(event => {
+                        const eventStart = new Date(event.startTime);
+                        const eventEnd = new Date(event.endTime);
+                        const mainEventStart = new Date(selectedEvent.startTime);
+                        const mainEventEnd = new Date(selectedEvent.endTime);
+                        return isWithinEventBounds(eventStart, eventEnd, mainEventStart, mainEventEnd);
+                      })
+                      .map((event, index) => {
+                        const eventStart = new Date(event.startTime);
+                        const eventEnd = new Date(event.endTime);
+                        const dayStart = new Date(selectedEvent.startTime);
+                        
+                        // Format time helper function
+                        const formatTime = (date) => {
+                          const minutes = date.getUTCMinutes();
+                          return date.toLocaleTimeString('en-US', { 
+                            hour: 'numeric',
+                            minute: minutes === 0 ? undefined : '2-digit',
+                            hour12: true,
+                            timeZone: 'UTC'
+                          }).toLowerCase();
+                        };
+                        
+                        const backgroundColor = event.color ? 
+                          `rgb(${event.color})` : 
+                          "#DA8000";
+                        
+                        const topOffset = ((eventStart - dayStart) / (1000 * 60 * 60)) * 76;
+                        const duration = (eventEnd - eventStart) / (1000 * 60 * 60);
+                        const height = (duration * 76) - 48;
+                        
+                        return (
+                          <div key={index} style={{
+                            position: "absolute",
+                            zIndex: 2,
+                            top: topOffset
+                          }}>
+                            <div style={{marginLeft: 24, marginTop: 0, padding: 8, height: height}}>
+                              <div style={{
+                                backgroundColor,
+                                borderRadius: 8,
+                                display: "flex",
+                                flexDirection: "column",
+                                justifyContent: "space-between",
+                                height: "100%",
+                                padding: 16,
+                                width: "140px",
+                                marginLeft: 8,
+                                userSelect: "none",
+                                cursor: "pointer"
+                              }}>
+                                <p
+                                  ref={el => {
+                                    // Auto-focus if this is the newly created event
+                                    if (el && event.id === newEventId) {
+                                      el.focus();
+                                      setNewEventId(null); // Clear the newEventId after focusing
+                                    }
+                                  }}
+                                  contentEditable
+                                  suppressContentEditableWarning
+                                  onBlur={(e) => {
+                                    const newTitle = e.target.innerText.trim();
+                                    if (newTitle === '' && event.title === '') {
+                                      // Delete the event if it was never given a title
+                                      handleDeleteCalendarEvent(event.id);
+                                    } else if (newTitle !== event.title) {
+                                      // Update the title if it changed
+                                      handleEventTitleUpdate(event.id, newTitle);
+                                    }
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      e.preventDefault();
+                                      e.target.blur();
+                                    } else if (e.key === 'Escape') {
+                                      // If it's a new event with no title, delete it
+                                      if (event.title === '' && e.target.innerText.trim() === '') {
+                                        handleDeleteCalendarEvent(event.id);
+                                      } else {
+                                        // Otherwise just blur the input
+                                        e.target.blur();
+                                      }
+                                    }
+                                  }}
+                                  style={{
+                                    margin: 0,
+                                    fontSize: 16,
+                                    color: "#fff",
+                                    outline: 'none',
+                                    cursor: "text",
+                                    padding: "2px 4px",
+                                    borderRadius: "4px",
+                                    transition: "background-color 0.2s",
+                                    wordWrap: "break-word",
+                                    overflowWrap: "break-word",
+                                    whiteSpace: "pre-wrap",
+                                    minHeight: "24px",
+                                    "&:hover": {
+                                      backgroundColor: "rgba(255, 255, 255, 0.1)"
+                                    }
+                                  }}
+                                >
+                                  {event.title}
+                                </p>
+                                <p style={{margin: 0, fontSize: 14, color: "#fff", opacity: 0.8}}>
+                                  {formatTime(eventStart)} - {formatTime(eventEnd)}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    {Array.from({ length: hoursDiff }).map((_, index) => {
+                      const cellTime = new Date(startDate.getTime() + (index * 60 * 60 * 1000));
+                      const isFirstCell = index === 0;
+                      const previousCellTime = index > 0 
+                        ? new Date(startDate.getTime() + ((index - 1) * 60 * 60 * 1000))
+                        : null;
+                      const dayChanged = previousCellTime && 
+                        cellTime.getUTCDate() !== previousCellTime.getUTCDate();
+
+                      // Only show day label if it's first cell or day changed
+                      const showDayLabel = isFirstCell || dayChanged;
+                      const dayLabel = cellTime.toLocaleString('en-US', { 
+                        weekday: 'short', 
+                        timeZone: 'UTC'
+                      }).toUpperCase();
+
+                      return (
+                        <div key={index} style={{
+                          width: 217,
+                          position: "relative",
+                          height: 75,
+                          borderRight: "1px solid #EBEBEB",
+                          borderBottom: "1px solid #EBEBEB",
+                          flexShrink: 0
                         }}>
-                          {cellTime.toLocaleTimeString('en-US', { 
-                          hour: 'numeric',
-                          timeZone: 'UTC',
-                          hour12: true 
-                        })}
-                        </p>
-                      </div>
-                    );
-                  })}
+                          <p style={{
+                            position: "absolute",
+                            fontSize: 9,
+                            paddingLeft: 2,
+                            width: 28, 
+                            marginTop: -6,
+                            backgroundColor: "#fff",
+                            userSelect: "none"
+                          }}>
+                            {showDayLabel && (
+                              <span style={{ display: 'block' }}>{dayLabel}</span>
+                            )}
+                            {cellTime.toLocaleTimeString('en-US', { 
+                              hour: 'numeric',
+                              timeZone: 'UTC',
+                              hour12: true 
+                            })}
+                          </p>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
                 {/* Scrollable section */}
@@ -527,7 +913,384 @@ export default function Home() {
           })()}
         </div>        
         }
-        {currentTab != "Run of Show" && 
+
+        {currentTab == "Schedule" && 
+          <div style={{
+            flex: 1,
+            display: "flex",
+            fontSize: "24px",
+            width: "100%",
+            justifyContent: "center"
+          }}>
+            <div style={{
+              width: 800, 
+              marginTop: 24
+            }}>
+              <p style={{margin: 0}}>Event Schedule</p>
+              
+              <div 
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  marginTop: 24,
+                  borderTop: "1px solid #EBEBEB",
+                  position: "relative"
+                }}
+                onMouseDown={(e) => {
+                  const targetElement = e.currentTarget;
+                  const rect = targetElement.getBoundingClientRect();
+                  const initialY = e.clientY;
+                  let dragStarted = false;
+                  let dragTimeout;
+                  
+                  // Store initial mouse position
+                  const initialMousePos = {
+                    x: e.clientX,
+                    y: e.clientY
+                  };
+
+                  const handleMouseMove = (moveEvent) => {
+                    // Calculate distance moved
+                    const distance = Math.sqrt(
+                      Math.pow(moveEvent.clientX - initialMousePos.x, 2) + 
+                      Math.pow(moveEvent.clientY - initialMousePos.y, 2)
+                    );
+
+                    // Only start drag if we've moved at least 5 pixels
+                    if (!dragStarted && distance < 5) {
+                      return;
+                    }
+                  };
+
+                  // Start listening for mouse movement immediately
+                  document.addEventListener('mousemove', handleMouseMove);
+
+                  // Set timeout for drag initialization
+                  dragTimeout = setTimeout(() => {
+                    const startY = initialY - rect.top;
+                    const hoursFromStart = Math.floor(startY / 76);
+                    const startTime = new Date(selectedEvent.startTime);
+                    const dragStartTime = new Date(startTime.getTime() + (hoursFromStart * 60 * 60 * 1000));
+                    let dragEndTime = dragStartTime;
+                    
+                    // Create preview element
+                    const preview = document.createElement('div');
+                    preview.style.position = 'absolute';
+                    preview.style.left = '40px';
+                    preview.style.width = '752px';
+                    preview.style.right = '24px';
+                    preview.style.backgroundColor = 'rgb(2, 147, 212)';
+                    preview.style.borderRadius = '8px';
+                    preview.style.zIndex = '1';
+                    preview.style.opacity = '0.8';
+                    targetElement.appendChild(preview);
+
+                    const updatePreview = (start, end) => {
+                      const startHours = Math.floor((start - startTime) / (1000 * 60 * 60));
+                      const endHours = Math.ceil((end - startTime) / (1000 * 60 * 60));
+                      
+                      const topPos = startHours * 76;
+                      const height = (endHours - startHours) * 76;
+                      
+                      preview.style.top = `${topPos}px`;
+                      preview.style.height = `${height}px`;
+                    };
+
+                    updatePreview(dragStartTime, dragEndTime);
+                    dragStarted = true;
+
+                    // Replace the initial mousemove handler with the drag handler
+                    document.removeEventListener('mousemove', handleMouseMove);
+                    
+                    const handleDragMove = (moveEvent) => {
+                      const endY = moveEvent.clientY - rect.top;
+                      const endHoursFromStart = Math.ceil(endY / 76);
+                      dragEndTime = new Date(startTime.getTime() + (endHoursFromStart * 60 * 60 * 1000));
+                      updatePreview(dragStartTime, dragEndTime);
+                    };
+
+                    document.addEventListener('mousemove', handleDragMove);
+
+                    const handleMouseUp = async () => {
+                      // Clean up event listeners
+                      document.removeEventListener('mousemove', handleDragMove);
+                      document.removeEventListener('mouseup', handleMouseUp);
+
+                      // If we haven't actually started dragging, just clean up and return
+                      if (!dragStarted) {
+                        return;
+                      }
+
+                      // Remove preview element
+                      if (preview.parentNode) {
+                        preview.remove();
+                      }
+
+                      const finalStartTime = dragStartTime < dragEndTime ? dragStartTime : dragEndTime;
+                      const finalEndTime = dragStartTime < dragEndTime ? dragEndTime : dragStartTime;
+
+                      // Add validation check
+                      const mainEventStart = new Date(selectedEvent.startTime);
+                      const mainEventEnd = new Date(selectedEvent.endTime);
+                      
+                      if (!isWithinEventBounds(finalStartTime, finalEndTime, mainEventStart, mainEventEnd)) {
+                        preview.remove();
+                        console.log('Events must be within the event start and end times');
+                        return;
+                      }
+
+                      // Check for overlaps with existing events
+                      const hasOverlap = selectedEvent?.calendar_events?.some(event => {
+                        const existingStart = new Date(event.startTime);
+                        const existingEnd = new Date(event.endTime);
+                        return isTimeOverlapping(
+                          finalStartTime,
+                          finalEndTime,
+                          existingStart,
+                          existingEnd
+                        );
+                      });
+
+                      if (hasOverlap) {
+                        preview.remove();
+                        console.log('Cannot create overlapping events');
+                        return;
+                      }
+
+                      try {
+                        const response = await fetch('https://serenidad.click/hacktime/createCalendarEvent', {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                          },
+                          body: JSON.stringify({
+                            token: localStorage.getItem('token'),
+                            eventId: selectedEventId,
+                            calendarEventId: crypto.randomUUID(),
+                            title: '', // Start with empty title
+                            startTime: finalStartTime.toISOString(),
+                            endTime: finalEndTime.toISOString(),
+                            color: '2,147,212'
+                          }),
+                        });
+
+                        if (!response.ok) {
+                          throw new Error('Failed to create calendar event');
+                        }
+
+                        const newEvent = await response.json();
+                        
+                        setNewEventId(newEvent.id);
+                        
+                        setSelectedEvent(prev => ({
+                          ...prev,
+                          calendar_events: [...(prev.calendar_events || []), {
+                            ...newEvent,
+                            startTime: newEvent.start_time,
+                            endTime: newEvent.end_time
+                          }]
+                        }));
+
+                      } catch (error) {
+                        console.error('Failed to create calendar event:', error);
+                      }
+                    };
+
+                    document.addEventListener('mouseup', handleMouseUp);
+                  }, 500); // 500ms delay
+
+                  // Handle early mouse up (before drag starts)
+                  const handleEarlyMouseUp = () => {
+                    clearTimeout(dragTimeout);
+                    document.removeEventListener('mousemove', handleMouseMove);
+                    document.removeEventListener('mouseup', handleEarlyMouseUp);
+                  };
+                  document.addEventListener('mouseup', handleEarlyMouseUp);
+                }}
+              >
+                {/* Calendar Events Layer */}
+                {selectedEvent?.calendar_events
+                  ?.filter(event => {
+                    const eventStart = new Date(event.startTime);
+                    const eventEnd = new Date(event.endTime);
+                    const mainEventStart = new Date(selectedEvent.startTime);
+                    const mainEventEnd = new Date(selectedEvent.endTime);
+                    return isWithinEventBounds(eventStart, eventEnd, mainEventStart, mainEventEnd);
+                  })
+                  .map((event, index) => {
+                    const eventStart = new Date(event.startTime);
+                    const eventEnd = new Date(event.endTime);
+                    const dayStart = new Date(selectedEvent.startTime);
+                    
+                    // Format time helper function
+                    const formatTime = (date) => {
+                      const minutes = date.getUTCMinutes();
+                      return date.toLocaleTimeString('en-US', { 
+                        hour: 'numeric',
+                        minute: minutes === 0 ? undefined : '2-digit',
+                        hour12: true,
+                        timeZone: 'UTC'
+                      }).toLowerCase();
+                    };
+                    
+                    const backgroundColor = event.color ? 
+                      `rgb(${event.color})` : 
+                      "#DA8000";
+                    
+                    const topOffset = ((eventStart - dayStart) / (1000 * 60 * 60)) * 76;
+                    const duration = (eventEnd - eventStart) / (1000 * 60 * 60);
+                    const height = (duration * 76) - 48;
+                    
+                    return (
+                      <div key={index} style={{
+                        position: "absolute",
+                        zIndex: 2,
+                        top: topOffset,
+                        width: "100%"
+                      }}>
+                        <div style={{margin: "0 24px", padding: 8, height: height}}>
+                          <div style={{
+                            backgroundColor,
+                            borderRadius: 8,
+                            display: "flex",
+                            flexDirection: "column",
+                            justifyContent: "space-between",
+                            height: "100%",
+                            padding: 16,
+                            width: "calc(100% - 16px)",
+                            marginLeft: 8,
+                            userSelect: "none",
+                            cursor: "pointer"
+                          }}>
+                            <p
+                              ref={el => {
+                                // Auto-focus if this is the newly created event
+                                if (el && event.id === newEventId) {
+                                  el.focus();
+                                  setNewEventId(null); // Clear the newEventId after focusing
+                                }
+                              }}
+                              contentEditable
+                              suppressContentEditableWarning
+                              onBlur={(e) => {
+                                const newTitle = e.target.innerText.trim();
+                                if (newTitle === '' && event.title === '') {
+                                  // Delete the event if it was never given a title
+                                  handleDeleteCalendarEvent(event.id);
+                                } else if (newTitle !== event.title) {
+                                  // Update the title if it changed
+                                  handleEventTitleUpdate(event.id, newTitle);
+                                }
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  e.target.blur();
+                                } else if (e.key === 'Escape') {
+                                  // If it's a new event with no title, delete it
+                                  if (event.title === '' && e.target.innerText.trim() === '') {
+                                    handleDeleteCalendarEvent(event.id);
+                                  } else {
+                                    // Otherwise just blur the input
+                                    e.target.blur();
+                                  }
+                                }
+                              }}
+                              style={{
+                                margin: 0,
+                                fontSize: 16,
+                                color: "#fff",
+                                outline: 'none',
+                                cursor: "text",
+                                padding: "2px 4px",
+                                borderRadius: "4px",
+                                transition: "background-color 0.2s",
+                                wordWrap: "break-word",
+                                overflowWrap: "break-word",
+                                whiteSpace: "pre-wrap",
+                                minHeight: "24px",
+                                "&:hover": {
+                                  backgroundColor: "rgba(255, 255, 255, 0.1)"
+                                }
+                              }}
+                            >
+                              {event.title}
+                            </p>
+                            <p style={{margin: 0, fontSize: 14, color: "#fff", opacity: 0.8}}>
+                              {formatTime(eventStart)} - {formatTime(eventEnd)}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                {/* Time Grid */}
+                {(() => {
+                  // Safety check for selectedEvent and valid dates
+                  if (!selectedEvent?.startTime || !selectedEvent?.endTime) {
+                    return null;
+                  }
+
+                  const startDate = new Date(selectedEvent.startTime);
+                  const endDate = new Date(selectedEvent.endTime);
+                  const hoursDiff = Math.ceil((endDate - startDate) / (1000 * 60 * 60));
+
+                  if (!hoursDiff || hoursDiff < 0 || !Number.isFinite(hoursDiff)) {
+                    return null;
+                  }
+
+                  return Array.from({ length: hoursDiff }).map((_, index) => {
+                    const cellTime = new Date(startDate.getTime() + (index * 60 * 60 * 1000));
+                    const isFirstCell = index === 0;
+                    const previousCellTime = index > 0 
+                      ? new Date(startDate.getTime() + ((index - 1) * 60 * 60 * 1000))
+                      : null;
+                    const dayChanged = previousCellTime && 
+                      cellTime.getUTCDate() !== previousCellTime.getUTCDate();
+
+                    const showDayLabel = isFirstCell || dayChanged;
+                    const dayLabel = cellTime.toLocaleString('en-US', { 
+                      weekday: 'short', 
+                      timeZone: 'UTC'
+                    }).toUpperCase();
+
+                    return (
+                      <div key={index} style={{
+                        width: "100%",
+                        position: "relative",
+                        height: 75,
+                        borderBottom: "1px solid #EBEBEB",
+                        flexShrink: 0
+                      }}>
+                        <p style={{
+                          position: "absolute",
+                          fontSize: 9,
+                          paddingLeft: 2,
+                          width: 28,
+                          marginTop: -6,
+                          backgroundColor: "#fff",
+                          userSelect: "none",
+                          color: "#A2A2A2"
+                        }}>
+                          {showDayLabel && (
+                            <span style={{ display: 'block' }}>{dayLabel}</span>
+                          )}
+                          {cellTime.toLocaleTimeString('en-US', { 
+                            hour: 'numeric',
+                            timeZone: 'UTC',
+                            hour12: true 
+                          })}
+                        </p>
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+            </div>
+          </div>
+        }
+        {(currentTab != "Run of Show" && currentTab != "Schedule")&& 
 
         <div style={{
           flex: 1,
