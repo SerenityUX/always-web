@@ -3,7 +3,17 @@ import { useRouter } from 'next/router';
 import { useEffect, useState, useRef } from 'react';
 import Navigation from '../components/Navigation';
 
-// Keep these helper functions outside the component
+// Move these outside the component
+const formatTime = (date) => {
+  const minutes = date.getUTCMinutes();
+  return date.toLocaleTimeString('en-US', { 
+    hour: 'numeric',
+    minute: minutes === 0 ? undefined : '2-digit',
+    hour12: true,
+    timeZone: 'UTC'
+  }).toLowerCase();
+};
+
 const isTimeOverlapping = (start1, end1, start2, end2) => {
   return start1 < end2 && end1 > start2;
 };
@@ -12,11 +22,105 @@ const isWithinEventBounds = (startTime, endTime, eventStartTime, eventEndTime) =
   return startTime >= eventStartTime && endTime <= eventEndTime;
 };
 
+const COLORS = [
+  "2,147,212",
+  "218,128,0",
+  "8,164,42",
+  "142,8,164",
+  "190,58,44",
+  "89,89,89"
+];
+
+const parseTimeString = (timeStr) => {
+  // Remove all spaces and convert to lowercase
+  const cleanStr = timeStr.toLowerCase().replace(/\s+/g, '');
+  
+  // Extract am/pm
+  const isPM = cleanStr.includes('pm');
+  const isAM = cleanStr.includes('am');
+  
+  // Remove am/pm and any non-numeric characters except colon
+  let timeNumbers = cleanStr
+    .replace(/[ap]m/, '')
+    .replace(/[^\d:]/g, '');
+  
+  // Handle different formats
+  let hours, minutes;
+  
+  if (timeNumbers.includes(':')) {
+    // Format with minutes (7:15, 7:00, etc)
+    [hours, minutes] = timeNumbers.split(':').map(num => parseInt(num));
+  } else {
+    // Format without minutes (7, 12, etc)
+    hours = parseInt(timeNumbers);
+    minutes = 0;
+  }
+  
+  // Validate parsed numbers
+  if (isNaN(hours) || hours < 0 || hours > 12 || 
+      isNaN(minutes) || minutes < 0 || minutes >= 60) {
+    throw new Error('Invalid time format');
+  }
+  
+  // Convert to 24 hour format
+  if (isPM && hours !== 12) {
+    hours += 12;
+  } else if (isAM && hours === 12) {
+    hours = 0;
+  }
+  
+  return { hours, minutes };
+};
+
+// Add this helper at the top with other helpers
+const adjustTimeForDay = (timeDate, referenceDate, hours, minutes) => {
+  // Create initial UTC date
+  let adjustedDate = new Date(Date.UTC(
+    timeDate.getUTCFullYear(),
+    timeDate.getUTCMonth(),
+    timeDate.getUTCDate(),
+    hours,
+    minutes,
+    0,
+    0
+  ));
+
+  // For end times: if the time is earlier than start time, assume next day
+  if (referenceDate && adjustedDate < referenceDate) {
+    adjustedDate = new Date(Date.UTC(
+      timeDate.getUTCFullYear(),
+      timeDate.getUTCMonth(),
+      timeDate.getUTCDate() + 1,
+      hours,
+      minutes,
+      0,
+      0
+    ));
+  }
+
+  return adjustedDate;
+};
+
+// Add this helper function to convert 24h time string to Date
+const timeStringToDate = (timeStr, baseDate) => {
+  const [hours, minutes] = timeStr.split(':').map(num => parseInt(num));
+  return new Date(Date.UTC(
+    baseDate.getUTCFullYear(),
+    baseDate.getUTCMonth(),
+    baseDate.getUTCDate(),
+    hours,
+    minutes,
+    0,
+    0
+  ));
+};
+
+// Add this constant at the top with other constants
+const MAX_DURATION = 23.99 * 60 * 60 * 1000; // Just under 24 hours in milliseconds
+
 export default function Home() {
   const router = useRouter();
   const { tab, eventId } = router.query;
-  console.log("TAB IS", tab)
-
   const currentTab = tab || "Run of Show";
 
   const [user, setUser] = useState(null);
@@ -24,6 +128,8 @@ export default function Home() {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [selectedEventId, setSelectedEventId] = useState(null);
   const [newEventId, setNewEventId] = useState(null);
+  const [selectedCalendarEvent, setSelectedCalendarEvent] = useState(null);
+  const [animatingColor, setAnimatingColor] = useState(null);
 
   const [isInvitingNewUser, setIsInvitingNewUser] = useState(false);
 
@@ -303,6 +409,206 @@ export default function Home() {
     }
   };
 
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape' && selectedCalendarEvent) {
+        setSelectedCalendarEvent(null);
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [selectedCalendarEvent]);
+
+  // Update the handleColorUpdate function
+  const handleColorUpdate = async (calendarEventId, colorString) => {
+    // Immediately update UI
+    setAnimatingColor(colorString);
+    setSelectedEvent(prev => ({
+      ...prev,
+      calendar_events: prev.calendar_events.map(evt => 
+        evt.id === calendarEventId ? { ...evt, color: colorString } : evt
+      )
+    }));
+    setSelectedCalendarEvent(prev => ({
+      ...prev,
+      color: colorString
+    }));
+
+    try {
+      const response = await fetch('https://serenidad.click/hacktime/updateCalendarEvent', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          token: localStorage.getItem('token'),
+          calendarEventId,
+          color: colorString
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update event color');
+      }
+
+    } catch (error) {
+      console.error('Failed to update event color:', error);
+      // Revert the changes if the API call fails
+      setSelectedEvent(prev => ({
+        ...prev,
+        calendar_events: prev.calendar_events.map(evt => 
+          evt.id === calendarEventId ? { ...evt, color: selectedCalendarEvent.color } : evt
+        )
+      }));
+      setSelectedCalendarEvent(prev => ({
+        ...prev,
+        color: prev.color
+      }));
+    } finally {
+      setAnimatingColor(null);
+    }
+  };
+
+  // Update the keyboard navigation effect
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Only handle arrow keys if:
+      // 1. Calendar event is selected
+      // 2. Not focused on input/textarea
+      // 3. Not focused on contentEditable element
+      if (!selectedCalendarEvent || 
+          document.activeElement.tagName === 'INPUT' || 
+          document.activeElement.tagName === 'TEXTAREA' ||
+          document.activeElement.getAttribute('contenteditable') === 'true') {
+        return;
+      }
+
+      const currentColorIndex = COLORS.indexOf(selectedCalendarEvent.color);
+      let newIndex;
+
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        newIndex = currentColorIndex > 0 ? currentColorIndex - 1 : COLORS.length - 1;
+        handleColorUpdate(selectedCalendarEvent.id, COLORS[newIndex]);
+      } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        newIndex = currentColorIndex < COLORS.length - 1 ? currentColorIndex + 1 : 0;
+        handleColorUpdate(selectedCalendarEvent.id, COLORS[newIndex]);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [selectedCalendarEvent]);
+
+  // Update the handleTimeUpdate function
+  const handleTimeUpdate = async (calendarEventId, newStartTime, newEndTime) => {
+    // Validate times are within main event bounds
+    const mainEventStart = new Date(selectedEvent.startTime);
+    const mainEventEnd = new Date(selectedEvent.endTime);
+    
+    // Calculate duration
+    const duration = newEndTime - newStartTime;
+    
+    // If duration would exceed max, don't allow it
+    if (duration > MAX_DURATION) {
+      return false;
+    }
+
+    // If end time is before start time and the duration would be reasonable,
+    // move end time to next day
+    if (newEndTime < newStartTime && (newEndTime.getTime() + 24 * 60 * 60 * 1000 - newStartTime.getTime()) <= MAX_DURATION) {
+      newEndTime = new Date(newEndTime.getTime() + 24 * 60 * 60 * 1000);
+    }
+    
+    if (!isWithinEventBounds(newStartTime, newEndTime, mainEventStart, mainEventEnd)) {
+      alert('Event must be within the main event time bounds');
+      return false;
+    }
+
+    // Check for overlaps with other events
+    const hasOverlap = selectedEvent?.calendar_events?.some(event => {
+      if (event.id === calendarEventId) return false; // Skip current event
+      const existingStart = new Date(event.startTime);
+      const existingEnd = new Date(event.endTime);
+      return isTimeOverlapping(newStartTime, newEndTime, existingStart, existingEnd);
+    });
+
+    if (hasOverlap) {
+      alert('Cannot overlap with existing events');
+      return false;
+    }
+
+    try {
+      const response = await fetch('https://serenidad.click/hacktime/updateCalendarEvent', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          token: localStorage.getItem('token'),
+          calendarEventId,
+          startTime: newStartTime.toISOString(),
+          endTime: newEndTime.toISOString()
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update event time');
+      }
+
+      // Update local state
+      setSelectedEvent(prev => ({
+        ...prev,
+        calendar_events: prev.calendar_events.map(evt => 
+          evt.id === calendarEventId 
+            ? { ...evt, startTime: newStartTime.toISOString(), endTime: newEndTime.toISOString() } 
+            : evt
+        )
+      }));
+
+      setSelectedCalendarEvent(prev => ({
+        ...prev,
+        startTime: newStartTime.toISOString(),
+        endTime: newEndTime.toISOString()
+      }));
+
+      return true;
+    } catch (error) {
+      console.error('Failed to update event time:', error);
+      return false;
+    }
+  };
+
+  // Add this function inside the Home component
+  const handleDeleteConfirmation = (calendarEventId) => {
+    if (window.confirm('Are you sure you want to delete this event?')) {
+      handleDeleteCalendarEvent(calendarEventId);
+      setSelectedCalendarEvent(null); // Close the modal after deletion
+    }
+  };
+
+  // Add this effect for the keyboard shortcut
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (!selectedCalendarEvent || 
+          document.activeElement.tagName === 'INPUT' || 
+          document.activeElement.tagName === 'TEXTAREA' ||
+          document.activeElement.getAttribute('contenteditable') === 'true') {
+        return;
+      }
+
+      if (e.key === 'Backspace' || e.key === 'Delete') {
+        e.preventDefault();
+        handleDeleteConfirmation(selectedCalendarEvent.id);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [selectedCalendarEvent]);
+
   if (loading) {
     return <div></div>;
   }
@@ -317,6 +623,8 @@ export default function Home() {
       </Head>
 
       <div style={{width: "100%", height: "100vh", display: "flex", flexDirection: "column"}}>
+        
+
         {isInvitingNewUser && (
           <div 
             onClick={(e) => {
@@ -700,19 +1008,24 @@ export default function Home() {
                             top: topOffset
                           }}>
                             <div style={{marginLeft: 24, marginTop: 0, padding: 8, height: height}}>
-                              <div style={{
-                                backgroundColor,
-                                borderRadius: 8,
-                                display: "flex",
-                                flexDirection: "column",
-                                justifyContent: "space-between",
-                                height: "100%",
-                                padding: 16,
-                                width: "140px",
-                                marginLeft: 8,
-                                userSelect: "none",
-                                cursor: "pointer"
-                              }}>
+                              <div 
+                                onClick={() => {
+                                  setSelectedCalendarEvent(event);
+                                  console.log("Selected Calendar Event:", event);
+                                }}
+                                style={{
+                                  backgroundColor,
+                                  borderRadius: 8,
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  justifyContent: "space-between",
+                                  height: "100%",
+                                  padding: 16,
+                                  width: "140px",
+                                  marginLeft: 8,
+                                  userSelect: "none",
+                                  cursor: "pointer"
+                                }}>
                                 <p
                                   ref={el => {
                                     // Auto-focus if this is the newly created event
@@ -723,6 +1036,9 @@ export default function Home() {
                                   }}
                                   contentEditable
                                   suppressContentEditableWarning
+                                  onClick={(e) => {
+                                    e.stopPropagation(); // Stop the click from bubbling up
+                                  }}
                                   onBlur={(e) => {
                                     const newTitle = e.target.innerText.trim();
                                     if (newTitle === '' && event.title === '') {
@@ -775,6 +1091,266 @@ export default function Home() {
                           </div>
                         );
                       })}
+
+{selectedCalendarEvent != null && 
+  <div
+    onClick={(e) => {
+      // Don't deselect if clicking on the contentEditable field
+      if (e.target.contentEditable === 'true') {
+        return;
+      }
+      // Only deselect if clicking the background
+      if (e.target === e.currentTarget) {
+        setSelectedCalendarEvent(null);
+      }
+    }}
+    style={{
+      width: "100%",
+      alignItems: "center",
+      justifyContent: "center",
+      position: "fixed",
+      zIndex: 102,
+      marginTop: "-132px",
+      height: "100vh",
+      display: "flex",
+      backgroundColor: "rgba(0, 0, 0, 0.5)",
+    }}
+  >
+  </div>
+}
+
+                    {selectedCalendarEvent && (
+                      <div style={{
+                        position: "absolute",
+                        zIndex: 103,
+                        top: ((new Date(selectedCalendarEvent.startTime) - new Date(selectedEvent.startTime)) / (1000 * 60 * 60)) * 76
+                      }}>
+
+                        <div style={{marginLeft: 24, position: "relative", marginTop: 0, padding: 8, height: ((new Date(selectedCalendarEvent.endTime) - new Date(selectedCalendarEvent.startTime)) / (1000 * 60 * 60)) * 76 - 48}}>
+                          
+                          <div style={{position: "absolute", cursor: "auto", left: 200, borderRadius: 8, width: 400, backgroundColor: "#fff"}}>
+                            <div style={{width: "calc(100% - 24px)", borderRadius: "16px 16px 0px 0px", paddingTop: 8, paddingBottom: 8, justifyContent: "space-between", paddingLeft: 16, paddingRight: 8, alignItems: "center", display: "flex", backgroundColor: "#F6F8FA"}}>
+                            <p style={{margin: 0, fontSize: 14}}>Edit Calendar Event</p>
+                            <img 
+                              onClick={() => handleDeleteConfirmation(selectedCalendarEvent.id)}
+                              style={{width: 24, height: 24, cursor: "pointer"}} 
+                              src="/icons/trash.svg"
+                            />
+                            </div> 
+                            <div style={{display: "flex", gap: 16, padding: 16, flexDirection: "column"}}>
+                              <p 
+                                contentEditable
+                                suppressContentEditableWarning
+                                onBlur={(e) => {
+                                  const newTitle = e.target.innerText.trim();
+                                  if (newTitle !== selectedCalendarEvent.title) {
+                                    // Update both states immediately for a smoother UI experience
+                                    setSelectedCalendarEvent(prev => ({
+                                      ...prev,
+                                      title: newTitle
+                                    }));
+                                    setSelectedEvent(prev => ({
+                                      ...prev,
+                                      calendar_events: prev.calendar_events.map(evt => 
+                                        evt.id === selectedCalendarEvent.id ? { ...evt, title: newTitle } : evt
+                                      )
+                                    }));
+                                    handleEventTitleUpdate(selectedCalendarEvent.id, newTitle);
+                                  }
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    e.target.blur();
+                                  }
+                                }}
+                                style={{
+                                  margin: 0, 
+                                  fontSize: 24, 
+                                  cursor: "text", 
+                                  color: "#000",
+                                  outline: "none",
+                                  padding: "2px 4px",
+                                  borderRadius: "4px",
+                                  transition: "background-color 0.2s",
+                                  "&:hover": {
+                                    backgroundColor: "rgba(0, 0, 0, 0.05)"
+                                  }
+                                }}
+                              >
+                                {selectedCalendarEvent.title}
+                              </p>
+                              <div style={{display: "flex", alignItems: "center", gap: 8}}>
+                                <img src="./icons/clock.svg" style={{width: 24, height: 24}}/>
+                                <div style={{position: "relative"}}>
+                                  <p 
+                                    onClick={(e) => {
+                                      const timeInput = e.currentTarget.nextElementSibling;
+                                      timeInput.showPicker();
+                                    }}
+                                    style={{
+                                      margin: 0, 
+                                      cursor: "pointer",
+                                      padding: 4, 
+                                      backgroundColor: "#F3F2F8", 
+                                      borderRadius: 4,
+                                      minWidth: 70,
+                                      textAlign: "center"
+                                    }}
+                                  >
+                                    {formatTime(new Date(selectedCalendarEvent.startTime))}
+                                  </p>
+                                  <input 
+                                    type="time"
+                                    value={`${new Date(selectedCalendarEvent.startTime).getUTCHours().toString().padStart(2, '0')}:${new Date(selectedCalendarEvent.startTime).getUTCMinutes().toString().padStart(2, '0')}`}
+                                    onChange={async (e) => {
+                                      const newStartTime = timeStringToDate(e.target.value, new Date(selectedCalendarEvent.startTime));
+                                      const duration = new Date(selectedCalendarEvent.endTime) - new Date(selectedCalendarEvent.startTime);
+                                      const newEndTime = new Date(newStartTime.getTime() + duration);
+                                      
+                                      await handleTimeUpdate(selectedCalendarEvent.id, newStartTime, newEndTime);
+                                    }}
+                                    style={{
+                                      position: "absolute",
+                                      opacity: 0,
+                                      pointerEvents: "none"
+                                    }}
+                                  />
+                                </div>
+                                <p style={{margin: 0}}>-</p>
+                                <div style={{position: "relative"}}>
+                                  <p 
+                                    onClick={(e) => {
+                                      const timeInput = e.currentTarget.nextElementSibling;
+                                      timeInput.showPicker();
+                                    }}
+                                    style={{
+                                      margin: 0, 
+                                      cursor: "pointer",
+                                      padding: 4, 
+                                      backgroundColor: "#F3F2F8", 
+                                      borderRadius: 4,
+                                      minWidth: 70,
+                                      textAlign: "center"
+                                    }}
+                                  >
+                                    {formatTime(new Date(selectedCalendarEvent.endTime))}
+                                  </p>
+                                  <input 
+                                    type="time"
+                                    value={`${new Date(selectedCalendarEvent.endTime).getUTCHours().toString().padStart(2, '0')}:${new Date(selectedCalendarEvent.endTime).getUTCMinutes().toString().padStart(2, '0')}`}
+                                    onChange={async (e) => {
+                                      const startTime = new Date(selectedCalendarEvent.startTime);
+                                      let newEndTime = timeStringToDate(e.target.value, new Date(selectedCalendarEvent.endTime));
+                                      
+                                      // If end time is before start time, check if moving to next day would be within max duration
+                                      if (newEndTime < startTime) {
+                                        const nextDayEndTime = new Date(newEndTime.getTime() + 24 * 60 * 60 * 1000);
+                                        const duration = nextDayEndTime - startTime;
+                                        
+                                        if (duration <= MAX_DURATION) {
+                                          newEndTime = nextDayEndTime;
+                                        } else {
+                                          return; // Don't allow the change if it would exceed max duration
+                                        }
+                                      }
+                                      
+                                      await handleTimeUpdate(selectedCalendarEvent.id, startTime, newEndTime);
+                                    }}
+                                    style={{
+                                      position: "absolute",
+                                      opacity: 0,
+                                      pointerEvents: "none"
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                              <div style={{display: "flex", alignItems: "center", gap: 8}}>
+                                <img src="./icons/calendar.svg" style={{width: 24, height: 24}}/>
+                                <p style={{margin: 0}}>Friday, November 1, 2024</p>
+                              </div>
+                              <div style={{display: "flex", alignItems: "center", gap: 8}}>
+                                <img src="./icons/paint.svg" style={{width: 24, height: 24}}/>
+                                <p style={{margin: 0}}>Calendar Color</p>
+                              </div>
+                              <div style={{display: "flex", height: 36, alignItems: "center", flexDirection: "row", gap: 12}}>
+                                {COLORS.map((colorString, index) => (
+                                  <div 
+                                    key={index}
+                                    onClick={() => handleColorUpdate(selectedCalendarEvent.id, colorString)}
+                                    style={{
+                                      backgroundColor: `rgb(${colorString})`,
+                                      cursor: "pointer",
+                                      borderRadius: "100%",
+                                      height: selectedCalendarEvent.color === colorString || animatingColor === colorString ? 36 : 32,
+                                      width: selectedCalendarEvent.color === colorString || animatingColor === colorString ? 36 : 32,
+                                      opacity: selectedCalendarEvent.color === colorString || animatingColor === colorString ? 1 : 0.5,
+                                      transition: "all 0.2s ease"
+                                    }}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                          <div 
+                            onClick={(e) => {
+                              // Don't deselect if clicking on the contentEditable field
+                              if (e.target.contentEditable === 'true') {
+                                return;
+                              }
+                              setSelectedCalendarEvent(null);
+                            }}
+                            style={{
+                              backgroundColor: selectedCalendarEvent.color ? `rgb(${selectedCalendarEvent.color})` : "#DA8000",
+                              borderRadius: 8,
+                              display: "flex",
+                              flexDirection: "column",
+                              justifyContent: "space-between",
+                              height: "100%",
+                              padding: 16,
+                              width: "140px",
+                              marginLeft: 8,
+                              userSelect: "none",
+                              cursor: "pointer"
+                            }}>
+                            <p
+                              contentEditable
+                              suppressContentEditableWarning
+                              onClick={(e) => {
+                                e.stopPropagation(); // Stop the click from bubbling up
+                              }}
+                              onBlur={(e) => {
+                                const newTitle = e.target.innerText.trim();
+                                if (newTitle !== selectedCalendarEvent.title) {
+                                  handleEventTitleUpdate(selectedCalendarEvent.id, newTitle);
+                                }
+                              }}
+                              style={{
+                                margin: 0,
+                                fontSize: 16,
+                                color: "#fff",
+                                outline: 'none',
+                                cursor: "text",
+                                padding: "2px 4px",
+                                borderRadius: "4px",
+                                transition: "background-color 0.2s",
+                                wordWrap: "break-word",
+                                overflowWrap: "break-word",
+                                whiteSpace: "pre-wrap",
+                                minHeight: "24px"
+                              }}
+                            >
+                              {selectedCalendarEvent.title}
+                            </p>
+                            <p style={{margin: 0, fontSize: 14, color: "#fff", opacity: 0.8}}>
+                              {formatTime(new Date(selectedCalendarEvent.startTime))} - {formatTime(new Date(selectedCalendarEvent.endTime))}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+
                     {Array.from({ length: hoursDiff }).map((_, index) => {
                       const cellTime = new Date(startDate.getTime() + (index * 60 * 60 * 1000));
                       const isFirstCell = index === 0;
@@ -1108,6 +1684,35 @@ export default function Home() {
                   document.addEventListener('mouseup', handleEarlyMouseUp);
                 }}
               >
+                
+                {selectedCalendarEvent != null && <div
+                    onClick={(e) => {
+                      // Don't deselect if clicking on the contentEditable field
+                      if (e.target.contentEditable === 'true') {
+                        return;
+                      }
+                      // Only deselect if clicking the background
+                      if (e.target === e.currentTarget) {
+                        setSelectedCalendarEvent(null);
+                      }
+                    }}
+                style={{
+                  width: "100000vw",
+                  
+                  alignItems: "center",
+                  justifyContent: "center",
+                  position: "fixed",
+                  marginLeft: -10000,
+                  zIndex: 102,
+                  marginTop: "-132000px",
+                  height: "1000000000000vh",
+                  display: "flex",
+                  backgroundColor: "rgba(0, 0, 0, 0.5)",
+                }}
+                
+                >
+                
+                </div>}
                 {/* Calendar Events Layer */}
                 {selectedEvent?.calendar_events
                   ?.filter(event => {
@@ -1144,24 +1749,201 @@ export default function Home() {
                     return (
                       <div key={index} style={{
                         position: "absolute",
-                        zIndex: 2,
+            
+                        zIndex: selectedCalendarEvent?.id === event.id ? 103 : 2, // Update this line
                         top: topOffset,
                         width: "100%"
                       }}>
+                        {selectedCalendarEvent?.id == event.id && 
+                          
+                                                <div style={{position: "absolute", fontSize: "16", cursor: "auto", left: 800, borderRadius: 8, width: 300, backgroundColor: "#fff"}}>
+                                                  <div style={{width: "calc(100% - 24px)", borderRadius: "16px 16px 0px 0px", paddingTop: 8, paddingBottom: 8, justifyContent: "space-between", paddingLeft: 16, paddingRight: 8, alignItems: "center", display: "flex", backgroundColor: "#F6F8FA"}}>
+                                                  <p style={{margin: 0, fontSize: 16}}>Edit Calendar Event</p>
+                                                  <img 
+                                                    onClick={() => handleDeleteConfirmation(selectedCalendarEvent.id)}
+                                                    style={{width: 24, height: 24, cursor: "pointer"}} 
+                                                    src="/icons/trash.svg"
+                                                  />
+                                                  </div> 
+                                                  <div style={{display: "flex", gap: 16, padding: 16, flexDirection: "column"}}>
+                                                    <p 
+                                                      contentEditable
+                                                      suppressContentEditableWarning
+                                                      onBlur={(e) => {
+                                                        const newTitle = e.target.innerText.trim();
+                                                        if (newTitle !== selectedCalendarEvent.title) {
+                                                          // Update both states immediately for a smoother UI experience
+                                                          setSelectedCalendarEvent(prev => ({
+                                                            ...prev,
+                                                            title: newTitle
+                                                          }));
+                                                          setSelectedEvent(prev => ({
+                                                            ...prev,
+                                                            calendar_events: prev.calendar_events.map(evt => 
+                                                              evt.id === selectedCalendarEvent.id ? { ...evt, title: newTitle } : evt
+                                                            )
+                                                          }));
+                                                          handleEventTitleUpdate(selectedCalendarEvent.id, newTitle);
+                                                        }
+                                                      }}
+                                                      onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') {
+                                                          e.preventDefault();
+                                                          e.target.blur();
+                                                        }
+                                                      }}
+                                                      style={{
+                                                        margin: 0, 
+                                                        fontSize: 24, 
+                                                        cursor: "text", 
+                                                        color: "#000",
+                                                        outline: "none",
+                                                        padding: "2px 4px",
+                                                        borderRadius: "4px",
+                                                        transition: "background-color 0.2s",
+                                                        "&:hover": {
+                                                          backgroundColor: "rgba(0, 0, 0, 0.05)"
+                                                        }
+                                                      }}
+                                                    >
+                                                      {selectedCalendarEvent.title}
+                                                    </p>
+                                                    <div style={{display: "flex", alignItems: "center", gap: 8}}>
+                                                      <img src="./icons/clock.svg" style={{width: 24, height: 24}}/>
+                                                      <div style={{position: "relative"}}>
+                                                        <p 
+                                                          onClick={(e) => {
+                                                            const timeInput = e.currentTarget.nextElementSibling;
+                                                            timeInput.showPicker();
+                                                          }}
+                                                          style={{
+                                                            margin: 0, 
+                                                            fontSize: 16,
+                                                            cursor: "pointer",
+                                                            padding: 4, 
+                                                            backgroundColor: "#F3F2F8", 
+                                                            borderRadius: 4,
+                                                            minWidth: 70,
+                                                            textAlign: "center"
+                                                          }}
+                                                        >
+                                                          {formatTime(new Date(selectedCalendarEvent.startTime))}
+                                                        </p>
+                                                        <input 
+                                                          type="time"
+                                                          value={`${new Date(selectedCalendarEvent.startTime).getUTCHours().toString().padStart(2, '0')}:${new Date(selectedCalendarEvent.startTime).getUTCMinutes().toString().padStart(2, '0')}`}
+                                                          onChange={async (e) => {
+                                                            const newStartTime = timeStringToDate(e.target.value, new Date(selectedCalendarEvent.startTime));
+                                                            const duration = new Date(selectedCalendarEvent.endTime) - new Date(selectedCalendarEvent.startTime);
+                                                            const newEndTime = new Date(newStartTime.getTime() + duration);
+                                                            
+                                                            await handleTimeUpdate(selectedCalendarEvent.id, newStartTime, newEndTime);
+                                                          }}
+                                                          style={{
+                                                            position: "absolute",
+                                                            opacity: 0,
+                                                            pointerEvents: "none"
+                                                          }}
+                                                        />
+                                                      </div>
+                                                      <p style={{margin: 0, fontSize: 16}}>-</p>
+                                                      <div style={{position: "relative"}}>
+                                                        <p 
+                                                          onClick={(e) => {
+                                                            const timeInput = e.currentTarget.nextElementSibling;
+                                                            timeInput.showPicker();
+                                                          }}
+                                                          style={{
+                                                            margin: 0, 
+                                                            cursor: "pointer",
+                                                            padding: 4, 
+                                                            backgroundColor: "#F3F2F8", 
+                                                            borderRadius: 4,
+                                                            minWidth: 70,
+                                                            textAlign: "center",
+                                                            fontSize: 16
+                                                          }}
+                                                        >
+                                                          {formatTime(new Date(selectedCalendarEvent.endTime))}
+                                                        </p>
+                                                        <input 
+                                                          type="time"
+                                                          value={`${new Date(selectedCalendarEvent.endTime).getUTCHours().toString().padStart(2, '0')}:${new Date(selectedCalendarEvent.endTime).getUTCMinutes().toString().padStart(2, '0')}`}
+                                                          onChange={async (e) => {
+                                                            const startTime = new Date(selectedCalendarEvent.startTime);
+                                                            let newEndTime = timeStringToDate(e.target.value, new Date(selectedCalendarEvent.endTime));
+                                                            
+                                                            // If end time is before start time, check if moving to next day would be within max duration
+                                                            if (newEndTime < startTime) {
+                                                              const nextDayEndTime = new Date(newEndTime.getTime() + 24 * 60 * 60 * 1000);
+                                                              const duration = nextDayEndTime - startTime;
+                                                              
+                                                              if (duration <= MAX_DURATION) {
+                                                                newEndTime = nextDayEndTime;
+                                                              } else {
+                                                                return; // Don't allow the change if it would exceed max duration
+                                                              }
+                                                            }
+                                                            
+                                                            await handleTimeUpdate(selectedCalendarEvent.id, startTime, newEndTime);
+                                                          }}
+                                                          style={{
+                                                            position: "absolute",
+                                                            opacity: 0,
+                                                            pointerEvents: "none"
+                                                          }}
+                                                        />
+                                                      </div>
+                                                    </div>
+                                                    <div style={{display: "flex", alignItems: "center", gap: 8}}>
+                                                      <img src="./icons/calendar.svg" style={{width: 24, height: 24}}/>
+                                                      <p style={{margin: 0, fontSize: 16}}>Friday, November 1, 2024</p>
+                                                    </div>
+                                                    <div style={{display: "flex", alignItems: "center", gap: 8}}>
+                                                      <img src="./icons/paint.svg" style={{width: 24, height: 24}}/>
+                                                      <p style={{margin: 0, fontSize: 16}}>Calendar Color</p>
+                                                    </div>
+                                                    <div style={{display: "flex", height: 36, alignItems: "center", flexDirection: "row", gap: 12}}>
+                                                      {COLORS.map((colorString, index) => (
+                                                        <div 
+                                                          key={index}
+                                                          onClick={() => handleColorUpdate(selectedCalendarEvent.id, colorString)}
+                                                          style={{
+                                                            backgroundColor: `rgb(${colorString})`,
+                                                            cursor: "pointer",
+                                                            borderRadius: "100%",
+                                                            height: selectedCalendarEvent.color === colorString || animatingColor === colorString ? 36 : 32,
+                                                            width: selectedCalendarEvent.color === colorString || animatingColor === colorString ? 36 : 32,
+                                                            opacity: selectedCalendarEvent.color === colorString || animatingColor === colorString ? 1 : 0.5,
+                                                            transition: "all 0.2s ease"
+                                                          }}
+                                                        />
+                                                      ))}
+                                                    </div>
+                                                  </div>
+                                                </div>
+                        }
                         <div style={{margin: "0 24px", padding: 8, height: height}}>
-                          <div style={{
-                            backgroundColor,
-                            borderRadius: 8,
-                            display: "flex",
-                            flexDirection: "column",
-                            justifyContent: "space-between",
-                            height: "100%",
-                            padding: 16,
-                            width: "calc(100% - 16px)",
-                            marginLeft: 8,
-                            userSelect: "none",
-                            cursor: "pointer"
-                          }}>
+                          <div 
+                                onClick={() => {
+                                  setSelectedCalendarEvent(event);
+                                  console.log("Selected Calendar Event:", event);
+                                }}                            
+                              
+                                style={{
+                              backgroundColor,
+                              borderRadius: 8,
+                              display: "flex",
+                              flexDirection: "column",
+                              justifyContent: "space-between",
+                              height: "100%",
+                              padding: 16,
+                              width: "calc(100% - 16px)",
+                              marginLeft: 8,
+                              userSelect: "none",
+                              cursor: "pointer"
+                            }}
+                          >
                             <p
                               ref={el => {
                                 // Auto-focus if this is the newly created event
@@ -1172,6 +1954,9 @@ export default function Home() {
                               }}
                               contentEditable
                               suppressContentEditableWarning
+                              onClick={(e) => {
+                                e.stopPropagation(); // Stop the click from bubbling up
+                              }}
                               onBlur={(e) => {
                                 const newTitle = e.target.innerText.trim();
                                 if (newTitle === '' && event.title === '') {
@@ -1301,7 +2086,8 @@ export default function Home() {
           color: "#59636E"
         }}>
           {currentTab}
-        </div>}
+        </div>
+        }
       </div>
     </>
   );
