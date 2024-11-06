@@ -14,14 +14,14 @@ const commonTimezones = {
   "UTC": "Coordinated Universal Time (UTC)"
 };
 
-export default function Navigation({ user, onUserUpdate, selectedEventId, onEventSelect }) {
+export default function Navigation({ user, onUserUpdate, selectedEventId, showCreateEventModal, setShowCreateEventModal, showEventDropdown, setShowEventDropdown, onEventSelect }) {
   const router = useRouter();
   const [showProfile, setShowProfile] = useState(false);
   const profileRef = useRef(null);
   const { tab, event } = router.query;
-  const [showEventDropdown, setShowEventDropdown] = useState(false);
+  // const [showEventDropdown, setShowEventDropdown] = useState(false);
   const eventDropdownRef = useRef(null);
-  const [showCreateEventModal, setShowCreateEventModal] = useState(false);
+  // const [showCreateEventModal, setShowCreateEventModal] = useState(false);
 
   // Transform events object into array and sort by title
   const eventsList = user?.events ? 
@@ -119,7 +119,7 @@ export default function Navigation({ user, onUserUpdate, selectedEventId, onEven
     }
   };
 
-  const CreateEventModal = ({ onClose, onEventSelect }) => {
+  const CreateEventModal = ({ setShowCreateEventModal }) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
     const [form, setForm] = useState({
@@ -128,7 +128,7 @@ export default function Navigation({ user, onUserUpdate, selectedEventId, onEven
       startTime: '09:00',
       endDate: new Date().toISOString().split('T')[0],
       endTime: '17:00',
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone // Get user's local timezone
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
     });
 
     const handleSubmit = async (e) => {
@@ -165,7 +165,6 @@ export default function Navigation({ user, onUserUpdate, selectedEventId, onEven
         }
 
         localStorage.setItem('lastVisited', data.id);
-        
         window.location.href = `/?eventId=${data.id}&tab=Run of Show`;
 
       } catch (error) {
@@ -179,7 +178,7 @@ export default function Navigation({ user, onUserUpdate, selectedEventId, onEven
       <div 
         onClick={(e) => {
           if (e.target === e.currentTarget) {
-            onClose();
+            setShowCreateEventModal(false);
           }
         }}
         style={{
@@ -714,8 +713,8 @@ export default function Navigation({ user, onUserUpdate, selectedEventId, onEven
       </div>
       {showCreateEventModal && (
         <CreateEventModal 
-          onClose={() => setShowCreateEventModal(false)} 
-          onEventSelect={onEventSelect} 
+          onEventSelect={onEventSelect}
+          setShowCreateEventModal={setShowCreateEventModal}
         />
       )}
     </div>

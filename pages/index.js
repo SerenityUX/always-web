@@ -69,6 +69,10 @@ export default function Home() {
   const { tab, eventId } = router.query;
   const currentTab = tab || "Run of Show";
 
+  const [creatingEvent, setShowEventDropdown] = useState(false);
+  const [showCreateEventModal, setShowCreateEventModal] = useState(false);
+
+
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState(null);
@@ -799,14 +803,20 @@ useEffect(() => {
         )}
         <Navigation 
           user={user}
+          setShowEventDropdown={setShowEventDropdown}
           onUserUpdate={setUser}
           selectedEventId={selectedEventId}
+          showCreateEventModal={showCreateEventModal}
+          setShowCreateEventModal={setShowCreateEventModal}
+          showEventDropdown={creatingEvent}
+          // onEventSelect={handleEventSelect}
           onEventSelect={(id) => {
             console.log('Event selected:', id);
             setSelectedEventId(id);
           }}
         />
-        {currentTab == "Run of Show" && 
+
+        {(selectedEvent != null && currentTab == "Run of Show") && 
                <RunOfShow
                MAX_DURATION={MAX_DURATION}
                isTimeOverlapping={isTimeOverlapping}
@@ -836,7 +846,7 @@ useEffect(() => {
              />    
         }
 
-        {currentTab == "Schedule" && 
+        {(selectedEvent != null && currentTab == "Schedule") && 
         <ScheduleView
         selectedEvent={selectedEvent}
         selectedEventId={selectedEventId}
@@ -859,7 +869,7 @@ useEffect(() => {
         timeStringToDate={timeStringToDate}
       />        }
 
-        {currentTab == "Announcements" && 
+        {(selectedEvent != null && currentTab == "Announcements") && 
           <AnnouncementView
           selectedEvent={selectedEvent}
           selectedEventId={selectedEventId}
@@ -884,7 +894,7 @@ useEffect(() => {
           />
         }
 
-      {currentTab == "Team" && 
+      {(selectedEvent != null && currentTab == "Team") && 
           <TeamView
           setIsInvitingNewUser={setIsInvitingNewUser} // Add this prop
 
@@ -909,6 +919,26 @@ useEffect(() => {
           timeStringToDate={timeStringToDate}
           
           />
+        }
+        {(selectedEvent == null)&& 
+
+        <div style={{
+          flex: 1,
+          height: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: "24px",
+          color: "#59636E", 
+          textAlign: "center", gap: 16,
+          flexDirection: "column"
+        }}>
+        <p onClick={() => console.log(user.events)}>hmm... seems no event found<br/>
+        <p
+        onClick={() => setShowCreateEventModal(true)}
+        style={{color: "#0293D4", cursor: "pointer", textDecoration: "underline"}}>create an event</p>
+        </p>
+        </div>
         }
       </div>
     </>
