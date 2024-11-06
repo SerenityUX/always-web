@@ -5,6 +5,8 @@ import Navigation from '../components/Navigation';
 import { TaskCard } from '../components/TaskCard';
 import { ScheduleView } from '../components/ScheduleView';
 import { RunOfShow } from '../components/RunOfShow';
+import { AnnouncementView } from "@/components/AnnouncementView";
+import { TeamView } from "@/components/TeamView";
 
 
 
@@ -796,12 +798,12 @@ useEffect(() => {
           </div>
         )}
         <Navigation 
-          user={user} 
-          onUserUpdate={handleUserUpdate}
+          user={user}
+          onUserUpdate={setUser}
           selectedEventId={selectedEventId}
-          onEventSelect={(eventId) => {
-            setSelectedEventId(eventId);
-            setSelectedEvent(user.events[eventId]);
+          onEventSelect={(id) => {
+            console.log('Event selected:', id);
+            setSelectedEventId(id);
           }}
         />
         {currentTab == "Run of Show" && 
@@ -856,18 +858,57 @@ useEffect(() => {
         isTimeOverlapping={isTimeOverlapping}
         timeStringToDate={timeStringToDate}
       />        }
-        {(currentTab != "Run of Show" && currentTab != "Schedule")&& 
 
-        <div style={{
-          flex: 1,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: "24px",
-          color: "#59636E"
-        }}>
-          {currentTab}
-        </div>
+        {currentTab == "Announcements" && 
+          <AnnouncementView
+          selectedEvent={selectedEvent}
+          selectedEventId={selectedEventId}
+          setSelectedEvent={setSelectedEvent}
+          selectedCalendarEvent={selectedCalendarEvent}
+          setSelectedCalendarEvent={setSelectedCalendarEvent}
+          setSelectedTask={setSelectedTask}
+          newEventId={newEventId}
+          setNewEventId={setNewEventId}
+          handleDeleteConfirmation={handleDeleteConfirmation}
+          handleEventTitleUpdate={handleEventTitleUpdate}
+          handleTimeUpdate={handleTimeUpdate}
+          handleDeleteCalendarEvent={handleDeleteCalendarEvent}
+          handleColorUpdate={handleColorUpdate}
+          animatingColor={animatingColor}
+          COLORS={COLORS}
+          MAX_DURATION={MAX_DURATION}
+          isWithinEventBounds={isWithinEventBounds}
+          isTimeOverlapping={isTimeOverlapping}
+          timeStringToDate={timeStringToDate}
+          
+          />
+        }
+
+      {currentTab == "Team" && 
+          <TeamView
+          setIsInvitingNewUser={setIsInvitingNewUser} // Add this prop
+
+          selectedEvent={selectedEvent}
+          selectedEventId={selectedEventId}
+          setSelectedEvent={setSelectedEvent}
+          selectedCalendarEvent={selectedCalendarEvent}
+          setSelectedCalendarEvent={setSelectedCalendarEvent}
+          setSelectedTask={setSelectedTask}
+          newEventId={newEventId}
+          setNewEventId={setNewEventId}
+          handleDeleteConfirmation={handleDeleteConfirmation}
+          handleEventTitleUpdate={handleEventTitleUpdate}
+          handleTimeUpdate={handleTimeUpdate}
+          handleDeleteCalendarEvent={handleDeleteCalendarEvent}
+          handleColorUpdate={handleColorUpdate}
+          animatingColor={animatingColor}
+          COLORS={COLORS}
+          MAX_DURATION={MAX_DURATION}
+          isWithinEventBounds={isWithinEventBounds}
+          isTimeOverlapping={isTimeOverlapping}
+          timeStringToDate={timeStringToDate}
+          
+          />
         }
       </div>
     </>

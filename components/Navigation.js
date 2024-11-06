@@ -4,6 +4,16 @@ import { useState, useEffect, useRef } from 'react';
 import ProfileImage from './ProfileImage';
 import ProfilePictureUpload from './ProfilePictureUpload';
 
+// Add this constant at the top of the file, after the imports
+const commonTimezones = {
+  "America/Los_Angeles": "Pacific Time (PT)",
+  "America/Denver": "Mountain Time (MT)",
+  "America/Chicago": "Central Time (CT)",
+  "America/New_York": "Eastern Time (ET)",
+  "GMT": "Greenwich Mean Time (GMT)",
+  "UTC": "Coordinated Universal Time (UTC)"
+};
+
 export default function Navigation({ user, onUserUpdate, selectedEventId, onEventSelect }) {
   const router = useRouter();
   const [showProfile, setShowProfile] = useState(false);
@@ -11,6 +21,7 @@ export default function Navigation({ user, onUserUpdate, selectedEventId, onEven
   const { tab, event } = router.query;
   const [showEventDropdown, setShowEventDropdown] = useState(false);
   const eventDropdownRef = useRef(null);
+  const [showCreateEventModal, setShowCreateEventModal] = useState(false);
 
   // Transform events object into array and sort by title
   const eventsList = user?.events ? 
@@ -32,12 +43,20 @@ export default function Navigation({ user, onUserUpdate, selectedEventId, onEven
 
   // Update selected event when URL or user data changes
   useEffect(() => {
+    console.log('Navigation useEffect triggered with:', {
+      currentEvent,
+      defaultEvent,
+      selectedEventId
+    });
+    
+    // Only update selected event if there's no explicit selection
     if (currentEvent) {
       setSelectedEvent(currentEvent);
-    } else if (defaultEvent) {
+    } else if (!selectedEventId && defaultEvent) {
+      // Only use default if there's no explicit selection
       setSelectedEvent(defaultEvent);
     }
-  }, [user, event, currentEvent, defaultEvent]);
+  }, [user, event, currentEvent, defaultEvent, selectedEventId]); // Added selectedEventId to dependencies
 
   const selectedTab = tab || "Run of Show";
 
@@ -100,6 +119,376 @@ export default function Navigation({ user, onUserUpdate, selectedEventId, onEven
     }
   };
 
+  const CreateEventModal = ({ onClose, onEventSelect }) => {
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [error, setError] = useState('');
+    const [form, setForm] = useState({
+      title: '',
+      startDate: new Date().toISOString().split('T')[0],
+      startTime: '09:00',
+      endDate: new Date().toISOString().split('T')[0],
+      endTime: '17:00',
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone // Get user's local timezone
+    });
+
+    const handleSubmit = async (e) => {
+      e.preventDefault();
+      setError('');
+      setIsSubmitting(true);
+
+      try {
+        const startTime = `${form.startDate} ${form.startTime}:00`;
+        const endTime = `${form.endDate} ${form.endTime}:00`;
+
+        if (new Date(endTime) <= new Date(startTime)) {
+          throw new Error('End time must be after start time');
+        }
+
+        const response = await fetch('https://serenidad.click/hacktime/createEvent', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            token: localStorage.getItem('token'),
+            title: form.title,
+            startTime,
+            endTime,
+            timezone: form.timezone
+          }),
+        });
+
+        const data = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to create event');
+        }
+
+        localStorage.setItem('lastVisited', data.id);
+        
+        window.location.href = `/?eventId=${data.id}&tab=Run of Show`;
+
+      } catch (error) {
+        setError(error.message);
+      } finally {
+        setIsSubmitting(false);
+      }
+    };
+
+    return (
+      <div 
+        onClick={(e) => {
+          if (e.target === e.currentTarget) {
+            onClose();
+          }
+        }}
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 101,
+          marginTop: -97,
+          backgroundColor: "rgba(0, 0, 0, 0.5)"
+        }}
+      >
+        <div style={{
+          flex: "0 1 500px",
+          padding: 32,
+          backgroundColor: "#fff",
+          borderRadius: "8px",
+          margin: "0 16px"
+        }}>
+          <p style={{margin: 0, fontWeight: "bold", fontSize: "24px", marginBottom: "16px"}}>Create Event</p>
+          
+          {error && (
+            <div style={{
+              color: 'red',
+              marginBottom: '16px',
+              padding: '8px',
+              backgroundColor: '#ffebee',
+              borderRadius: '4px'
+            }}>
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px'
+          }}>
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              flex: '1'
+            }}>
+              <label style={{
+                marginBottom: '8px', 
+                fontSize: '14px'
+              }}>
+                Event Name
+              </label>
+              <input
+                type="text"
+                value={form.title}
+                onChange={(e) => setForm(prev => ({...prev, title: e.target.value}))}
+                required
+                style={{
+                  flex: '1',
+                  padding: '8px',
+                  fontSize: '16px',
+                  borderRadius: '4px',
+                  border: '1px solid #EBEBEB'
+                }}
+              />
+            </div>
+
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              flex: '1'
+            }}>
+              <label style={{
+                marginBottom: '8px', 
+                fontSize: '14px'
+              }}>
+                Timezone
+              </label>
+              <select
+                value={form.timezone}
+                onChange={(e) => setForm(prev => ({...prev, timezone: e.target.value}))}
+                required
+                style={{
+                  flex: '1',
+                  padding: '8px',
+                  fontSize: '16px',
+                  borderRadius: '4px',
+                  border: '1px solid #EBEBEB',
+                  backgroundColor: '#fff'
+                }}
+              >
+                <optgroup label="Common Timezones">
+                  {Object.entries(commonTimezones).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="All Timezones">
+                  {Intl.supportedValuesOf('timeZone').map(tz => (
+                    <option key={tz} value={tz}>
+                      {tz.replace(/_/g, ' ')}
+                    </option>
+                  ))}
+                </optgroup>
+              </select>
+            </div>
+
+            {/* Start Date/Time Group */}
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px'
+            }}>
+              <div style={{
+                display: 'flex',
+                gap: '16px'
+              }}>
+                {/* Start Date */}
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  flex: '1'
+                }}>
+                  <label style={{
+                    marginBottom: '8px', 
+                    fontSize: '14px'
+                  }}>
+                    Start Date
+                  </label>
+                  <input
+                    type="date"
+                    value={form.startDate}
+                    onChange={(e) => setForm(prev => ({...prev, startDate: e.target.value}))}
+                    required
+                    style={{
+                      flex: '1',
+                      padding: '8px',
+                      fontSize: '16px',
+                      borderRadius: '4px',
+                      border: '1px solid #EBEBEB'
+                    }}
+                  />
+                </div>
+
+                {/* Start Time */}
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  flex: '1'
+                }}>
+                  <label style={{
+                    marginBottom: '8px', 
+                    fontSize: '14px'
+                  }}>
+                    Start Time
+                  </label>
+                  <input
+                    type="time"
+                    value={form.startTime}
+                    onChange={(e) => setForm(prev => ({...prev, startTime: e.target.value}))}
+                    required
+                    style={{
+                      flex: '1',
+                      padding: '8px',
+                      fontSize: '16px',
+                      borderRadius: '4px',
+                      border: '1px solid #EBEBEB'
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* End Date/Time Group */}
+              <div style={{
+                display: 'flex',
+                gap: '16px'
+              }}>
+                {/* End Date */}
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  flex: '1'
+                }}>
+                  <label style={{
+                    marginBottom: '8px', 
+                    fontSize: '14px'
+                  }}>
+                    End Date
+                  </label>
+                  <input
+                    type="date"
+                    value={form.endDate}
+                    onChange={(e) => setForm(prev => ({...prev, endDate: e.target.value}))}
+                    required
+                    style={{
+                      flex: '1',
+                      padding: '8px',
+                      fontSize: '16px',
+                      borderRadius: '4px',
+                      border: '1px solid #EBEBEB'
+                    }}
+                  />
+                </div>
+
+                {/* End Time */}
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  flex: '1'
+                }}>
+                  <label style={{
+                    marginBottom: '8px', 
+                    fontSize: '14px'
+                  }}>
+                    End Time
+                  </label>
+                  <input
+                    type="time"
+                    value={form.endTime}
+                    onChange={(e) => setForm(prev => ({...prev, endTime: e.target.value}))}
+                    required
+                    style={{
+                      flex: '1',
+                      padding: '8px',
+                      fontSize: '16px',
+                      borderRadius: '4px',
+                      border: '1px solid #EBEBEB'
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              style={{
+                padding: '12px',
+                fontSize: '16px',
+                backgroundColor: '#007AFF',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                opacity: isSubmitting ? 0.7 : 1,
+                marginTop: '8px'
+              }}
+            >
+              {isSubmitting ? 'Creating...' : 'Create Event'}
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  };
+
+  useEffect(() => {
+    console.log('Navigation received selectedEventId:', selectedEventId);
+  }, [selectedEventId]);
+
+  // Add this function inside Navigation component
+  const handleDeleteEvent = async (eventId) => {
+    if (!window.confirm('Are you sure you want to delete this event? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch('https://serenidad.click/hacktime/deleteEvent', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          token: localStorage.getItem('token'),
+          eventId
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete event');
+      }
+
+      // Update local state by removing the event
+      onUserUpdate(prev => {
+        const { [eventId]: deletedEvent, ...remainingEvents } = prev.events;
+        return {
+          ...prev,
+          events: remainingEvents
+        };
+      });
+
+      // If this was the selected event, select another one or clear selection
+      if (selectedEventId === eventId) {
+        const remainingEventIds = Object.keys(user.events).filter(id => id !== eventId);
+        if (remainingEventIds.length > 0) {
+          onEventSelect(remainingEventIds[0]);
+          router.push(`/?eventId=${remainingEventIds[0]}&tab=Run of Show`);
+        } else {
+          router.push('/');
+        }
+      }
+    } catch (error) {
+      console.error('Failed to delete event:', error);
+      alert('Failed to delete event');
+    }
+  };
+
   return (
     <div style={{backgroundColor: "#F6F8FA", overflow: "visible", borderBottom: '1px solid #EBEBEB'}}>
       <div style={{display: "flex", alignItems: "center", justifyContent: "space-between", paddingLeft: 32, paddingTop: 16, paddingRight: 32}}>
@@ -158,28 +547,61 @@ export default function Navigation({ user, onUserUpdate, selectedEventId, onEven
               {eventsList.map((eventObj, index, array) => (
                 <div
                   key={eventObj.id}
-                  onClick={() => handleEventSelect(eventObj)}
-                  className="nav-item"
                   style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
                     padding: "8px",
                     cursor: "pointer",
-                    borderBottom: "1px solid #EBEBEB"
+                    backgroundColor: selectedEventId === eventObj.id ? "#F6F8FA" : "transparent",
+                    borderRadius: "4px",
+                    gap: "8px",
+                    position: "relative",
+                    transition: "background-color 0.2s"
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = "#F6F8FA";
+                    e.currentTarget.querySelector('.trash-icon').style.opacity = "0.6";
+                  }}
+                  onMouseLeave={(e) => {
+                    if (selectedEventId !== eventObj.id) {
+                      e.currentTarget.style.backgroundColor = "transparent";
+                    }
+                    e.currentTarget.querySelector('.trash-icon').style.opacity = "0";
                   }}
                 >
-                  <p style={{
-                    margin: 0, 
-                    fontSize: 16, 
-                    overflow: "hidden", 
-                    textOverflow: "ellipsis", 
-                    whiteSpace: "nowrap"
-                  }}>
+                  <div 
+                    onClick={() => handleEventSelect(eventObj)}
+                    style={{
+                      flex: 1,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap"
+                    }}
+                  >
                     {eventObj.title}
-                  </p>
+                  </div>
+                  <img 
+                    className="trash-icon"
+                    src="/icons/trash.svg"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteEvent(eventObj.id);
+                    }}
+                    style={{
+                      width: "24px",
+                      height: "24px",
+                      cursor: "pointer",
+                      opacity: "0",
+                      transition: "opacity 0.2s"
+                    }}
+                    alt="Delete event"
+                  />
                 </div>
               ))}
               <div
                 onClick={() => {
-                  console.log("create event modal appears");
+                  setShowCreateEventModal(true);
                   setShowEventDropdown(false);
                 }}
                 className="nav-item create-event-button"
@@ -290,6 +712,12 @@ export default function Navigation({ user, onUserUpdate, selectedEventId, onEven
           </div>
         ))}
       </div>
+      {showCreateEventModal && (
+        <CreateEventModal 
+          onClose={() => setShowCreateEventModal(false)} 
+          onEventSelect={onEventSelect} 
+        />
+      )}
     </div>
   );
 } 
