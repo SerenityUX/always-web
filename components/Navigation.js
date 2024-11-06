@@ -104,7 +104,7 @@ export default function Navigation({ user, onUserUpdate, selectedEventId, onEven
     <div style={{backgroundColor: "#F6F8FA", overflow: "visible", borderBottom: '1px solid #EBEBEB'}}>
       <div style={{display: "flex", alignItems: "center", justifyContent: "space-between", paddingLeft: 32, paddingTop: 16, paddingRight: 32}}>
         <div style={{display: "flex", alignItems: "center", justifyContent: "center", gap: 16}}>
-        <h1 style={{margin: 0, fontSize: 24, height: 24, fontWeight: 600, opacity: 0.9}}>Hack Time</h1>
+        <h1 style={{margin: 0, fontSize: 24, height: 24, fontWeight: 600, opacity: 0.9}}>Schedule Band</h1>
         <div ref={eventDropdownRef} style={{ position: "relative" }}>
           <div 
             onClick={() => setShowEventDropdown(!showEventDropdown)}

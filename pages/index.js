@@ -3,6 +3,17 @@ import { useRouter } from 'next/router';
 import { useEffect, useState, useRef } from 'react';
 import Navigation from '../components/Navigation';
 
+
+const formatUTCTime = (date) => {
+  return date.toLocaleTimeString('en-US', { 
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+    timeZone: 'UTC'
+  });
+};
+
+
 // Move these outside the component
 const formatTime = (date) => {
   const minutes = date.getUTCMinutes();
@@ -118,6 +129,784 @@ const timeStringToDate = (timeStr, baseDate) => {
 // Add this constant at the top with other constants
 const MAX_DURATION = 23.99 * 60 * 60 * 1000; // Just under 24 hours in milliseconds
 
+// Add this helper function at the top level
+const getInitials = (name) => {
+  return name
+    .split(' ')
+    .map(word => word[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+};
+
+// First create the TaskCard component (at the top of the file or in a separate component file)
+const TaskCard = ({ 
+  task, 
+  dayStart, 
+  selectedEvent,
+  setSelectedTask, 
+  setSelectedEvent,  // Add this prop
+  selectedTask, 
+  columnId, 
+  setSelectedTaskColumn, 
+  selectedTaskColumn,
+  editingTaskTitle,
+  setEditingTaskTitle,
+  editingTaskDescription, 
+  setEditingTaskDescription,
+  handleTaskUpdate,
+  handleDeleteTask  // Add this prop
+}) => {
+  // Add local state for immediate updates
+  const [localTitle, setLocalTitle] = useState(task.title);
+  const [localDescription, setLocalDescription] = useState(task.description || '');
+
+  // Update local state when task changes
+  useEffect(() => {
+    setLocalTitle(task.title);
+    setLocalDescription(task.description || '');
+  }, [task]);
+
+  // Safely parse dates
+  let taskStart, taskEnd;
+  try {
+    // First check if the dates are already Date objects
+    if (task.startTime instanceof Date) {
+      taskStart = task.startTime;
+    } else {
+      // Try parsing the date string
+      const startStr = task.startTime.replace(/Z$/, ''); // Remove Z if present
+      taskStart = new Date(startStr + 'Z');
+    }
+
+    if (task.endTime instanceof Date) {
+      taskEnd = task.endTime;
+    } else {
+      const endStr = task.endTime.replace(/Z$/, '');
+      taskEnd = new Date(endStr + 'Z');
+    }
+
+    // Validate the dates
+    if (isNaN(taskStart.getTime())) {
+      console.error('Invalid start time:', task.startTime);
+      return null;
+    }
+    if (isNaN(taskEnd.getTime())) {
+      console.error('Invalid end time:', task.endTime);
+      return null;
+    }
+
+  } catch (error) {
+    console.error('Error parsing dates:', error, {
+      startTime: task.startTime,
+      endTime: task.endTime
+    });
+    return null;
+  }
+
+  // Format times with error handling
+  let formattedStartTime, formattedEndTime;
+  try {
+    formattedStartTime = formatTime(taskStart);
+    formattedEndTime = formatTime(taskEnd);
+  } catch (error) {
+    console.error('Error formatting times:', error, {
+      taskStart,
+      taskEnd
+    });
+    return null;
+  }
+
+  // Calculate dimensions with validation
+  let topOffset, duration, height;
+  try {
+    if (!(dayStart instanceof Date) || isNaN(dayStart.getTime())) {
+      console.error('Invalid dayStart:', dayStart);
+      return null;
+    }
+
+    topOffset = ((taskStart - dayStart) / (1000 * 60 * 60)) * 76;
+    duration = (taskEnd - taskStart) / (1000 * 60 * 60);
+    height = duration * 76;
+
+    if (isNaN(topOffset) || isNaN(height)) {
+      console.error('Invalid calculations:', {
+        topOffset,
+        duration,
+        height,
+        taskStart: taskStart.getTime(),
+        taskEnd: taskEnd.getTime(),
+        dayStart: dayStart.getTime()
+      });
+      return null;
+    }
+  } catch (error) {
+    console.error('Error calculating dimensions:', error);
+    return null;
+  }
+
+  const isShortTask = duration <= 1;
+  let isSelected = selectedTask?.id === task.id && selectedTaskColumn === columnId
+  const renderProfilePictures = (people, limit) => {
+    // Sort people: those with profile pictures come first
+    const sortedPeople = [...people].sort((a, b) => {
+      if (a.profilePicture && !b.profilePicture) return -1;
+      if (!a.profilePicture && b.profilePicture) return 1;
+      return 0;
+    });
+
+    if (isShortTask) {
+      // For short tasks: show up to 3 profiles or 2 profiles + overflow
+      if (people.length <= 3) {
+        return sortedPeople.map((person, personIndex) => (
+          <div 
+            key={personIndex}
+            style={{
+              width: 24,
+              height: 24,
+              borderRadius: 12,
+              backgroundColor: person.profilePicture ? "transparent" : "#666",
+              backgroundImage: person.profilePicture ? `url(${person.profilePicture})` : "none",
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#EBEBEB",
+              fontSize: "10px",
+              fontWeight: 500
+            }}
+          >
+            {!person.profilePicture && getInitials(person.name)}
+          </div>
+        ));
+      } else {
+        // Show first 2 profiles + overflow for 4 or more people
+        return (
+          <>
+            {sortedPeople.slice(0, 2).map((person, personIndex) => (
+              <div 
+                key={personIndex}
+                style={{
+                  width: 24,
+                  height: 24,
+                  borderRadius: 12,
+                  backgroundColor: person.profilePicture ? "transparent" : "#666",
+                  backgroundImage: person.profilePicture ? `url(${person.profilePicture})` : "none",
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#EBEBEB",
+                  fontSize: "10px",
+                  fontWeight: 500
+                }}
+              >
+                {!person.profilePicture && getInitials(person.name)}
+              </div>
+            ))}
+            <div 
+              style={{
+                width: 24,
+                height: 24,
+                borderRadius: 12,
+                backgroundColor: "#666",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#EBEBEB",
+                fontSize: "10px",
+                fontWeight: 500
+              }}
+            >
+              +{people.length - 2}
+            </div>
+          </>
+        );
+      }
+    } else {
+      // For longer tasks: show up to 4 profiles + overflow
+      const remainingCount = people.length - 4;
+      let displayCount = Math.min(people.length, 4);
+      
+      // If there's only one more person beyond the limit, increase display count
+      if (remainingCount === 1) {
+        displayCount = Math.min(people.length, 5);
+      }
+      
+      const displayPeople = sortedPeople.slice(0, displayCount);
+      const overflow = people.length > 5;
+
+      return (
+        <>
+          {displayPeople.map((person, personIndex) => (
+            <div 
+              key={personIndex}
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 16,
+                backgroundColor: person.profilePicture ? "transparent" : "#666",
+                backgroundImage: person.profilePicture ? `url(${person.profilePicture})` : "none",
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#EBEBEB",
+                fontSize: "12px",
+                fontWeight: 500
+              }}
+            >
+              {!person.profilePicture && getInitials(person.name)}
+            </div>
+          ))}
+          {overflow && (
+            <div 
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 16,
+                backgroundColor: "#666",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#EBEBEB",
+                fontSize: "12px",
+                fontWeight: 500
+              }}
+            >
+              +{people.length - 5}
+            </div>
+          )}
+        </>
+      );
+    }
+  };
+
+  return (
+    <div 
+      onClick={() => {
+        console.log(task)
+        setSelectedTask(task);
+        setSelectedTaskColumn(columnId);
+        setEditingTaskTitle(task.title);
+        setEditingTaskDescription(task.description || '');
+        setLocalTitle(task.title);
+        setLocalDescription(task.description || '');
+        console.log(columnId, selectedTaskColumn, columnId == selectedTaskColumn)
+      }}
+      style={{
+        position: "absolute",
+        top: topOffset,
+        cursor: "pointer",
+        width: 201,
+        height: height,
+        padding: 8,
+        zIndex: (isSelected) ? 103 : 'auto'
+      }}>
+        {isSelected &&           <div style={{position: "absolute", fontSize: "16", cursor: "auto", left: 228, borderRadius: 8, width: 300, backgroundColor: "#fff"}}>
+                                                  <div style={{width: "calc(100% - 24px)", borderRadius: "16px 16px 0px 0px", paddingTop: 8, paddingBottom: 8, justifyContent: "space-between", paddingLeft: 16, paddingRight: 8, alignItems: "center", display: "flex", backgroundColor: "#F6F8FA"}}>
+                                                  <p style={{margin: 0, fontSize: 14}}>Edit Task</p>
+                                                  <img 
+                                                    onClick={() => {
+                                                      if (window.confirm('Are you sure you want to delete this task?')) {
+                                                        handleDeleteTask(task.id);
+                                                      }
+                                                    }}
+                                                    style={{width: 24, height: 24, cursor: "pointer"}} 
+                                                    src="/icons/trash.svg"
+                                                  />
+                                                  </div> 
+                                                  <div style={{display: "flex", gap: 16, padding: 16, flexDirection: "column"}}>
+                                                    <input
+                                                      value={localTitle}
+                                                      onChange={(e) => {
+                                                        const newTitle = e.target.value;
+                                                        setLocalTitle(newTitle);
+                                                        setSelectedTask(prev => ({
+                                                          ...prev,
+                                                          title: newTitle
+                                                        }));
+                                                        setEditingTaskTitle(newTitle);
+                                                      }}
+                                                      onBlur={async () => {
+                                                        if (localTitle !== task.title) {
+                                                          try {
+                                                            await handleTaskUpdate(task.id, { title: localTitle });
+                                                          } catch (error) {
+                                                            setLocalTitle(task.title);
+                                                            setEditingTaskTitle(task.title);
+                                                            setSelectedTask(prev => ({
+                                                              ...prev,
+                                                              title: task.title
+                                                            }));
+                                                          }
+                                                        }
+                                                      }}
+                                                      style={{
+                                                        margin: 0, 
+                                                        fontSize: 24, 
+                                                        cursor: "text", 
+                                                        color: "#000",
+                                                        outline: "none",
+                                                        padding: "2px 4px",
+                                                        borderRadius: "4px",
+                                                        border: "1px solid transparent",
+                                                        transition: "border-color 0.2s"
+                                                      }}
+                                                    />
+                                                    <div style={{display: "flex", alignItems: "center", gap: 8}}>
+                                                      <img src="./icons/clock.svg" style={{width: 24, height: 24}}/>
+                                                      <div style={{position: "relative"}}>
+                                                        <p 
+                                                          onClick={(e) => {
+                                                            const timeInput = e.currentTarget.nextElementSibling;
+                                                            timeInput.showPicker();
+                                                          }}
+                                                          style={{
+                                                            margin: 0, 
+                                                            cursor: "pointer",
+                                                            padding: 4, 
+                                                            backgroundColor: "#F3F2F8", 
+                                                            borderRadius: 4,
+                                                            minWidth: 70,
+                                                            textAlign: "center",
+                                                            fontSize: 16
+                                                          }}
+                                                        >
+                                                          {formattedStartTime}
+                                                        </p>
+                                                        <input 
+                                                          type="time"
+                                                          value={`${taskStart.getUTCHours().toString().padStart(2, '0')}:${taskStart.getUTCMinutes().toString().padStart(2, '0')}`}
+                                                          onChange={async (e) => {
+                                                            const newStartTime = timeStringToDate(e.target.value, taskStart);
+                                                            const duration = taskEnd - taskStart;
+                                                            const newEndTime = new Date(newStartTime.getTime() + duration);
+                                                            
+                                                            try {
+                                                              await handleTaskUpdate(task.id, { 
+                                                                startTime: newStartTime.toISOString(),
+                                                                endTime: newEndTime.toISOString()
+                                                              });
+                                                            } catch (error) {
+                                                              console.error('Failed to update task times:', error);
+                                                            }
+                                                          }}
+                                                          style={{
+                                                            position: "absolute",
+                                                            opacity: 0,
+                                                            pointerEvents: "none"
+                                                          }}
+                                                        />
+                                                      </div>
+                                                      <p style={{margin: 0, fontSize: 16}}>-</p>
+                                                      <div style={{position: "relative"}}>
+                                                        <p 
+                                                          onClick={(e) => {
+                                                            const timeInput = e.currentTarget.nextElementSibling;
+                                                            timeInput.showPicker();
+                                                          }}
+                                                          style={{
+                                                            margin: 0, 
+                                                            cursor: "pointer",
+                                                            padding: 4, 
+                                                            backgroundColor: "#F3F2F8", 
+                                                            borderRadius: 4,
+                                                            minWidth: 70,
+                                                            textAlign: "center",
+                                                            fontSize: 16
+                                                          }}
+                                                        >
+                                                          {formattedEndTime}
+                                                        </p>
+                                                        <input 
+                                                          type="time"
+                                                          value={`${taskEnd.getUTCHours().toString().padStart(2, '0')}:${taskEnd.getUTCMinutes().toString().padStart(2, '0')}`}
+                                                          onChange={async (e) => {
+                                                            const startTime = taskStart;
+                                                            let newEndTime = timeStringToDate(e.target.value, taskEnd);
+                                                            
+                                                            // If end time is before start time, check if moving to next day would be within max duration
+                                                            if (newEndTime < startTime) {
+                                                              const nextDayEndTime = new Date(newEndTime.getTime() + 24 * 60 * 60 * 1000);
+                                                              const duration = nextDayEndTime - startTime;
+                                                              
+                                                              if (duration <= MAX_DURATION) {
+                                                                newEndTime = nextDayEndTime;
+                                                              } else {
+                                                                return; // Don't allow the change if it would exceed max duration
+                                                              }
+                                                            }
+                                                            
+                                                            try {
+                                                              await handleTaskUpdate(task.id, { 
+                                                                startTime: startTime.toISOString(),
+                                                                endTime: newEndTime.toISOString()
+                                                              });
+                                                            } catch (error) {
+                                                              console.error('Failed to update task times:', error);
+                                                            }
+                                                          }}
+                                                          style={{
+                                                            position: "absolute",
+                                                            opacity: 0,
+                                                            pointerEvents: "none"
+                                                          }}
+                                                        />
+                                                      </div>
+                                                    </div>
+                                                    <div style={{display: "flex", flexDirection: "column", gap: 8}}>
+                                                      <p style={{margin: 0, fontSize: 14, color: "#666"}}>Assigned To</p>
+                                                      
+                                                      {/* List current assignments */}
+                                                      <div style={{display: "flex", flexDirection: "column", gap: 8}}>
+                                                        {task.assignedTo.map((person, index) => (
+                                                          <div key={index} style={{
+                                                            display: "flex",
+                                                            alignItems: "center",
+                                                            padding: "8px",
+                                                            backgroundColor: "#F6F8FA",
+                                                            borderRadius: "8px",
+                                                            gap: "8px"
+                                                          }}>
+                                                            <div style={{
+                                                              width: 32,
+                                                              height: 32,
+                                                              borderRadius: 16,
+                                                              backgroundColor: person.profilePicture ? "transparent" : "#666",
+                                                              backgroundImage: person.profilePicture ? `url(${person.profilePicture})` : "none",
+                                                              backgroundSize: "cover",
+                                                              backgroundPosition: "center",
+                                                              display: "flex",
+                                                              alignItems: "center",
+                                                              justifyContent: "center",
+                                                              color: "#EBEBEB",
+                                                              fontSize: "12px",
+                                                              fontWeight: 500
+                                                            }}>
+                                                              {!person.profilePicture && getInitials(person.name)}
+                                                            </div>
+                                                            <div style={{flex: 1}}>
+                                                              <p style={{margin: 0, fontSize: 14}}>{person.name}</p>
+                                                              <p style={{margin: 0, fontSize: 12, color: "#666"}}>{person.email}</p>
+                                                            </div>
+                                                            <img 
+  onClick={async (e) => {
+    e.stopPropagation();
+    if (window.confirm(`Remove ${person.name} from this task?`)) {
+      try {
+        const response = await fetch('https://serenidad.click/hacktime/unassignEventTask', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            token: localStorage.getItem('token'),
+            taskId: task.id,
+            userEmailToRemove: person.email
+          }),
+        });
+
+        console.log(task.id, person.email)
+        if (!response.ok) {
+          throw new Error('Failed to unassign user');
+        }
+
+        const updatedTask = await response.json();
+        
+        // Update local state
+        setSelectedTask(prev => ({
+          ...prev,
+          assignedTo: updatedTask.assignedTo
+        }));
+
+        // Update the event's tasks array
+        setSelectedEvent(prev => ({
+          ...prev,
+          tasks: prev.tasks.map(t => 
+            t.id === task.id ? { ...t, assignedTo: updatedTask.assignedTo } : t
+          )
+        }));
+      } catch (error) {
+        console.error('Failed to unassign user:', error);
+        alert('Failed to unassign user');
+      }
+    }
+  }}
+  src="/icons/trash.svg" 
+  style={{
+    width: 20,
+    height: 20,
+    cursor: "pointer",
+    opacity: 0.5,
+    transition: "opacity 0.2s"
+  }}
+  onMouseOver={e => e.target.style.opacity = 1}
+  onMouseOut={e => e.target.style.opacity = 0.5}
+/>
+                                                          </div>
+                                                        ))}
+                                                      </div>
+
+                                                      {/* Add new assignment */}
+                                                      <div style={{
+                                                        padding: "8px",
+                                                        border: "1px dashed #666",
+                                                        borderRadius: "8px",
+                                                        cursor: "pointer",
+                                                        transition: "background-color 0.2s"
+                                                      }}
+                                                      onClick={() => {
+                                                        // Show dropdown of available team members
+                                                        const availableMembers = selectedEvent.teamMembers.filter(
+                                                          member => !task.assignedTo.some(assigned => assigned.email === member.email)
+                                                        );
+
+                                                        if (availableMembers.length === 0) {
+                                                          alert('All team members are already assigned to this task');
+                                                          return;
+                                                        }
+
+                                                        // Create and show dropdown
+                                                        const dropdown = document.createElement('div');
+                                                        dropdown.style.position = 'absolute';
+                                                        dropdown.style.backgroundColor = '#fff';
+                                                        dropdown.style.border = '1px solid #D0D7DE';
+                                                        dropdown.style.borderRadius = '8px';
+                                                        dropdown.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
+                                                        dropdown.style.maxHeight = '200px';
+                                                        dropdown.style.overflowY = 'auto';
+                                                        dropdown.style.width = '268px';
+                                                        dropdown.style.zIndex = '1000';
+
+                                                        availableMembers.forEach(member => {
+                                                          const option = document.createElement('div');
+                                                          option.style.padding = '8px';
+                                                          option.style.display = 'flex';
+                                                          option.style.alignItems = 'center';
+                                                          option.style.gap = '8px';
+                                                          option.style.cursor = 'pointer';
+                                                          option.style.transition = 'background-color 0.2s';
+
+                                                          const avatar = document.createElement('div');
+                                                          avatar.style.width = '32px';
+                                                          avatar.style.height = '32px';
+                                                          avatar.style.borderRadius = '16px';
+                                                          avatar.style.backgroundColor = member.profilePicture ? 'transparent' : '#666';
+                                                          avatar.style.backgroundImage = member.profilePicture ? `url(${member.profilePicture})` : 'none';
+                                                          avatar.style.backgroundSize = 'cover';
+                                                          avatar.style.backgroundPosition = 'center';
+                                                          avatar.style.display = 'flex';
+                                                          avatar.style.alignItems = 'center';
+                                                          avatar.style.justifyContent = 'center';
+                                                          avatar.style.color = '#EBEBEB';
+                                                          avatar.style.fontSize = '12px';
+                                                          avatar.style.fontWeight = '500';
+
+                                                          if (!member.profilePicture) {
+                                                            avatar.textContent = getInitials(member.name);
+                                                          }
+
+                                                          const info = document.createElement('div');
+                                                          info.innerHTML = `
+                                                            <p style="margin: 0; font-size: 14px">${member.name}</p>
+                                                            <p style="margin: 0; font-size: 12px; color: #666">${member.email}</p>
+                                                          `;
+
+                                                          option.appendChild(avatar);
+                                                          option.appendChild(info);
+
+                                                          option.onmouseover = () => {
+                                                            option.style.backgroundColor = '#F6F8FA';
+                                                          };
+                                                          option.onmouseout = () => {
+                                                            option.style.backgroundColor = 'transparent';
+                                                          };
+
+                                                          option.onclick = async () => {
+                                                            try {
+                                                              const response = await fetch('https://serenidad.click/hacktime/assignEventTask', {
+                                                                method: 'POST',
+                                                                headers: {
+                                                                  'Content-Type': 'application/json',
+                                                                },
+                                                                body: JSON.stringify({
+                                                                  token: localStorage.getItem('token'),
+                                                                  eventId: selectedEvent.id, // Add the eventId
+                                                                  taskId: task.id,
+                                                                  assigneeEmail: member.email
+                                                                }),
+                                                              });
+
+                                                              const data = await response.json();
+                                                              
+                                                              if (!response.ok) {
+                                                                throw new Error(data.error || 'Failed to assign user');
+                                                              }
+
+                                                              // Update local state with the response data
+                                                              setSelectedTask(prev => ({
+                                                                ...prev,
+                                                                assignedTo: [...prev.assignedTo, member]
+                                                              }));
+
+                                                              // Update the event's tasks array
+                                                              setSelectedEvent(prev => ({
+                                                                ...prev,
+                                                                tasks: prev.tasks.map(t => 
+                                                                  t.id === task.id 
+                                                                    ? { ...t, assignedTo: [...t.assignedTo, member] }
+                                                                    : t
+                                                                )
+                                                              }));
+
+                                                              dropdown.remove();
+                                                            } catch (error) {
+                                                              console.error('Failed to assign user:', error);
+                                                              alert(error.message);
+                                                            }
+                                                          };
+
+                                                          dropdown.appendChild(option);
+                                                        });
+
+                                                        // Position dropdown below the "Add" button
+                                                        const rect = event.target.getBoundingClientRect();
+                                                        dropdown.style.top = `${rect.bottom + window.scrollY + 4}px`;
+                                                        dropdown.style.left = `${rect.left + window.scrollX}px`;
+
+                                                        // Add click outside handler
+                                                        const handleClickOutside = (e) => {
+                                                          if (!dropdown.contains(e.target) && e.target !== event.target) {
+                                                            dropdown.remove();
+                                                            document.removeEventListener('click', handleClickOutside);
+                                                          }
+                                                        };
+
+                                                        document.addEventListener('click', handleClickOutside);
+                                                        document.body.appendChild(dropdown);
+                                                      }}
+                                                      >
+                                                        <div style={{display: "flex", alignItems: "center", gap: 8, justifyContent: "center"}}>
+                                                          <img src="/icons/plus.svg" style={{width: 20, height: 20, opacity: 0.5}} />
+                                                          <p style={{margin: 0, fontSize: 14, color: "#666"}}>Add team member</p>
+                                                        </div>
+                                                      </div>
+                                                    </div>
+                                                    <textarea
+                                                      value={localDescription}
+                                                      onChange={(e) => {
+                                                        const newDescription = e.target.value;
+                                                        setLocalDescription(newDescription);
+                                                        setSelectedTask(prev => ({
+                                                          ...prev,
+                                                          description: newDescription
+                                                        }));
+                                                        setEditingTaskDescription(newDescription);
+                                                      }}
+                                                      onBlur={async () => {
+                                                        if (localDescription !== task.description) {
+                                                          try {
+                                                            await handleTaskUpdate(task.id, { description: localDescription });
+                                                          } catch (error) {
+                                                            setLocalDescription(task.description || '');
+                                                            setEditingTaskDescription(task.description || '');
+                                                            setSelectedTask(prev => ({
+                                                              ...prev,
+                                                              description: task.description || ''
+                                                            }));
+                                                          }
+                                                        }
+                                                      }}
+                                                      placeholder="Add a description..."
+                                                      style={{
+                                                        padding: "8px",
+                                                        border: "1px solid #D0D7DE",
+                                                        borderRadius: "8px",
+                                                        fontWeight: "400",
+                                                        minHeight: "80px",
+                                                        resize: "vertical"
+                                                      }}
+                                                    />
+                                                  </div>
+                                                </div>
+
+       }
+      <div style={{
+        backgroundColor: "#fff",
+        justifyContent: isShortTask ? "center" : "space-between",
+        display: "flex",
+        flexDirection: "column",
+        height: "calc(100% - 48px)",
+        borderRadius: 8,
+        padding: 12,
+        border: "1px solid #000"
+      }}>
+        {isShortTask ? (
+          // Compact layout for short tasks
+          <div style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 4
+          }}>
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              justifyContent: "space-between"
+            }}>
+              <div style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 2
+              }}>
+                <p style={{
+                  margin: 0,
+                  color: "#333333",
+                  opacity: 1.0,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  cursor: "text"
+                }}>
+                  {task.title}
+                </p>
+                
+              </div>
+              <div style={{
+                display: "flex",
+                gap: 4,
+                flexShrink: 0
+              }}>
+                {renderProfilePictures(task.assignedTo, 3)}
+              </div>
+            </div>
+          </div>
+        ) : (
+          // Original layout for longer tasks
+          <>
+            <p style={{margin: 0, color: "#333333", opacity: 1.0}}>
+              {task.title}
+            </p>
+            <div style={{display: "flex", flexDirection: "column", gap: 8}}>
+              <div style={{display: "flex", gap: 4}}>
+                {renderProfilePictures(task.assignedTo, 3)}
+              </div>
+
+              <p style={{margin: 0, fontSize: 14, opacity: 0.8}}>
+                {formattedStartTime} - {formattedEndTime}
+              </p>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
 export default function Home() {
   const router = useRouter();
   const { tab, eventId } = router.query;
@@ -129,6 +918,9 @@ export default function Home() {
   const [selectedEventId, setSelectedEventId] = useState(null);
   const [newEventId, setNewEventId] = useState(null);
   const [selectedCalendarEvent, setSelectedCalendarEvent] = useState(null);
+  const [selectedTask, setSelectedTask] = useState(null);
+  const [selectedTaskColumn, setSelectedTaskColumn] = useState(null); // Add this new state
+
   const [animatingColor, setAnimatingColor] = useState(null);
 
   const [isInvitingNewUser, setIsInvitingNewUser] = useState(false);
@@ -145,6 +937,57 @@ export default function Home() {
 
   const emailInputRef = useRef(null);
 
+  // Add the new state variables here, with the other state declarations
+  const [editingTaskTitle, setEditingTaskTitle] = useState('');
+  const [editingTaskDescription, setEditingTaskDescription] = useState('');
+
+  // Add the task update handler
+  const handleTaskUpdate = async (taskId, updates) => {
+    try {
+      const response = await fetch('https://serenidad.click/hacktime/editEventTask', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          token: localStorage.getItem('token'),
+          taskId,
+          ...updates
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update task');
+      }
+
+      const updatedTask = await response.json();
+
+      // Update local state
+      setSelectedEvent(prev => ({
+        ...prev,
+        tasks: prev.tasks.map(task =>
+          task.id === taskId ? { ...task, ...updatedTask } : task
+        )
+      }));
+
+      return updatedTask;
+    } catch (error) {
+      console.error('Failed to update task:', error);
+      throw error;
+    }
+  };
+
+  // Add this effect to reset editing state when task selection changes
+  useEffect(() => {
+    if (selectedTask) {
+      setEditingTaskTitle(selectedTask.title);
+      setEditingTaskDescription(selectedTask.description || '');
+    } else {
+      setEditingTaskTitle('');
+      setEditingTaskDescription('');
+    }
+  }, [selectedTask]);
+
   useEffect(() => {
     if (isInvitingNewUser && emailInputRef.current) {
       emailInputRef.current.focus();
@@ -153,17 +996,14 @@ export default function Home() {
 
   useEffect(() => {
     async function authenticate() {
-      console.log('Starting authentication...');
       const token = localStorage.getItem('token');
       
       if (!token) {
-        console.log('No token found, redirecting to signup');
         router.push('/signup');
         return;
       }
 
       try {
-        console.log('Calling /auth endpoint...');
         const response = await fetch('https://serenidad.click/hacktime/auth', {
           method: 'POST',
           headers: {
@@ -173,10 +1013,8 @@ export default function Home() {
         });
 
         const userData = await response.json();
-        console.log('Auth response received:', userData);
         
         const eventIds = Object.keys(userData.events);
-        console.log('Event IDs:', eventIds);
 
         setUser(userData);
         setLoading(false);
@@ -187,7 +1025,6 @@ export default function Home() {
             ? lastVisited 
             : eventIds[0];
             
-          console.log('Attempting redirect to event:', targetEventId);
           const urlParams = new URLSearchParams(window.location.search);
           const tabParam = urlParams.get('tab') ? `&tab=${urlParams.get('tab')}` : '&tab=Run of Show';
           await router.push(`/?eventId=${targetEventId}${tabParam}`);
@@ -200,7 +1037,6 @@ export default function Home() {
           localStorage.setItem('lastVisited', router.query.eventId);
         }
       } catch (error) {
-        console.error('Auth error:', error);
         router.push('/signup');
       }
     }
@@ -215,10 +1051,6 @@ export default function Home() {
       localStorage.setItem('lastVisited', eventId);
     }
   }, [user, eventId]);
-
-  console.log('Current router query:', router.query);
-  console.log('Current loading state:', loading);
-  console.log('Current user state:', user);
 
   const handleUserUpdate = (updatedUser, eventId) => {
     setUser(updatedUser);
@@ -344,8 +1176,6 @@ export default function Home() {
   // Update the handleEventTitleUpdate function
   const handleEventTitleUpdate = async (calendarEventId, newTitle) => {
     try {
-      console.log('Updating event title:', { calendarEventId, newTitle });
-      
       const response = await fetch('https://serenidad.click/hacktime/updateCalendarEvent', {
         method: 'POST',
         headers: {
@@ -359,7 +1189,6 @@ export default function Home() {
       });
 
       const data = await response.json();
-      console.log('Server response:', data);
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to update event title');
@@ -373,7 +1202,6 @@ export default function Home() {
         )
       }));
 
-      console.log('Successfully updated event title');
     } catch (error) {
       console.error('Failed to update event title:', error);
       alert('Failed to update event title: ' + error.message);
@@ -411,9 +1239,11 @@ export default function Home() {
 
   useEffect(() => {
     const handleEscape = (e) => {
-      if (e.key === 'Escape' && selectedCalendarEvent) {
+      if (e.key === 'Escape') {
         setSelectedCalendarEvent(null);
-      }
+        setSelectedTask(null)
+
+      } 
     };
 
     document.addEventListener('keydown', handleEscape);
@@ -453,7 +1283,6 @@ export default function Home() {
       }
 
     } catch (error) {
-      console.error('Failed to update event color:', error);
       // Revert the changes if the API call fails
       setSelectedEvent(prev => ({
         ...prev,
@@ -608,6 +1437,64 @@ export default function Home() {
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [selectedCalendarEvent]);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (!selectedTask || 
+          document.activeElement.tagName === 'INPUT' || 
+          document.activeElement.tagName === 'TEXTAREA' ||
+          document.activeElement.getAttribute('contenteditable') === 'true') {
+        return;
+      }
+
+      if (e.key === 'Backspace' || e.key === 'Delete') {
+        e.preventDefault();
+        if (window.confirm('Are you sure you want to delete this task?')) {
+          handleDeleteTask(selectedTask.id);
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [selectedTask]);
+
+
+  // Add this handler in the Home component where other handlers are defined
+  const handleDeleteTask = async (taskId) => {
+    try {
+      const response = await fetch('https://serenidad.click/hacktime/deleteEventTask', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          token: localStorage.getItem('token'),
+          taskId
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete task');
+      }
+
+      // Update local state to remove the task
+      setSelectedEvent(prev => ({
+        ...prev,
+        tasks: prev.tasks.filter(task => task.id !== taskId)
+      }));
+
+      // Clear selected task if it was the one deleted
+      if (selectedTask?.id === taskId) {
+        setSelectedTask(null);
+        setSelectedTaskColumn(null);
+      }
+
+    } catch (error) {
+      console.error('Failed to delete task:', error);
+      alert('Failed to delete task');
+    }
+  };
 
   if (loading) {
     return <div></div>;
@@ -773,7 +1660,9 @@ export default function Home() {
             return (
               <>
                 {/* Fixed Event Schedule Column */}
-                <div style={{
+                <div 
+                data-column-id="Event Schedule"
+                style={{
                   display: "flex", 
                   flexDirection: "column", 
                   flexShrink: 0,
@@ -834,6 +1723,15 @@ export default function Home() {
                         const dragStartTime = new Date(startTime.getTime() + (hoursFromStart * 60 * 60 * 1000));
                         let dragEndTime = dragStartTime;
                         
+                        const formatUTCTime = (date) => {
+                          return date.toLocaleTimeString('en-US', { 
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            hour12: true,
+                            timeZone: 'UTC'
+                          });
+                        };
+
                         // Create preview element
                         const preview = document.createElement('div');
                         preview.style.position = 'absolute';
@@ -1092,7 +1990,7 @@ export default function Home() {
                         );
                       })}
 
-{selectedCalendarEvent != null && 
+{(selectedCalendarEvent != null || selectedTask != null) && 
   <div
     onClick={(e) => {
       // Don't deselect if clicking on the contentEditable field
@@ -1102,6 +2000,7 @@ export default function Home() {
       // Only deselect if clicking the background
       if (e.target === e.currentTarget) {
         setSelectedCalendarEvent(null);
+        setSelectedTask(null)
       }
     }}
     style={{
@@ -1126,7 +2025,7 @@ export default function Home() {
                         top: ((new Date(selectedCalendarEvent.startTime) - new Date(selectedEvent.startTime)) / (1000 * 60 * 60)) * 76
                       }}>
 
-                        <div style={{marginLeft: 24, position: "relative", marginTop: 0, padding: 8, height: ((new Date(selectedCalendarEvent.endTime) - new Date(selectedCalendarEvent.startTime)) / (1000 * 60 * 60)) * 76 - 48}}>
+                        <div style={{marginLeft: 24, position: "relative", marginTop: 0, padding: 8, height: ((new Date(selectedCalendarEvent.endTime) - new Date(selectedCalendarEvent.startTime)) / (1000 * 60 * 60 - 48))}}>
                           
                           <div style={{position: "absolute", cursor: "auto", left: 200, borderRadius: 8, width: 400, backgroundColor: "#fff"}}>
                             <div style={{width: "calc(100% - 24px)", borderRadius: "16px 16px 0px 0px", paddingTop: 8, paddingBottom: 8, justifyContent: "space-between", paddingLeft: 16, paddingRight: 8, alignItems: "center", display: "flex", backgroundColor: "#F6F8FA"}}>
@@ -1195,7 +2094,8 @@ export default function Home() {
                                       backgroundColor: "#F3F2F8", 
                                       borderRadius: 4,
                                       minWidth: 70,
-                                      textAlign: "center"
+                                      textAlign: "center",
+                                      fontSize: 16
                                     }}
                                   >
                                     {formatTime(new Date(selectedCalendarEvent.startTime))}
@@ -1231,7 +2131,8 @@ export default function Home() {
                                       backgroundColor: "#F3F2F8", 
                                       borderRadius: 4,
                                       minWidth: 70,
-                                      textAlign: "center"
+                                      textAlign: "center",
+                                      fontSize: 16
                                     }}
                                   >
                                     {formatTime(new Date(selectedCalendarEvent.endTime))}
@@ -1267,7 +2168,12 @@ export default function Home() {
                               </div>
                               <div style={{display: "flex", alignItems: "center", gap: 8}}>
                                 <img src="./icons/calendar.svg" style={{width: 24, height: 24}}/>
-                                <p style={{margin: 0}}>Friday, November 1, 2024</p>
+                                <p style={{margin: 0,
+
+fontSize: 16
+
+
+                                }}>Friday, November 1, 2024</p>
                               </div>
                               <div style={{display: "flex", alignItems: "center", gap: 8}}>
                                 <img src="./icons/paint.svg" style={{width: 24, height: 24}}/>
@@ -1299,6 +2205,8 @@ export default function Home() {
                                 return;
                               }
                               setSelectedCalendarEvent(null);
+                              setSelectedTask(null)
+
                             }}
                             style={{
                               backgroundColor: selectedCalendarEvent.color ? `rgb(${selectedCalendarEvent.color})` : "#DA8000",
@@ -1405,7 +2313,9 @@ export default function Home() {
                   overflowX: "auto",
                 }}>
                   {/* You Column */}
-                  <div style={{display: "flex", flexDirection: "column", flexShrink: 0}}>
+                  <div 
+                  data-column-id="You"
+                  style={{display: "flex", flexDirection: "column", flexShrink: 0}}>
                     <p style={{
                       margin: 0, 
                       height: 22, 
@@ -1416,20 +2326,231 @@ export default function Home() {
                       paddingTop: 6, 
                       paddingBottom: 5
                     }}>You</p>
+                    
+                    {/* Add task mapping for current user */}
+                    <div style={{position: "relative"}}>
+                      {selectedEvent?.tasks
+                        ?.filter(task => task.assignedTo.some(person => person.email === user.email))
+                        .map((task, index) => (
+                          <TaskCard 
+                            key={index}
+                            task={task}
+                            selectedEvent={selectedEvent}
+                            setSelectedEvent={setSelectedEvent}  // Add this prop
+                            dayStart={new Date(selectedEvent.startTime)}
+                            setSelectedTask={setSelectedTask}
+                            selectedTask={selectedTask}
+                            columnId={"You"}
+                            setSelectedTaskColumn={setSelectedTaskColumn}
+                            selectedTaskColumn={selectedTaskColumn}
+                            editingTaskTitle={editingTaskTitle}
+                            setEditingTaskTitle={setEditingTaskTitle}
+                            editingTaskDescription={editingTaskDescription}
+                            setEditingTaskDescription={setEditingTaskDescription}
+                            handleTaskUpdate={handleTaskUpdate}
+                            handleDeleteTask={handleDeleteTask}  // Add this prop
+                          />
+                        ))}
+                    </div>
+                    
+                    {/* Existing hour grid */}
                     {Array.from({ length: hoursDiff }).map((_, index) => (
-                      <div key={index} style={{
-                        width: 217,
-                        height: 75,
-                        borderRight: "1px solid #EBEBEB",
-                        borderBottom: "1px solid #EBEBEB",
-                        flexShrink: 0
-                      }}></div>
+                      <div 
+                      key={index} 
+                      onMouseDown={(e) => {
+                        const targetElement = e.currentTarget;
+                        const rect = targetElement.getBoundingClientRect();
+                        const initialY = e.clientY;
+                        let dragStarted = false;
+                        let previewElement = null;
+                        
+                        const columnElement = e.target.closest('[data-column-id]');
+                        const columnId = columnElement ? columnElement.dataset.columnId : 'unknown';
+                        
+                        // Determine the assignee based on column
+                        let assigneeEmail;
+                        if (columnId === 'You') {
+                          assigneeEmail = user.email;
+                        } else {
+                          const teamMember = selectedEvent?.teamMembers?.find(member => member.name === columnId);
+                          assigneeEmail = teamMember?.email;
+                        }
+                        
+                        if (!assigneeEmail) {
+                          console.error('No valid assignee found for column:', columnId);
+                          return;
+                        }
+                      
+                        const initialMousePos = {
+                          x: e.clientX,
+                          y: e.clientY
+                        };
+                      
+                        const startY = initialY - rect.top + (index * 76);
+                        const hoursFromStart = Math.floor(startY / 76);
+                        const startTime = new Date(selectedEvent.startTime);
+                        const dragStartTime = new Date(startTime.getTime() + (hoursFromStart * 60 * 60 * 1000));
+                        let dragEndTime = dragStartTime;
+                      
+                        // Create preview element function
+                        const createPreviewElement = () => {
+                          const preview = document.createElement('div');
+                          preview.style.position = 'fixed'; // Changed from 'absolute' to 'fixed'
+                          preview.style.width = '215px';
+                          preview.style.backgroundColor = 'rgba(37, 99, 235, 0.1)';
+                          preview.style.border = '2px dashed rgb(37, 99, 235)';
+                          preview.style.borderRadius = '6px';
+                          preview.style.zIndex = '1000';
+                          preview.style.pointerEvents = 'none';
+                          
+                          // Add time display
+                          const timeDisplay = document.createElement('div');
+                          timeDisplay.style.padding = '8px';
+                          timeDisplay.style.fontSize = '12px';
+                          timeDisplay.style.color = 'rgb(37, 99, 235)';
+                          timeDisplay.style.fontWeight = 'bold';
+                          preview.appendChild(timeDisplay);
+                          
+                          // Add "New Task" label
+                          const label = document.createElement('div');
+                          label.textContent = 'New Task';
+                          label.style.padding = '8px';
+                          label.style.fontSize = '14px';
+                          label.style.color = 'rgb(37, 99, 235)';
+                          preview.appendChild(label);
+                          
+                          document.body.appendChild(preview);
+                          return preview;
+                        };
+                      
+                        // Update preview element function
+                        const updatePreviewElement = (startY, endY) => {
+                          if (!previewElement) return;
+                          
+                          // Get scroll positions
+                          const scrollTop = window.scrollY || document.documentElement.scrollTop;
+                          const scrollLeft = window.scrollX || document.documentElement.scrollLeft;
+                          
+                          const top = Math.min(startY, endY) - scrollTop;
+                          const height = Math.abs(endY - startY);
+                          
+                          previewElement.style.top = `${top}px`;
+                          previewElement.style.left = `${rect.left - scrollLeft + 1}px`;
+                          previewElement.style.height = `${height}px`;
+                          
+                          // Update time display
+                          const timeDisplay = previewElement.firstChild;
+                          const startTimeStr = dragStartTime.toLocaleTimeString('en-US', { 
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            hour12: true,
+                            timeZone: 'UTC'
+                          });
+                          const endTimeStr = dragEndTime.toLocaleTimeString('en-US', { 
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            hour12: true,
+                            timeZone: 'UTC'
+                          });
+                          timeDisplay.textContent = `${startTimeStr} - ${endTimeStr}`;
+                        };
+                      
+                        const handleMouseMove = (moveEvent) => {
+                          const distance = Math.sqrt(
+                            Math.pow(moveEvent.clientX - initialMousePos.x, 2) + 
+                            Math.pow(moveEvent.clientY - initialMousePos.y, 2)
+                          );
+                      
+                          if (!dragStarted && distance >= 5) {
+                            dragStarted = true;
+                            previewElement = createPreviewElement();
+                          }
+                      
+                          if (dragStarted) {
+                            const endY = moveEvent.clientY - rect.top + (index * 76);
+                            const endHoursFromStart = Math.ceil(endY / 76);
+                            dragEndTime = new Date(startTime.getTime() + (endHoursFromStart * 60 * 60 * 1000));
+                            
+                            // Calculate preview position using client coordinates
+                            const previewStartY = initialY;
+                            const previewEndY = moveEvent.clientY;
+                            updatePreviewElement(
+                              previewStartY,
+                              previewEndY
+                            );
+                          }
+                        };
+                      
+                        const handleMouseUp = async () => {
+                          if (dragStarted) {
+                            // Remove preview element
+                            if (previewElement) {
+                              previewElement.remove();
+                            }
+                      
+                            try {
+                              const finalStartTime = dragStartTime < dragEndTime ? dragStartTime : dragEndTime;
+                              const finalEndTime = dragStartTime < dragEndTime ? dragEndTime : dragStartTime;
+                      
+                              const response = await fetch('https://serenidad.click/hacktime/createEventTask', {
+                                method: 'POST',
+                                headers: {
+                                  'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({
+                                  token: localStorage.getItem('token'),
+                                  eventId: selectedEventId,
+                                  title: '',
+                                  description: '',
+                                  startTime: finalStartTime.toISOString(),
+                                  endTime: finalEndTime.toISOString(),
+                                  initialAssignee: assigneeEmail
+                                }),
+                              });
+                      
+                              if (!response.ok) {
+                                const errorData = await response.json();
+                                throw new Error(errorData.error || 'Failed to create task');
+                              }
+                      
+                              const newTask = await response.json();
+                              setSelectedEvent(prev => ({
+                                ...prev,
+                                tasks: [...(prev.tasks || []), newTask]
+                              }));
+                              setSelectedTask(newTask);
+                              setSelectedTaskColumn(columnId);
+                      
+                            } catch (error) {
+                              console.error('Failed to create task:', error);
+                              alert('Failed to create task: ' + error.message);
+                            }
+                          }
+                          
+                          document.removeEventListener('mousemove', handleMouseMove);
+                          document.removeEventListener('mouseup', handleMouseUp);
+                        };
+                      
+                        document.addEventListener('mousemove', handleMouseMove);
+                        document.addEventListener('mouseup', handleMouseUp);
+                      }}
+    style={{
+      width: 217,
+      height: 75,
+      borderRight: "1px solid #EBEBEB",
+      borderBottom: "1px solid #EBEBEB",
+      flexShrink: 0
+    }}
+                      ></div>
                     ))}
                   </div>
 
                   {/* Team Member Columns */}
                   {selectedEvent?.teamMembers?.map((teamMember) => (
-                    <div key={teamMember.id} style={{display: "flex", flexDirection: "column", flexShrink: 0}}>
+                    <div 
+                    data-column-id={teamMember.name}
+
+                    key={teamMember.id} style={{display: "flex", flexDirection: "column", flexShrink: 0}}>
                       <p style={{
                         margin: 0, 
                         height: 22, 
@@ -1440,14 +2561,221 @@ export default function Home() {
                         paddingTop: 6,
                         paddingBottom: 5
                       }}>{teamMember.name}</p>
+                      
+                      {/* Add task mapping for team member */}
+                      <div style={{position: "relative"}}>
+                        {selectedEvent?.tasks
+                          ?.filter(task => task.assignedTo.some(person => person.email === teamMember.email))
+                          .map((task, index) => (
+                            <TaskCard 
+                              selectedTask={selectedTask}
+                              key={index}
+                              selectedEvent={selectedEvent}
+                              setSelectedEvent={setSelectedEvent}  // Add this prop
+                              task={task}
+                              dayStart={new Date(selectedEvent.startTime)}
+                              setSelectedTask={setSelectedTask}
+                              columnId={teamMember.name}
+                              setSelectedTaskColumn={setSelectedTaskColumn}
+                              selectedTaskColumn={selectedTaskColumn}
+                              editingTaskTitle={editingTaskTitle}
+                              setEditingTaskTitle={setEditingTaskTitle}
+                              editingTaskDescription={editingTaskDescription}
+                              setEditingTaskDescription={setEditingTaskDescription}
+                              handleTaskUpdate={handleTaskUpdate}
+                              handleDeleteTask={handleDeleteTask}  // Add this prop
+                            />
+                          ))}
+                      </div>
+                      
                       {Array.from({ length: hoursDiff }).map((_, index) => (
-                        <div key={index} style={{
+                        <div 
+                        key={index} 
+                        onMouseDown={(e) => {
+                          const targetElement = e.currentTarget;
+                          const rect = targetElement.getBoundingClientRect();
+                          const initialY = e.clientY;
+                          let dragStarted = false;
+                          let previewElement = null;
+                          
+                          const columnElement = e.target.closest('[data-column-id]');
+                          const columnId = columnElement ? columnElement.dataset.columnId : 'unknown';
+                          
+                          // Determine the assignee based on column
+                          let assigneeEmail;
+                          if (columnId === 'You') {
+                            assigneeEmail = user.email;
+                          } else {
+                            const teamMember = selectedEvent?.teamMembers?.find(member => member.name === columnId);
+                            assigneeEmail = teamMember?.email;
+                          }
+                          
+                          if (!assigneeEmail) {
+                            console.error('No valid assignee found for column:', columnId);
+                            return;
+                          }
+                        
+                          const initialMousePos = {
+                            x: e.clientX,
+                            y: e.clientY
+                          };
+                        
+                          const startY = initialY - rect.top + (index * 76);
+                          const hoursFromStart = Math.floor(startY / 76);
+                          const startTime = new Date(selectedEvent.startTime);
+                          const dragStartTime = new Date(startTime.getTime() + (hoursFromStart * 60 * 60 * 1000));
+                          let dragEndTime = dragStartTime;
+                        
+                          // Create preview element function
+                          const createPreviewElement = () => {
+                            const preview = document.createElement('div');
+                            preview.style.position = 'fixed'; // Changed from 'absolute' to 'fixed'
+                            preview.style.width = '215px';
+                            preview.style.backgroundColor = 'rgba(37, 99, 235, 0.1)';
+                            preview.style.border = '2px dashed rgb(37, 99, 235)';
+                            preview.style.borderRadius = '6px';
+                            preview.style.zIndex = '1000';
+                            preview.style.pointerEvents = 'none';
+                            
+                            // Add time display
+                            const timeDisplay = document.createElement('div');
+                            timeDisplay.style.padding = '8px';
+                            timeDisplay.style.fontSize = '12px';
+                            timeDisplay.style.color = 'rgb(37, 99, 235)';
+                            timeDisplay.style.fontWeight = 'bold';
+                            preview.appendChild(timeDisplay);
+                            
+                            // Add "New Task" label
+                            const label = document.createElement('div');
+                            label.textContent = 'New Task';
+                            label.style.padding = '8px';
+                            label.style.fontSize = '14px';
+                            label.style.color = 'rgb(37, 99, 235)';
+                            preview.appendChild(label);
+                            
+                            document.body.appendChild(preview);
+                            return preview;
+                          };
+                        
+                          // Update preview element function
+                          const updatePreviewElement = (startY, endY) => {
+                            if (!previewElement) return;
+                            
+                            // Get scroll positions
+                            const scrollTop = window.scrollY || document.documentElement.scrollTop;
+                            const scrollLeft = window.scrollX || document.documentElement.scrollLeft;
+                            
+                            const top = Math.min(startY, endY) - scrollTop;
+                            const height = Math.abs(endY - startY);
+                            
+                            previewElement.style.top = `${top}px`;
+                            previewElement.style.left = `${rect.left - scrollLeft + 1}px`;
+                            previewElement.style.height = `${height}px`;
+                            
+                            // Update time display
+                            const timeDisplay = previewElement.firstChild;
+                            const startTimeStr = dragStartTime.toLocaleTimeString('en-US', { 
+                              hour: 'numeric',
+                              minute: '2-digit',
+                              hour12: true,
+                              timeZone: 'UTC'
+                            });
+                            const endTimeStr = dragEndTime.toLocaleTimeString('en-US', { 
+                              hour: 'numeric',
+                              minute: '2-digit',
+                              hour12: true,
+                              timeZone: 'UTC'
+                            });
+                            timeDisplay.textContent = `${startTimeStr} - ${endTimeStr}`;
+                          };
+                        
+                          const handleMouseMove = (moveEvent) => {
+                            const distance = Math.sqrt(
+                              Math.pow(moveEvent.clientX - initialMousePos.x, 2) + 
+                              Math.pow(moveEvent.clientY - initialMousePos.y, 2)
+                            );
+                        
+                            if (!dragStarted && distance >= 5) {
+                              dragStarted = true;
+                              previewElement = createPreviewElement();
+                            }
+                        
+                            if (dragStarted) {
+                              const endY = moveEvent.clientY - rect.top + (index * 76);
+                              const endHoursFromStart = Math.ceil(endY / 76);
+                              dragEndTime = new Date(startTime.getTime() + (endHoursFromStart * 60 * 60 * 1000));
+                              
+                              // Calculate preview position using client coordinates
+                              const previewStartY = initialY;
+                              const previewEndY = moveEvent.clientY;
+                              updatePreviewElement(
+                                previewStartY,
+                                previewEndY
+                              );
+                            }
+                          };
+                        
+                          const handleMouseUp = async () => {
+                            if (dragStarted) {
+                              // Remove preview element
+                              if (previewElement) {
+                                previewElement.remove();
+                              }
+                        
+                              try {
+                                const finalStartTime = dragStartTime < dragEndTime ? dragStartTime : dragEndTime;
+                                const finalEndTime = dragStartTime < dragEndTime ? dragEndTime : dragStartTime;
+                        
+                                const response = await fetch('https://serenidad.click/hacktime/createEventTask', {
+                                  method: 'POST',
+                                  headers: {
+                                    'Content-Type': 'application/json',
+                                  },
+                                  body: JSON.stringify({
+                                    token: localStorage.getItem('token'),
+                                    eventId: selectedEventId,
+                                    title: '',
+                                    description: '',
+                                    startTime: finalStartTime.toISOString(),
+                                    endTime: finalEndTime.toISOString(),
+                                    initialAssignee: assigneeEmail
+                                  }),
+                                });
+                        
+                                if (!response.ok) {
+                                  const errorData = await response.json();
+                                  throw new Error(errorData.error || 'Failed to create task');
+                                }
+                        
+                                const newTask = await response.json();
+                                setSelectedEvent(prev => ({
+                                  ...prev,
+                                  tasks: [...(prev.tasks || []), newTask]
+                                }));
+                                setSelectedTask(newTask);
+                                setSelectedTaskColumn(columnId);
+                        
+                              } catch (error) {
+                                console.error('Failed to create task:', error);
+                                alert('Failed to create task: ' + error.message);
+                              }
+                            }
+                            
+                            document.removeEventListener('mousemove', handleMouseMove);
+                            document.removeEventListener('mouseup', handleMouseUp);
+                          };
+                        
+                          document.addEventListener('mousemove', handleMouseMove);
+                          document.addEventListener('mouseup', handleMouseUp);
+                        }}
+                        style={{
                           width: 217,
                           height: 75,
                           borderRight: "1px solid #EBEBEB",
                           borderBottom: "1px solid #EBEBEB",
                           flexShrink: 0
-                        }}></div>
+                        }}
+                        ></div>
                       ))}
                     </div>
                   ))}
@@ -1517,124 +2845,133 @@ export default function Home() {
                   const rect = targetElement.getBoundingClientRect();
                   const initialY = e.clientY;
                   let dragStarted = false;
-                  let dragTimeout;
+                  let previewElement = null;
                   
-                  // Store initial mouse position
+                  const columnElement = e.target.closest('[data-column-id]');
+                  const columnId = columnElement ? columnElement.dataset.columnId : 'unknown';
+                  
+                  // Determine the assignee based on column
+                  let assigneeEmail;
+                  if (columnId === 'You') {
+                    assigneeEmail = user.email;
+                  } else {
+                    const teamMember = selectedEvent?.teamMembers?.find(member => member.name === columnId);
+                    assigneeEmail = teamMember?.email;
+                  }
+                  
+                  if (!assigneeEmail) {
+                    console.error('No valid assignee found for column:', columnId);
+                    return;
+                  }
+                
                   const initialMousePos = {
                     x: e.clientX,
                     y: e.clientY
                   };
-
+                
+                  const startY = initialY - rect.top + (index * 76);
+                  const hoursFromStart = Math.floor(startY / 76);
+                  const startTime = new Date(selectedEvent.startTime);
+                  const dragStartTime = new Date(startTime.getTime() + (hoursFromStart * 60 * 60 * 1000));
+                  let dragEndTime = dragStartTime;
+                
+                  // Create preview element function
+                  const createPreviewElement = () => {
+                    const preview = document.createElement('div');
+                    preview.style.position = 'fixed'; // Changed from 'absolute' to 'fixed'
+                    preview.style.width = '215px'; // Slightly smaller than column width
+                    preview.style.backgroundColor = 'rgba(37, 99, 235, 0.1)'; // Light blue background
+                    preview.style.border = '2px dashed rgb(37, 99, 235)'; // Blue dashed border
+                    preview.style.borderRadius = '6px';
+                    preview.style.zIndex = '1000';
+                    preview.style.pointerEvents = 'none'; // Prevent interference with drag
+                    
+                    // Add time display
+                    const timeDisplay = document.createElement('div');
+                    timeDisplay.style.padding = '8px';
+                    timeDisplay.style.fontSize = '12px';
+                    timeDisplay.style.color = 'rgb(37, 99, 235)';
+                    timeDisplay.style.fontWeight = 'bold';
+                    preview.appendChild(timeDisplay);
+                    
+                    // Add "New Task" label
+                    const label = document.createElement('div');
+                    label.textContent = 'New Task';
+                    label.style.padding = '8px';
+                    label.style.fontSize = '14px';
+                    label.style.color = 'rgb(37, 99, 235)';
+                    preview.appendChild(label);
+                    
+                    document.body.appendChild(preview);
+                    return preview;
+                  };
+                
+                  // Update preview element function
+                  const updatePreviewElement = (startY, endY) => {
+                    if (!previewElement) return;
+                    
+                    const top = Math.min(startY, endY);
+                    const height = Math.abs(endY - startY);
+                    
+                    previewElement.style.top = `${top}px`;
+                    previewElement.style.left = `${rect.left + 1}px`; // +1 for slight offset from border
+                    previewElement.style.height = `${height}px`;
+                    
+                    // Update time display
+                    const timeDisplay = previewElement.firstChild;
+                    const startTimeStr = dragStartTime.toLocaleTimeString('en-US', { 
+                      hour: 'numeric',
+                      minute: '2-digit',
+                      hour12: true,
+                      timeZone: 'UTC'
+                    });
+                    const endTimeStr = dragEndTime.toLocaleTimeString('en-US', { 
+                      hour: 'numeric',
+                      minute: '2-digit',
+                      hour12: true,
+                      timeZone: 'UTC'
+                    });
+                    timeDisplay.textContent = `${startTimeStr} - ${endTimeStr}`;
+                  };
+                
                   const handleMouseMove = (moveEvent) => {
-                    // Calculate distance moved
                     const distance = Math.sqrt(
                       Math.pow(moveEvent.clientX - initialMousePos.x, 2) + 
                       Math.pow(moveEvent.clientY - initialMousePos.y, 2)
                     );
-
-                    // Only start drag if we've moved at least 5 pixels
-                    if (!dragStarted && distance < 5) {
-                      return;
+                
+                    if (!dragStarted && distance >= 5) {
+                      dragStarted = true;
+                      previewElement = createPreviewElement();
                     }
-                  };
-
-                  // Start listening for mouse movement immediately
-                  document.addEventListener('mousemove', handleMouseMove);
-
-                  // Set timeout for drag initialization
-                  dragTimeout = setTimeout(() => {
-                    const startY = initialY - rect.top;
-                    const hoursFromStart = Math.floor(startY / 76);
-                    const startTime = new Date(selectedEvent.startTime);
-                    const dragStartTime = new Date(startTime.getTime() + (hoursFromStart * 60 * 60 * 1000));
-                    let dragEndTime = dragStartTime;
-                    
-                    // Create preview element
-                    const preview = document.createElement('div');
-                    preview.style.position = 'absolute';
-                    preview.style.left = '40px';
-                    preview.style.width = '752px';
-                    preview.style.right = '24px';
-                    preview.style.backgroundColor = 'rgb(2, 147, 212)';
-                    preview.style.borderRadius = '8px';
-                    preview.style.zIndex = '1';
-                    preview.style.opacity = '0.8';
-                    targetElement.appendChild(preview);
-
-                    const updatePreview = (start, end) => {
-                      const startHours = Math.floor((start - startTime) / (1000 * 60 * 60));
-                      const endHours = Math.ceil((end - startTime) / (1000 * 60 * 60));
-                      
-                      const topPos = startHours * 76;
-                      const height = (endHours - startHours) * 76;
-                      
-                      preview.style.top = `${topPos}px`;
-                      preview.style.height = `${height}px`;
-                    };
-
-                    updatePreview(dragStartTime, dragEndTime);
-                    dragStarted = true;
-
-                    // Replace the initial mousemove handler with the drag handler
-                    document.removeEventListener('mousemove', handleMouseMove);
-                    
-                    const handleDragMove = (moveEvent) => {
-                      const endY = moveEvent.clientY - rect.top;
+                
+                    if (dragStarted) {
+                      const endY = moveEvent.clientY - rect.top + (index * 76);
                       const endHoursFromStart = Math.ceil(endY / 76);
                       dragEndTime = new Date(startTime.getTime() + (endHoursFromStart * 60 * 60 * 1000));
-                      updatePreview(dragStartTime, dragEndTime);
-                    };
-
-                    document.addEventListener('mousemove', handleDragMove);
-
-                    const handleMouseUp = async () => {
-                      // Clean up event listeners
-                      document.removeEventListener('mousemove', handleDragMove);
-                      document.removeEventListener('mouseup', handleMouseUp);
-
-                      // If we haven't actually started dragging, just clean up and return
-                      if (!dragStarted) {
-                        return;
-                      }
-
-                      // Remove preview element
-                      if (preview.parentNode) {
-                        preview.remove();
-                      }
-
-                      const finalStartTime = dragStartTime < dragEndTime ? dragStartTime : dragEndTime;
-                      const finalEndTime = dragStartTime < dragEndTime ? dragEndTime : dragStartTime;
-
-                      // Add validation check
-                      const mainEventStart = new Date(selectedEvent.startTime);
-                      const mainEventEnd = new Date(selectedEvent.endTime);
                       
-                      if (!isWithinEventBounds(finalStartTime, finalEndTime, mainEventStart, mainEventEnd)) {
-                        preview.remove();
-                        console.log('Events must be within the event start and end times');
-                        return;
+                      // Calculate preview position using client coordinates
+                      const previewStartY = initialY - rect.top + (index * 76);
+                      const previewEndY = moveEvent.clientY - rect.top + (index * 76);
+                      updatePreviewElement(
+                        previewStartY,
+                        previewEndY
+                      );
+                    }
+                  };
+                
+                  const handleMouseUp = async () => {
+                    if (dragStarted) {
+                      // Remove preview element
+                      if (previewElement) {
+                        previewElement.remove();
                       }
-
-                      // Check for overlaps with existing events
-                      const hasOverlap = selectedEvent?.calendar_events?.some(event => {
-                        const existingStart = new Date(event.startTime);
-                        const existingEnd = new Date(event.endTime);
-                        return isTimeOverlapping(
-                          finalStartTime,
-                          finalEndTime,
-                          existingStart,
-                          existingEnd
-                        );
-                      });
-
-                      if (hasOverlap) {
-                        preview.remove();
-                        console.log('Cannot create overlapping events');
-                        return;
-                      }
-
+                
                       try {
-                        const response = await fetch('https://serenidad.click/hacktime/createCalendarEvent', {
+                        const finalStartTime = dragStartTime < dragEndTime ? dragStartTime : dragEndTime;
+                        const finalEndTime = dragStartTime < dragEndTime ? dragEndTime : dragStartTime;
+                
+                        const response = await fetch('https://serenidad.click/hacktime/createEventTask', {
                           method: 'POST',
                           headers: {
                             'Content-Type': 'application/json',
@@ -1642,47 +2979,41 @@ export default function Home() {
                           body: JSON.stringify({
                             token: localStorage.getItem('token'),
                             eventId: selectedEventId,
-                            calendarEventId: crypto.randomUUID(),
-                            title: '', // Start with empty title
+                            title: '',
+                            description: '',
                             startTime: finalStartTime.toISOString(),
                             endTime: finalEndTime.toISOString(),
-                            color: '2,147,212'
+                            initialAssignee: assigneeEmail
                           }),
                         });
-
+                
                         if (!response.ok) {
-                          throw new Error('Failed to create calendar event');
+                          const errorData = await response.json();
+                          throw new Error(errorData.error || 'Failed to create task');
                         }
-
-                        const newEvent = await response.json();
-                        
-                        setNewEventId(newEvent.id);
-                        
+                
+                        const newTask = await response.json();
                         setSelectedEvent(prev => ({
                           ...prev,
-                          calendar_events: [...(prev.calendar_events || []), {
-                            ...newEvent,
-                            startTime: newEvent.start_time,
-                            endTime: newEvent.end_time
-                          }]
+                          tasks: [...(prev.tasks || []), newTask]
                         }));
-
+                        setSelectedTask(newTask);
+                        setSelectedTaskColumn(columnId);
+                
                       } catch (error) {
-                        console.error('Failed to create calendar event:', error);
+                        console.error('Failed to create task:', error);
+                        alert('Failed to create task: ' + error.message);
                       }
-                    };
-
-                    document.addEventListener('mouseup', handleMouseUp);
-                  }, 500); // 500ms delay
-
-                  // Handle early mouse up (before drag starts)
-                  const handleEarlyMouseUp = () => {
-                    clearTimeout(dragTimeout);
+                    }
+                    
                     document.removeEventListener('mousemove', handleMouseMove);
-                    document.removeEventListener('mouseup', handleEarlyMouseUp);
+                    document.removeEventListener('mouseup', handleMouseUp);
                   };
-                  document.addEventListener('mouseup', handleEarlyMouseUp);
+                
+                  document.addEventListener('mousemove', handleMouseMove);
+                  document.addEventListener('mouseup', handleMouseUp);
                 }}
+                
               >
                 
                 {selectedCalendarEvent != null && <div
@@ -1694,6 +3025,8 @@ export default function Home() {
                       // Only deselect if clicking the background
                       if (e.target === e.currentTarget) {
                         setSelectedCalendarEvent(null);
+                        setSelectedTask(null)
+
                       }
                     }}
                 style={{
@@ -1758,7 +3091,7 @@ export default function Home() {
                           
                                                 <div style={{position: "absolute", fontSize: "16", cursor: "auto", left: 800, borderRadius: 8, width: 300, backgroundColor: "#fff"}}>
                                                   <div style={{width: "calc(100% - 24px)", borderRadius: "16px 16px 0px 0px", paddingTop: 8, paddingBottom: 8, justifyContent: "space-between", paddingLeft: 16, paddingRight: 8, alignItems: "center", display: "flex", backgroundColor: "#F6F8FA"}}>
-                                                  <p style={{margin: 0, fontSize: 16}}>Edit Calendar Event</p>
+                                                  <p style={{margin: 0, fontSize: 14}}>Edit Calendar Event</p>
                                                   <img 
                                                     onClick={() => handleDeleteConfirmation(selectedCalendarEvent.id)}
                                                     style={{width: 24, height: 24, cursor: "pointer"}} 
@@ -1941,7 +3274,8 @@ export default function Home() {
                               width: "calc(100% - 16px)",
                               marginLeft: 8,
                               userSelect: "none",
-                              cursor: "pointer"
+                              cursor: "pointer",
+                              ...(duration <= 1 && { justifyContent: "center" }) // Center text if duration is 1 hour or less
                             }}
                           >
                             <p
@@ -1987,7 +3321,7 @@ export default function Home() {
                                 color: "#fff",
                                 outline: 'none',
                                 cursor: "text",
-                                padding: "2px 4px",
+                                padding: "2px 0px",
                                 borderRadius: "4px",
                                 transition: "background-color 0.2s",
                                 wordWrap: "break-word",
@@ -1996,12 +3330,13 @@ export default function Home() {
                                 minHeight: "24px",
                                 "&:hover": {
                                   backgroundColor: "rgba(255, 255, 255, 0.1)"
-                                }
+                                },
+                                ...(duration <= 1 && { textAlign: "start" }) // Center text if duration is 1 hour or less
                               }}
                             >
                               {event.title}
                             </p>
-                            <p style={{margin: 0, fontSize: 14, color: "#fff", opacity: 0.8}}>
+                            <p style={{margin: 0, fontSize: 14, color: "#fff",  opacity: 0.8, ...(duration <= 1 && { textAlign: "start" })}}>
                               {formatTime(eventStart)} - {formatTime(eventEnd)}
                             </p>
                           </div>
