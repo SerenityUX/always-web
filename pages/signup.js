@@ -1,3 +1,4 @@
+import Head from "next/head";
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 
@@ -89,6 +90,26 @@ export default function Signup() {
 
   // Update the return statement to include form handling and error display
   return (
+    <>
+          <Head>
+        <title>Always</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="icon" href="/favicon.ico" />
+<meta name="description" content=""/>
+
+<meta property="og:url" content="https://always.sh/"/>
+<meta property="og:type" content="website"/>
+<meta property="og:title" content=""/>
+<meta property="og:description" content=""/>
+<meta property="og:image" content="https://opengraph.b-cdn.net/production/images/94a544e7-a5ba-4c45-98ca-49e926ce44b6.png?token=q8wbxEubxdaLUYDUCG6h2ZPJKc88QHFV2p8MTq5rg18&height=596&width=1200&expires=33267021068"/>
+
+<meta name="twitter:card" content="summary_large_image"/>
+<meta property="twitter:domain" content="always.sh"/>
+<meta property="twitter:url" content="https://always.sh/"/>
+<meta name="twitter:title" content=""/>
+<meta name="twitter:description" content=""/>
+<meta name="twitter:image" content="https://opengraph.b-cdn.net/production/images/94a544e7-a5ba-4c45-98ca-49e926ce44b6.png?token=q8wbxEubxdaLUYDUCG6h2ZPJKc88QHFV2p8MTq5rg18&height=596&width=1200&expires=33267021068"/>
+      </Head>
     <div style={{
       minHeight: '100vh',
       display: 'flex',
@@ -301,5 +322,6 @@ export default function Signup() {
         </div>
       </form>
     </div>
+    </>
   );
 } 
