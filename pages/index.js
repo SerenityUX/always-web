@@ -64,6 +64,9 @@ const MAX_DURATION = 23.99 * 60 * 60 * 1000; // Just under 24 hours in milliseco
 
 // First create the TaskCard component (at the top of the file or in a separate component file)
 
+// Add this constant at the top of the file with other constants
+const TABS = ["Run of Show", "Schedule", "Announcements", "Team"];
+
 export default function Home() {
   const router = useRouter();
   const { tab, eventId } = router.query;
@@ -671,6 +674,42 @@ useEffect(() => {
       alert('Failed to delete task');
     }
   };
+
+  // Inside the Home component, add this effect after other useEffect hooks
+  useEffect(() => {
+    const handleTabNavigation = (e) => {
+      // Check if not focused on input/textarea/contenteditable
+      if (
+        document.activeElement.tagName === 'INPUT' || 
+        document.activeElement.tagName === 'TEXTAREA' ||
+        document.activeElement.getAttribute('contenteditable') === 'true'
+      ) {
+        return;
+      }
+
+      // Check for CMD/CTRL + SHIFT + Arrow Keys
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+        e.preventDefault();
+        
+        const currentIndex = TABS.indexOf(currentTab);
+        let newIndex;
+
+        if (e.key === 'ArrowLeft') {
+          // Move backwards, wrap to end if at start
+          newIndex = currentIndex <= 0 ? TABS.length - 1 : currentIndex - 1;
+        } else {
+          // Move forwards, wrap to start if at end
+          newIndex = currentIndex >= TABS.length - 1 ? 0 : currentIndex + 1;
+        }
+
+        const newTab = TABS[newIndex];
+        router.push(`/?eventId=${selectedEventId}&tab=${encodeURIComponent(newTab)}`);
+      }
+    };
+
+    document.addEventListener('keydown', handleTabNavigation);
+    return () => document.removeEventListener('keydown', handleTabNavigation);
+  }, [currentTab, selectedEventId, router]);
 
   if (loading) {
     return <div></div>;
