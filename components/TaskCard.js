@@ -8,6 +8,20 @@ const getInitials = (name) => {
       .toUpperCase()
       .slice(0, 2);
   };
+  const MAX_DURATION = 23.99 * 60 * 60 * 1000; // Just under 24 hours in milliseconds
+
+  const timeStringToDate = (timeStr, baseDate) => {
+    const [hours, minutes] = timeStr.split(':').map(num => parseInt(num));
+    return new Date(Date.UTC(
+      baseDate.getUTCFullYear(),
+      baseDate.getUTCMonth(),
+      baseDate.getUTCDate(),
+      hours,
+      minutes,
+      0,
+      0
+    ));
+  };
 
   
 const formatTime = (date) => {
@@ -29,6 +43,7 @@ export const TaskCard = ({
     setSelectedEvent,  // Add this prop
     selectedTask, 
     columnId, 
+    handleDeleteCalendarEvent,
     setSelectedTaskColumn, 
     selectedTaskColumn,
     editingTaskTitle,
@@ -284,7 +299,6 @@ export const TaskCard = ({
           cursor: "pointer",
           width: 201,
           height: height,
-          padding: 8,
           zIndex: (isSelected) ? 103 : 'auto'
         }}>
           {isSelected &&           <div style={{position: "absolute", fontSize: "16", cursor: "auto", left: 228, borderRadius: 8, width: 300, backgroundColor: "#fff"}}>

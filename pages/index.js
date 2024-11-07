@@ -857,6 +857,7 @@ useEffect(() => {
 
         {(selectedEvent != null && currentTab == "Run of Show") && 
                <RunOfShow
+               handleDeleteCalendarEvent={handleDeleteCalendarEvent}
                handleDeleteConfirmation={handleDeleteConfirmation}
                MAX_DURATION={MAX_DURATION}
                isTimeOverlapping={isTimeOverlapping}
