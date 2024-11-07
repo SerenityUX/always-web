@@ -24,6 +24,7 @@ export const RunOfShow = ({
   isWithinEventBounds,
   selectedCalendarEvent,
   titleInputRef,
+  handleDeleteConfirmation,
   setSelectedEvent,
   selectedTask,
   setSelectedTask,
@@ -411,7 +412,7 @@ export const RunOfShow = ({
                     document.addEventListener('mouseup', handleEarlyMouseUp);
                   }}
                 >
-                  {/* Map calendar events */}
+
                   {selectedEvent?.calendar_events
                     ?.filter(event => {
                       const eventStart = new Date(event.startTime);
