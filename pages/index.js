@@ -719,9 +719,22 @@ useEffect(() => {
     <>
       <Head>
         <title>Hack Mind</title>
-        <meta name="description" content="Dynamic Run of Show" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
+<meta name="description" content=""/>
+
+<meta property="og:url" content="https://always.sh/"/>
+<meta property="og:type" content="website"/>
+<meta property="og:title" content=""/>
+<meta property="og:description" content=""/>
+<meta property="og:image" content="https://opengraph.b-cdn.net/production/images/94a544e7-a5ba-4c45-98ca-49e926ce44b6.png?token=q8wbxEubxdaLUYDUCG6h2ZPJKc88QHFV2p8MTq5rg18&height=596&width=1200&expires=33267021068"/>
+
+<meta name="twitter:card" content="summary_large_image"/>
+<meta property="twitter:domain" content="always.sh"/>
+<meta property="twitter:url" content="https://always.sh/"/>
+<meta name="twitter:title" content=""/>
+<meta name="twitter:description" content=""/>
+<meta name="twitter:image" content="https://opengraph.b-cdn.net/production/images/94a544e7-a5ba-4c45-98ca-49e926ce44b6.png?token=q8wbxEubxdaLUYDUCG6h2ZPJKc88QHFV2p8MTq5rg18&height=596&width=1200&expires=33267021068"/>
       </Head>
 
       <div style={{width: "100%", height: "100vh", display: "flex", flexDirection: "column"}}>
