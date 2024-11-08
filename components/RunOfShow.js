@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { TaskCard } from './TaskCard';
 
 const COLORS = [
@@ -43,6 +43,33 @@ export const RunOfShow = ({
   setIsInvitingNewUser
 }) => {
 
+  const [scrollNumber, setScrollNumber] = useState(75);
+
+  const handleSliderDrag = (e) => {
+    const slider = e.currentTarget;
+    const rect = slider.getBoundingClientRect();
+    const startX = rect.left;
+    const width = rect.width;
+    
+    const updateScrollNumber = (clientX) => {
+      const position = Math.max(0, Math.min(1, (clientX - startX) / width));
+      const value = Math.round(64 + position * (150 - 64));
+      setScrollNumber(value);
+    };
+
+    const handleMouseMove = (moveEvent) => {
+      moveEvent.preventDefault();
+      updateScrollNumber(moveEvent.clientX);
+    };
+
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
 
     
       const timeStringToDate = (timeStr, baseDate) => {
@@ -204,6 +231,44 @@ export const RunOfShow = ({
           
           return (
             <>
+            <div className="zoom-slider" style={{
+              position: "fixed", 
+              display: "flex", 
+              justifyContent: "center", 
+              alignItems: "center", 
+              paddingLeft: 12, 
+              paddingRight: 12, 
+              bottom: 16, 
+              right: 16, 
+              width: 75, 
+              zIndex: 3, 
+              height: 30, 
+              borderRadius: 12, 
+              border: "1px solid #EBEBEB", 
+              backgroundColor: "#747474"
+            }}>
+              <div style={{
+                position: "relative",
+                width: "100%",
+                height: 20,
+                display: "flex",
+                alignItems: "center",
+                gap: 4
+              }}>
+                <img style={{height: 12, width: 12, userSelect: 'none', pointerEvents: "none"}} src="/icons/magnify.svg"/>
+                <input
+                  type="range"
+                  className="zoom-range"
+                  min="75"
+                  max="200"
+                  value={scrollNumber}
+                  onChange={(e) => {
+                    setScrollNumber(parseInt(e.target.value))
+                    console.log(parseInt(e.target.value))
+                  }}
+                />
+              </div>
+            </div>
               {/* Fixed Event Schedule Column */}
               <div 
               data-column-id="Event Schedule"
@@ -263,7 +328,7 @@ export const RunOfShow = ({
                     // Set timeout for drag initialization
                     dragTimeout = setTimeout(() => {
                       const startY = initialY - rect.top;
-                      const hoursFromStart = Math.floor(startY / 76);
+                      const hoursFromStart = Math.floor(startY / (scrollNumber + 1));
                       const startTime = new Date(selectedEvent.startTime);
                       let dragStartTime = new Date(startTime.getTime() + (hoursFromStart * 60 * 60 * 1000));
                       let dragEndTime = dragStartTime;
@@ -284,8 +349,8 @@ export const RunOfShow = ({
                         const startHours = Math.floor((start - startTime) / (1000 * 60 * 60));
                         const endHours = Math.ceil((end - startTime) / (1000 * 60 * 60));
                         
-                        const topPos = startHours * 76;
-                        const height = (endHours - startHours) * 76;
+                        const topPos = startHours * (scrollNumber + 1);
+                        const height = (endHours - startHours) * (scrollNumber + 1);
                         
                         preview.style.top = `${topPos}px`;
                         preview.style.height = `${height}px`;
@@ -299,7 +364,7 @@ export const RunOfShow = ({
                       
                       const handleDragMove = (moveEvent) => {
                         const endY = moveEvent.clientY - rect.top;
-                        const endHoursFromStart = Math.ceil(endY / 76);
+                        const endHoursFromStart = Math.ceil(endY / (scrollNumber + 1));
                         dragEndTime = new Date(startTime.getTime() + (endHoursFromStart * 60 * 60 * 1000));
                         updatePreview(dragStartTime, dragEndTime);
                       };
@@ -386,11 +451,11 @@ export const RunOfShow = ({
                       const dayStart = new Date(selectedEvent.startTime);
                       
                       // Calculate dimensions
-                      const topOffset = ((eventStart - dayStart) / (1000 * 60 * 60)) * 76;
+                      const topOffset = ((eventStart - dayStart) / (1000 * 60 * 60)) * (scrollNumber + 1);
                       const duration = (eventEnd - eventStart) / (1000 * 60 * 60);
-                      const height = Math.max(duration * 76, 18);
-                      const isShortEvent = duration < 1;
-                      const isOneHourEvent = duration === 1;
+                      const height = Math.max(duration * (scrollNumber + 1), 18);
+                      const isShortEvent = ((duration < 1 && scrollNumber <= 150) || (duration <= 0.25 && scrollNumber >= 150) || (duration <= 0.5 && scrollNumber >= 80));
+                      const isOneHourEvent = (duration === 1 && scrollNumber < 120);
 
                       // Find overlapping events
                       const overlappingEvents = selectedEvent.calendar_events.filter(otherEvent => {
@@ -493,16 +558,17 @@ export const RunOfShow = ({
                             >
                               {event.title}
                             </p>
-                            <p style={{
+                            {!isShortEvent && <p style={{
                               margin: 0,
                               fontSize: isShortEvent ? 10 : 14,
                               color: "#fff",
+                              
                               opacity: 0.8,
                               whiteSpace: "nowrap",
                               flexShrink: 0
                             }}>
                               {formatTime(eventStart)} - {formatTime(eventEnd)}
-                            </p>
+                            </p>}
                           </div>
                         </div>
                       );
@@ -540,13 +606,13 @@ export const RunOfShow = ({
                     <div style={{
                       position: "absolute",
                       zIndex: 103,
-                      top: ((new Date(selectedCalendarEvent.startTime) - new Date(selectedEvent.startTime)) / (1000 * 60 * 60)) * 76
+                      top: ((new Date(selectedCalendarEvent.startTime) - new Date(selectedEvent.startTime)) / (1000 * 60 * 60)) * (scrollNumber + 1)
                     }}>
                       {/* Calculate duration here */}
                       {(() => {
                         const previewDuration = (new Date(selectedCalendarEvent.endTime) - new Date(selectedCalendarEvent.startTime)) / (1000 * 60 * 60);
                         return (
-                          <div style={{marginLeft: 24, position: "relative", marginTop: 0, padding: 8, height: previewDuration * 76 - 48}}>
+                          <div style={{marginLeft: 24, position: "relative", marginTop: 0, padding: 8, height: previewDuration * (scrollNumber + 1) - 48}}>
                             <div style={{position: "absolute", cursor: "auto", left: 200, borderRadius: 8, width: 400, backgroundColor: "#fff"}}>
                               <div style={{width: "calc(100% - 24px)", borderRadius: "16px 16px 0px 0px", paddingTop: 8, paddingBottom: 8, justifyContent: "space-between", paddingLeft: 16, paddingRight: 8, alignItems: "center", display: "flex", backgroundColor: "#F6F8FA"}}>
                               <p 
@@ -802,7 +868,7 @@ fontSize: 16
                       <div key={index} style={{
                         width: 217,
                         position: "relative",
-                        height: 75,
+                        height: scrollNumber,
                         borderRight: "1px solid #EBEBEB",
                         borderBottom: "1px solid #EBEBEB",
                         flexShrink: 0
@@ -856,6 +922,7 @@ fontSize: 16
                       ?.filter(task => task.assignedTo.some(person => person.email === user.email))
                       .map((task, index) => (
                         <TaskCard 
+                          scrollNumber={parseInt(scrollNumber)}
                           key={index}
                           task={task}
                           titleInputRef={titleInputRef}
@@ -910,8 +977,8 @@ fontSize: 16
                         y: e.clientY
                       };
                     
-                      const startY = initialY - rect.top + (index * 76);
-                      const hoursFromStart = Math.floor(startY / 76);
+                      const startY = initialY - rect.top + (index * (scrollNumber + 1));
+                      const hoursFromStart = Math.floor(startY / (scrollNumber + 1));
                       const startTime = new Date(selectedEvent.startTime);
                       let dragStartTime = new Date(startTime.getTime() + (hoursFromStart * 60 * 60 * 1000));
                       let dragEndTime = dragStartTime;
@@ -961,16 +1028,16 @@ fontSize: 16
                       
                         if (dragStarted) {
                           // Calculate hours from start for both positions
-                          const startHours = Math.floor((initialY - rect.top + (index * 76)) / 76);
-                          const endHours = Math.ceil((moveEvent.clientY - rect.top + (index * 76)) / 76);
+                          const startHours = Math.floor((initialY - rect.top + (index * (scrollNumber + 1))) / (scrollNumber + 1));
+                          const endHours = Math.ceil((moveEvent.clientY - rect.top + (index * (scrollNumber + 1))) / (scrollNumber + 1));
                           
                           // Update drag times
                           dragStartTime = new Date(startTime.getTime() + (startHours * 60 * 60 * 1000));
                           dragEndTime = new Date(startTime.getTime() + (endHours * 60 * 60 * 1000));
                           
                           // Calculate grid-aligned positions
-                          const gridStartY = (startHours * 76) - (index * 76) + rect.top;
-                          const gridEndY = (endHours * 76) - (index * 76) + rect.top;
+                          const gridStartY = (startHours * (scrollNumber + 1)) - (index * (scrollNumber + 1)) + rect.top;
+                          const gridEndY = (endHours * (scrollNumber + 1)) - (index * (scrollNumber + 1)) + rect.top;
                           
                           updatePreviewElement(gridStartY, gridEndY);
                         }
@@ -1062,7 +1129,7 @@ fontSize: 16
                     }}
   style={{
     width: 217,
-    height: 75,
+    height: scrollNumber,
     borderRight: "1px solid #EBEBEB",
     borderBottom: "1px solid #EBEBEB",
     flexShrink: 0
@@ -1093,13 +1160,15 @@ fontSize: 16
                       {selectedEvent?.tasks
                         ?.filter(task => task.assignedTo.some(person => person.email === teamMember.email))
                         .map((task, index) => (
+                          
                           <TaskCard 
-                            selectedTask={selectedTask}
+                            scrollNumber={parseInt(scrollNumber)}
                             key={index}
+                            task={task}
+                            selectedTask={selectedTask}
                             titleInputRef={titleInputRef}
                             selectedEvent={selectedEvent}
                             setSelectedEvent={setSelectedEvent}  // Add this prop
-                            task={task}
                             dayStart={new Date(selectedEvent.startTime)}
                             setSelectedTask={setSelectedTask}
                             columnId={teamMember.name}
@@ -1147,8 +1216,8 @@ fontSize: 16
                           y: e.clientY
                         };
                       
-                        const startY = initialY - rect.top + (index * 76);
-                        const hoursFromStart = Math.floor(startY / 76);
+                        const startY = initialY - rect.top + (index * (scrollNumber + 1));
+                        const hoursFromStart = Math.floor(startY / (scrollNumber + 1));
                         const startTime = new Date(selectedEvent.startTime);
                         let dragStartTime = new Date(startTime.getTime() + (hoursFromStart * 60 * 60 * 1000));
                         let dragEndTime = dragStartTime;
@@ -1198,16 +1267,16 @@ fontSize: 16
                         
                           if (dragStarted) {
                             // Calculate hours from start for both positions
-                            const startHours = Math.floor((initialY - rect.top + (index * 76)) / 76);
-                            const endHours = Math.ceil((moveEvent.clientY - rect.top + (index * 76)) / 76);
+                            const startHours = Math.floor((initialY - rect.top + (index * (scrollNumber + 1))) / (scrollNumber + 1));
+                            const endHours = Math.ceil((moveEvent.clientY - rect.top + (index * (scrollNumber + 1))) / (scrollNumber + 1));
                             
                             // Update drag times
                             dragStartTime = new Date(startTime.getTime() + (startHours * 60 * 60 * 1000));
                             dragEndTime = new Date(startTime.getTime() + (endHours * 60 * 60 * 1000));
                             
                             // Calculate grid-aligned positions
-                            const gridStartY = (startHours * 76) - (index * 76) + rect.top;
-                            const gridEndY = (endHours * 76) - (index * 76) + rect.top;
+                            const gridStartY = (startHours * (scrollNumber + 1)) - (index * (scrollNumber + 1)) + rect.top;
+                            const gridEndY = (endHours * (scrollNumber + 1)) - (index * (scrollNumber + 1)) + rect.top;
                             
                             updatePreviewElement(gridStartY, gridEndY);
                           }
@@ -1300,7 +1369,7 @@ fontSize: 16
                       }}
                       style={{
                         width: 217,
-                        height: 75,
+                        height: scrollNumber,
                         borderRight: "1px solid #EBEBEB",
                         borderBottom: "1px solid #EBEBEB",
                         flexShrink: 0
@@ -1334,7 +1403,7 @@ fontSize: 16
                   {Array.from({ length: hoursDiff }).map((_, index) => (
                     <div key={index} style={{
                       width: 217,
-                      height: 75,
+                      height: scrollNumber,
                       borderRight: "1px solid #EBEBEB",
                       borderBottom: "1px solid #EBEBEB",
                       flexShrink: 0

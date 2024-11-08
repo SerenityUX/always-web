@@ -46,3 +46,43 @@ textarea {
     color-scheme: light;
   }
 }
+
+.zoom-slider {
+  transition: all 0.2s ease;
+}
+
+.zoom-slider:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+}
+
+/* Custom styling for the range input */
+.zoom-range {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 1px;
+  background: #EBEBEB;
+  outline: none;
+  margin: 0;
+}
+
+/* Style the slider handle (thumb) */
+.zoom-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border-radius: 50%;
+  cursor: ew-resize;
+}
+
+.zoom-range::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border-radius: 50%;
+  cursor: ew-resize;
+  border: none;
+}

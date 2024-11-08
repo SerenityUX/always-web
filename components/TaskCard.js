@@ -37,6 +37,7 @@ const formatTime = (date) => {
 export const TaskCard = ({ 
     task, 
     dayStart, 
+    scrollNumber,
     titleInputRef,
     selectedEvent,
     setSelectedTask, 
@@ -121,18 +122,26 @@ export const TaskCard = ({
         return null;
       }
   
-      topOffset = ((taskStart - dayStart) / (1000 * 60 * 60)) * 76;
+      if (typeof scrollNumber !== 'number' || isNaN(scrollNumber)) {
+        console.error('Invalid scrollNumber:', scrollNumber);
+        return null;
+      }
+  
+      const timeDiffHours = (taskStart - dayStart) / (1000 * 60 * 60);
+      topOffset = timeDiffHours * (scrollNumber + 1);
       duration = (taskEnd - taskStart) / (1000 * 60 * 60);
-      height = duration * 76;
+      height = duration * (scrollNumber + 1);
   
       if (isNaN(topOffset) || isNaN(height)) {
         console.error('Invalid calculations:', {
+          timeDiffHours,
           topOffset,
           duration,
           height,
           taskStart: taskStart.getTime(),
           taskEnd: taskEnd.getTime(),
-          dayStart: dayStart.getTime()
+          dayStart: dayStart.getTime(),
+          scrollNumber
         });
         return null;
       }
@@ -141,7 +150,12 @@ export const TaskCard = ({
       return null;
     }
   
-    const isShortTask = duration <= 1;
+    // Update the isShortTask calculation to be more nuanced based on scrollNumber
+    const isShortTask = (duration < 1 && scrollNumber <= 150) || 
+                       (duration <= 0.25 && scrollNumber >= 150) || 
+                       (duration <= 0.5 && scrollNumber >= 80);
+    const isOneHourTask = (duration === 1 && scrollNumber < 120);
+  
     let isSelected = selectedTask?.id === task.id && selectedTaskColumn === columnId
     const renderProfilePictures = (people, limit) => {
       // Sort people: those with profile pictures come first
@@ -733,7 +747,7 @@ export const TaskCard = ({
          }
         <div style={{
           backgroundColor: "#fff",
-          justifyContent: isShortTask ? "center" : "space-between",
+          justifyContent: (isShortTask || isOneHourTask) ? "center" : "space-between",
           display: "flex",
           flexDirection: "column",
           height: "calc(100% - 48px)",
@@ -741,7 +755,7 @@ export const TaskCard = ({
           padding: 12,
           border: "1px solid #000"
         }}>
-          {isShortTask ? (
+          {(isShortTask || isOneHourTask) ? (
             // Compact layout for short tasks
             <div style={{
               display: "flex",
