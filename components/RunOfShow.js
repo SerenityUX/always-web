@@ -260,7 +260,7 @@ export const RunOfShow = ({
                   type="range"
                   className="zoom-range"
                   min="75"
-                  max="200"
+                  max="310"
                   value={scrollNumber}
                   onChange={(e) => {
                     setScrollNumber(parseInt(e.target.value))
@@ -454,8 +454,8 @@ export const RunOfShow = ({
                       const topOffset = ((eventStart - dayStart) / (1000 * 60 * 60)) * (scrollNumber + 1);
                       const duration = (eventEnd - eventStart) / (1000 * 60 * 60);
                       const height = Math.max(duration * (scrollNumber + 1), 18);
-                      const isShortEvent = ((duration < 1 && scrollNumber <= 150) || (duration <= 0.25 && scrollNumber >= 150) || (duration <= 0.5 && scrollNumber >= 80));
-                      const isOneHourEvent = (duration === 1 && scrollNumber < 120);
+                      const isShortEvent = ((duration < 1 && scrollNumber <= 150) || (duration <= 0.25 && scrollNumber >= 150)) && !(scrollNumber >= 300);
+                      const isOneHourEvent = (duration === 1 && scrollNumber < 120) || scrollNumber <= 300
 
                       // Find overlapping events
                       const overlappingEvents = selectedEvent.calendar_events.filter(otherEvent => {
