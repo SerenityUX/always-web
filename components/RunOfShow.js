@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { TaskCard } from './TaskCard';
 
 const COLORS = [
@@ -45,6 +45,9 @@ export const RunOfShow = ({
 
   const [scrollNumber, setScrollNumber] = useState(75);
   const [scrollLeft, setScrollLeft] = useState(0);
+
+  const eventScheduleRef = useRef(null);
+  const scrollContainerRef = useRef(null);
 
   const handleSliderDrag = (e) => {
     const slider = e.currentTarget;
@@ -237,22 +240,33 @@ export const RunOfShow = ({
 
   useEffect(() => {
     const handleScroll = (e) => {
-      if (e.target.classList.contains('scroll-container')) {
+      if (!eventScheduleRef.current || !scrollContainerRef.current) return;
+
+      if (e.target === scrollContainerRef.current) {
+        // Main container is scrolling, update Event Schedule
+        eventScheduleRef.current.scrollTop = e.target.scrollTop;
         setScrollLeft(e.target.scrollLeft);
+      } else if (e.target === eventScheduleRef.current) {
+        // Event Schedule is scrolling, update main container
+        scrollContainerRef.current.scrollTop = e.target.scrollTop;
       }
     };
 
-    const scrollContainer = document.querySelector('.scroll-container');
-    if (scrollContainer) {
+    const eventSchedule = eventScheduleRef.current;
+    const scrollContainer = scrollContainerRef.current;
+
+    if (eventSchedule && scrollContainer) {
+      eventSchedule.addEventListener('scroll', handleScroll);
       scrollContainer.addEventListener('scroll', handleScroll);
     }
 
     return () => {
-      if (scrollContainer) {
+      if (eventSchedule && scrollContainer) {
+        eventSchedule.removeEventListener('scroll', handleScroll);
         scrollContainer.removeEventListener('scroll', handleScroll);
       }
     };
-  }, []);
+  }, []); // Empty dependency array since we don't need to re-add the listeners
 
   return (
     <div style={{
@@ -332,11 +346,13 @@ export const RunOfShow = ({
                 overflowY: "scroll"
               }}>
               <div 
+
+              ref={eventScheduleRef}
               data-column-id="Event Schedule"
               style={{
                 display: "flex", 
                 overflow: "hidden",
-                height: "fit-content",
+                height: "100%",
                 flexDirection: "column", 
                 flexShrink: 0,
                 position: "sticky",
@@ -344,15 +360,21 @@ export const RunOfShow = ({
                 backgroundColor: "white",
                 zIndex: 1
               }}>
+
                 <p style={{
                   margin: 0, 
                   height: 22, 
+                  backgroundColor: "#fff",
                   width: 185,
+                  marginLeft: 32,
+                  zIndex: 5,
                   borderRight: "1px solid #EBEBEB", 
                   borderBottom: "1px solid #EBEBEB", 
-                  paddingLeft: 32, 
                   paddingTop: 6, 
-                  paddingBottom: 5
+                  position: "sticky",
+                  top: 0,
+                  height: 32,
+                  paddingBottom: 8
                 }}>Event Schedule</p>
                 <div 
                   style={{
@@ -959,7 +981,14 @@ fontSize: 16
                   })}
                 </div>
               </div>
-              <div style={{display: "flex", flexDirection: "column", overflowX: "scroll"}} className="scroll-container">
+              <div 
+                ref={scrollContainerRef}
+                className="scroll-container" 
+                style={{
+                  display: "flex", 
+                  flexDirection: "column", 
+                  overflowX: "scroll"
+                }}>
                 <div style={{
                   display: 'flex', 
                   position: "sticky",  // Change from fixed to sticky
@@ -995,6 +1024,27 @@ fontSize: 16
                       paddingBottom: 5
                     }}>{teamMember.name}</p>
                   ))}
+
+                                 <p 
+                                                 onClick={() =>
+                                                  {console.log("Invite new member")
+                                                  setIsInvitingNewUser(true)}
+                                                }
+                                 style={{
+                    margin: 0, 
+                    height: 22, 
+                    cursor: "pointer",
+                    width: 201,
+                    borderRight: "1px solid #EBEBEB", 
+                    borderBottom: "1px solid #EBEBEB", 
+                    paddingLeft: 16, 
+                    paddingTop: 6, 
+                    paddingBottom: 5,
+                    color: "#0969DA"
+                  }}>+ Add</p>
+
+
+
                 </div>
                 <div 
                 style={{
@@ -1514,33 +1564,7 @@ fontSize: 16
                 }
                 
                 style={{display: "flex", cursor: "pointer", flexDirection: "column", flexShrink: 0}}>
-                  <p style={{
-                    margin: 0, 
-                    height: 22, 
-                    width: 201,
-                    borderRight: "1px solid #EBEBEB",
-                    borderBottom: "1px solid #EBEBEB",
-                    paddingLeft: 16,
-                    paddingTop: 6,
-                    paddingBottom: 5,
-                    position: "fixed",
-                    cursor: "pointer",
-                    backgroundColor: "#fff",
-                    color: "#0969DA"
-                  }}>+ Add</p>
-                                    <p style={{
-                    margin: 0, 
-                    height: 22, 
-                    width: 201,
-                    borderRight: "1px solid #EBEBEB",
-                    borderBottom: "1px solid #EBEBEB",
-                    paddingLeft: 16,
-                    paddingTop: 6,
-                    paddingBottom: 5,
-                    cursor: "pointer",
-                    backgroundColor: "#fff",
-                    color: "#0969DA"
-                  }}>+ Add</p>
+
                   {Array.from({ length: hoursDiff }).map((_, index) => (
                     <div key={index} style={{
                       width: 217,
@@ -1549,6 +1573,7 @@ fontSize: 16
                       borderBottom: "1px solid #EBEBEB",
                       flexShrink: 0
                     }}></div>
+                    
                   ))}
                 </div>
               </div>

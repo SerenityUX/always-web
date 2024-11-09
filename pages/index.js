@@ -689,7 +689,7 @@ useEffect(() => {
 
       // Check for CMD/CTRL + SHIFT + Arrow Keys
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
-        e.preventDefault();
+        e.preventDefault(); // Always prevent default for this key combination
         
         const currentIndex = TABS.indexOf(currentTab);
         let newIndex;
