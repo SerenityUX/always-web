@@ -112,7 +112,7 @@ export default function Landing() {
         </div>
 
         </div>
-        <div style={{width: "100%", minHeight: 48, height: "100%", display: "flex", alignItems: 'center', justifyContent: 'center', backgroundColor: "#492802"}}>
+        <div style={{width: "100%", minHeight: 48, height: "fit-content", display: "flex", alignItems: 'center', justifyContent: 'center', backgroundColor: "#492802"}}>
           <p style={{color: "#FEE353", lineHeight: 1, margin: 0,}}>“I spent the past couple years organizing events! I’m now making a better way to make your run of show.”</p>
         </div>
 
@@ -120,17 +120,24 @@ export default function Landing() {
           <div className={styles.contentContainer}>
             <h2 style={{
               margin: 0, 
-              fontSize: 50,
+              fontSize: "clamp(24px, 3vw, 50px)",
               fontFamily: "GT-Flaire-Variable",
-              fontVariationSettings: "'wght' 600, 'FLAR' 100, 'slnt' 0"
+              fontVariationSettings: "'wght' 600, 'FLAR' 100, 'slnt' 0",
+              whiteSpace: "nowrap"
             }}><i>always up-to-date</i></h2>
-            <h1 style={{
-              fontSize: 100,
-              lineHeight: 1, 
+            <div style={{
+              display: "grid",
+              gridTemplateRows: "1fr 1fr 1fr",
+              fontSize: "clamp(40px, 6vw, 100px)",
+              lineHeight: 1,
               margin: 0,
-              fontFamily: "GT-Flaire-Variable, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'",
+              fontFamily: "GT-Flaire-Variable, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
               fontVariationSettings: "'wght' 700, 'FLAR' 100, 'slnt' 0"
-            }}>Run of Show<br/> <i>always</i> in your<br/> team's hands</h1>
+            }}>
+              <div style={{ whiteSpace: "nowrap" }}>Run of Show</div>
+              <div style={{ whiteSpace: "nowrap" }}><i>always</i> in your</div>
+              <div style={{ whiteSpace: "nowrap" }}>team's hands</div>
+            </div>
           </div>
           <img 
             className={styles.productImage} 
