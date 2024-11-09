@@ -342,7 +342,7 @@ export const RunOfShow = ({
                 height: "100%",
                 // overflowY: "scroll", // Enable both horizontal and vertical scrolling
                 width: "100%",
-                overflowX: "hidden", // Hide overflow
+                overflowX: (selectedCalendarEvent != null) ? ("visible") : ("hidden"), // Hide overflow
                 overflowY: "scroll"
               }}>
               <div 
@@ -351,7 +351,7 @@ export const RunOfShow = ({
               data-column-id="Event Schedule"
               style={{
                 display: "flex", 
-                overflowY: (selectedCalendarEvent != null) ? ("visible") : ("hidden"),
+                overflowY: "hidden",
                 width: (selectedCalendarEvent != null) ? ("640px") : ("220px"),
                 height: "100%",
                 flexDirection: "column", 
@@ -996,7 +996,7 @@ fontSize: 16
                   height: "fit-content", 
                   width: "fit-content",
                   backgroundColor: "#fff",
-                  zIndex: selectedCalendarEvent == null ? 2 : 0
+                  zIndex: (selectedCalendarEvent != null || selectedTask != null) ? 0 : 2
                   // Remove the transform property
                 }}>
                   <p style={{
