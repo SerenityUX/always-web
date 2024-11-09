@@ -47,7 +47,7 @@ export default function Landing() {
         <meta property="og:title" content="Always - Up-to-date Run of Show" />
         <meta property="og:description" content="Keep your run of show always in your team's hands" />
         <meta property="og:image" content="/OpenGraph.png" />
-        <meta property="og:url" content="https://always.so" />
+        <meta property="og:url" content="https://always.sh" />
         <meta property="og:type" content="website" />
         
         {/* Twitter Card Meta Tags */}
