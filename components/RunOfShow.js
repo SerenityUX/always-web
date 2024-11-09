@@ -363,7 +363,6 @@ export const RunOfShow = ({
 
                 <p style={{
                   margin: 0, 
-                  height: 22, 
                   backgroundColor: "#fff",
                   width: 185,
                   marginLeft: 32,
@@ -373,7 +372,6 @@ export const RunOfShow = ({
                   paddingTop: 6, 
                   position: "sticky",
                   top: 0,
-                  height: 32,
                   paddingBottom: 8
                 }}>Event Schedule</p>
                 <div 
