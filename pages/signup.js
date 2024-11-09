@@ -33,18 +33,55 @@ export default function Signup() {
   // Add loading state near the top with other state declarations
   const [isLoading, setIsLoading] = useState(false);
 
+  // Add new state for email validation
+  const [isEmailValid, setIsEmailValid] = useState(true);
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
+
+  // Add email validation function
+  const checkEmailExists = async (email) => {
+    setIsCheckingEmail(true);
+    try {
+      const response = await fetch(`https://serenidad.click/hacktime/checkUser/${email}`);
+      const data = await response.json();
+      setIsEmailValid(!data.exists);
+      if (data.exists) {
+        setError('An account with this email already exists');
+      }
+    } catch (err) {
+      console.error('Email check failed:', err);
+    } finally {
+      setIsCheckingEmail(false);
+    }
+  };
+
   // Handle input changes
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-    setError(''); // Clear error when user types
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    setError('');
+
+    // Check email after user stops typing
+    if (name === 'email') {
+      const timeoutId = setTimeout(() => {
+        if (value && value.includes('@')) {
+          checkEmailExists(value);
+        }
+      }, 500);
+      return () => clearTimeout(timeoutId);
+    }
   };
 
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!isEmailValid) {
+      setError('Please use a different email address');
+      return;
+    }
     
     // Basic validation
     if (!formData.name || !formData.email || !formData.password) {
@@ -193,11 +230,16 @@ export default function Signup() {
               style={{
                 padding: '8px',
                 display: "flex",
-                border: '1px solid #D0D7DE',
+                border: `1px solid ${!isEmailValid ? '#ff0000' : '#D0D7DE'}`,
                 borderRadius: '8px',
                 fontWeight: '400'
               }}
             />
+            {/* {isCheckingEmail && (
+              <p style={{ color: 'gray', margin: '4px 0 0', fontSize: '14px' }}>
+                Checking email...
+              </p>
+            )} */}
           </div>
 
           {/* Password fields... */}
