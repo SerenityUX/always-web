@@ -151,10 +151,10 @@ export const TaskCard = ({
     }
   
     // Update the isShortTask calculation to be more nuanced based on scrollNumber
-    const isShortTask = (duration < 1 && scrollNumber <= 150) || 
+    const isShortTask = ((duration < 1 && scrollNumber <= 150) || 
                        (duration <= 0.25 && scrollNumber >= 150) || 
-                       (duration <= 0.5 && scrollNumber >= 80) || scrollNumber <= 300
-    const isOneHourTask = (duration === 1 && scrollNumber < 120) || scrollNumber <= 300
+                       (duration <= 0.5 && scrollNumber >= 80)) && !(scrollNumber >= 300)
+    const isOneHourTask = ((duration === 1 && scrollNumber < 120)) && !(scrollNumber >= 300)
   
     let isSelected = selectedTask?.id === task.id && selectedTaskColumn === columnId
     const renderProfilePictures = (people, limit) => {

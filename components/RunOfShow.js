@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { TaskCard } from './TaskCard';
 
 const COLORS = [
@@ -206,6 +206,33 @@ export const RunOfShow = ({
   const hoursDiff = selectedEvent ? 
     Math.ceil((new Date(selectedEvent.endTime) - new Date(selectedEvent.startTime)) / (1000 * 60 * 60)) : 
     0;
+
+  // Add wheel event handler to prevent default zoom and control scrollNumber
+  useEffect(() => {
+    const handleWheel = (e) => {
+      // Check if it's a pinch-to-zoom gesture (ctrlKey is true for pinch gestures on Mac)
+      if (e.ctrlKey) {
+        e.preventDefault();
+        
+        // Adjust scrollNumber based on wheel delta
+        // Decrease sensitivity by dividing deltaY
+        const delta = -e.deltaY / 10;
+        setScrollNumber(prevNumber => {
+          const newValue = Math.min(310, Math.max(75, prevNumber + delta));
+          return Math.round(newValue);
+        });
+      }
+    };
+
+    // Add the event listener with passive: false to allow preventDefault
+    document.addEventListener('wheel', handleWheel, { passive: false });
+
+    // Cleanup
+    return () => {
+      document.removeEventListener('wheel', handleWheel);
+    };
+  }, []); // Empty dependency array since we don't need to re-add the listener
+
   return (
     <div style={{
         flex: 1,
