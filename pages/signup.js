@@ -110,9 +110,9 @@ export default function Signup() {
 
       const data = await response.json();
       
-    //   if (!response.ok) {
-    //     throw new Error(data.error || 'Signup failed');
-    //   }
+      if (!response.ok) {
+        throw new Error(data.error || 'Signup failed');
+      }
 
       // Store token and redirect
       localStorage.setItem('token', data.token);

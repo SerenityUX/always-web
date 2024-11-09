@@ -299,13 +299,17 @@ export const ScheduleView = ({
                     
                     const topOffset = ((eventStart - dayStart) / (1000 * 60 * 60)) * 76;
                     const duration = (eventEnd - eventStart) / (1000 * 60 * 60);
-                    const height = (duration * 76) - 48;
-                    
+                    const isShortEvent = duration < 1;
+
+                    // Adjust height calculation to account for padding
+                    const PADDING = isShortEvent ? 16 : 32; // 8px top + 8px bottom for short events, 16px each for tall
+                    const rawHeight = (duration * 76);
+                    const height = Math.max(8, rawHeight - PADDING); // Minimum content height of 40px
+
                     return (
                       <div key={index} style={{
                         position: "absolute",
-            
-                        zIndex: selectedCalendarEvent?.id === event.id ? 103 : 2, // Update this line
+                        zIndex: selectedCalendarEvent?.id === event.id ? 103 : 2,
                         top: topOffset,
                         width: "100%"
                       }}>
@@ -478,26 +482,25 @@ export const ScheduleView = ({
                                                   </div>
                                                 </div>
                         }
-                        <div style={{margin: "0 24px", padding: 8, height: height}}>
+                        <div style={{margin: "0 24px", padding: "2px 0", height: height}}>
                           <div 
-                                onClick={() => {
-                                  setSelectedCalendarEvent(event);
-                                  console.log("Selected Calendar Event:", event);
-                                }}                            
-                              
-                                style={{
+                            onClick={() => {
+                              setSelectedCalendarEvent(event);
+                            }}                            
+                            style={{
                               backgroundColor,
                               borderRadius: 8,
                               display: "flex",
-                              flexDirection: "column",
+                              flexDirection: duration <= 0.5 ? "row" : "column",
+                              alignItems: duration <= 0.5 ? "center" : "flex-start",
+                              gap: duration <= 0.5 ? 8 : 0,
                               justifyContent: "space-between",
                               height: "100%",
-                              padding: 16,
+                              padding: duration <= 0.5 ? 8 : 16,
                               width: "calc(100% - 16px)",
                               marginLeft: 8,
                               userSelect: "none",
                               cursor: "pointer",
-                              ...(duration <= 1 && { justifyContent: "center" }) // Center text if duration is 1 hour or less
                             }}
                           >
                             <p
@@ -539,7 +542,7 @@ export const ScheduleView = ({
                               }}
                               style={{
                                 margin: 0,
-                                fontSize: 16,
+                                fontSize: duration <= 0.5 ? 14 : 16,
                                 color: "#fff",
                                 outline: 'none',
                                 cursor: "text",
@@ -549,16 +552,19 @@ export const ScheduleView = ({
                                 wordWrap: "break-word",
                                 overflowWrap: "break-word",
                                 whiteSpace: "pre-wrap",
-                                minHeight: "24px",
-                                "&:hover": {
-                                  backgroundColor: "rgba(255, 255, 255, 0.1)"
-                                },
-                                ...(duration <= 1 && { textAlign: "start" }) // Center text if duration is 1 hour or less
+                                minHeight: duration <= 0.5 ? "auto" : "24px",
+                                flex: duration <= 0.5 ? 1 : "auto",
                               }}
                             >
                               {event.title}
                             </p>
-                            <p style={{margin: 0, fontSize: 14, color: "#fff",  opacity: 0.8, ...(duration <= 1 && { textAlign: "start" })}}>
+                            <p style={{
+                              margin: 0, 
+                              fontSize: duration <= 0.5 ? 12 : 14,
+                              color: "#fff",
+                              opacity: 0.8,
+                              whiteSpace: "nowrap"
+                            }}>
                               {formatTime(eventStart)} - {formatTime(eventEnd)}
                             </p>
                           </div>
