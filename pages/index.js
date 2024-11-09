@@ -46,15 +46,15 @@ export default function Landing() {
         {/* Open Graph Meta Tags */}
         <meta property="og:title" content="Always - Up-to-date Run of Show" />
         <meta property="og:description" content="Keep your run of show always in your team's hands" />
-        <meta property="og:image" content="https://always.sh/OpenGraph.png" />
+        <meta property="og:image" content="https://www.always.sh/OpenGraph.png" />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
-        <meta property="og:url" content="https://always.sh" />
+        <meta property="og:url" content="https://www.always.sh/OpenGraph.png" />
         <meta property="og:type" content="website" />
         
         {/* Twitter Card Meta Tags */}
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:image" content="https://always.sh/OpenGraph.png" />
+        <meta name="twitter:image" content="https://www.always.sh/OpenGraph.png" />
       </Head>
       {hasLoadedIfHasToken &&
       <div style={{
