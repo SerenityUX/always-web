@@ -1,8 +1,11 @@
 import "../styles/globals.css";
 import Head from 'next/head';
+import PlausibleProvider from 'next-plausible'
 
 export default function App({ Component, pageProps }) {
   return (
+    <PlausibleProvider domain="always.sh">
+
     <>
       <Head>
         <title>Always</title>
@@ -24,5 +27,6 @@ export default function App({ Component, pageProps }) {
       </Head>
       <Component {...pageProps} />
     </>
+    </PlausibleProvider>
   );
 }
