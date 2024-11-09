@@ -80,7 +80,7 @@ export default function Landing() {
         <div style={{display: 'flex', flexDirection: "row", gap: 16}}>
           <div>
           <p 
-            onClick={() => router.push('/signup')}
+            onClick={() => router.push('https://cal.com/always-run-of-show/demo')}
             style={{
               fontSize: 18, 
               margin: 0, 
@@ -90,7 +90,7 @@ export default function Landing() {
               border: "1px solid #492802"
             }}
           >
-            Signup
+            Book a Demo
           </p>
           </div>
           <div>
