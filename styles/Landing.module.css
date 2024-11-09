@@ -1,0 +1,239 @@
+/* Basic Styles */
+@font-face {
+  font-family: 'GT-Flaire';
+  src: url('/fonts/GT-Flaire-Basic-Thin-Trial.woff2') format('woff2');
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GT-Flaire';
+  src: url('/fonts/GT-Flaire-Basic-Thin-Italic-Trial.woff2') format('woff2');
+  font-weight: 100;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GT-Flaire';
+  src: url('/fonts/GT-Flaire-Basic-Light-Trial.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GT-Flaire';
+  src: url('/fonts/GT-Flaire-Basic-Light-Italic-Trial.woff2') format('woff2');
+  font-weight: 300;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GT-Flaire';
+  src: url('/fonts/GT-Flaire-Basic-Regular-Trial.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GT-Flaire';
+  src: url('/fonts/GT-Flaire-Basic-Regular-Italic-Trial.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GT-Flaire';
+  src: url('/fonts/GT-Flaire-Basic-Medium-Trial.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GT-Flaire';
+  src: url('/fonts/GT-Flaire-Basic-Medium-Italic-Trial.woff2') format('woff2');
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GT-Flaire';
+  src: url('/fonts/GT-Flaire-Basic-Bold-Trial.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GT-Flaire';
+  src: url('/fonts/GT-Flaire-Basic-Bold-Italic-Trial.woff2') format('woff2');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GT-Flaire';
+  src: url('/fonts/GT-Flaire-Basic-Black-Trial.woff2') format('woff2');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GT-Flaire';
+  src: url('/fonts/GT-Flaire-Basic-Black-Italic-Trial.woff2') format('woff2');
+  font-weight: 900;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* Extra Styles */
+@font-face {
+  font-family: 'GT-Flaire-Extra';
+  src: url('/fonts/GT-Flaire-Extra-Thin-Trial.woff2') format('woff2');
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GT-Flaire-Extra';
+  src: url('/fonts/GT-Flaire-Extra-Thin-Italic-Trial.woff2') format('woff2');
+  font-weight: 100;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GT-Flaire-Extra';
+  src: url('/fonts/GT-Flaire-Extra-Light-Trial.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GT-Flaire-Extra';
+  src: url('/fonts/GT-Flaire-Extra-Light-Italic-Trial.woff2') format('woff2');
+  font-weight: 300;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GT-Flaire-Extra';
+  src: url('/fonts/GT-Flaire-Extra-Regular-Trial.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GT-Flaire-Extra';
+  src: url('/fonts/GT-Flaire-Extra-Regular-Italic-Trial.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GT-Flaire-Extra';
+  src: url('/fonts/GT-Flaire-Extra-Medium-Trial.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GT-Flaire-Extra';
+  src: url('/fonts/GT-Flaire-Extra-Medium-Italic-Trial.woff2') format('woff2');
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GT-Flaire-Extra';
+  src: url('/fonts/GT-Flaire-Extra-Bold-Trial.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GT-Flaire-Extra';
+  src: url('/fonts/GT-Flaire-Extra-Bold-Italic-Trial.woff2') format('woff2');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GT-Flaire-Extra';
+  src: url('/fonts/GT-Flaire-Extra-Black-Trial.woff2') format('woff2');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GT-Flaire-Extra';
+  src: url('/fonts/GT-Flaire-Extra-Black-Italic-Trial.woff2') format('woff2');
+  font-weight: 900;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* Variable Font */
+@font-face {
+  font-family: 'GT-Flexa-Variable';
+  src: url('/fonts/GT-Flexa-Trial-VF.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-variation-settings: 'wght' 400, 'slnt' 0, 'FLAR' 0;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GT-Flaire-Variable';
+  src: url('/fonts/GT-Flaire-VF.woff2') format('woff2');
+  font-weight: 1 1000;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Utility Classes */
+.landingContainer {
+  width: 100vw;
+  display: flex;
+  color: #492802;
+  flex-direction: column;
+  background-color: #FEE353;
+  height: 100vh;
+  overflow: hidden;
+  margin: 0;
+  font-family: 'GT-Flaire', sans-serif;
+}
+
+.animatedHeading {
+  font-size: 32px;
+  line-height: 1;
+  margin: 0;
+  font-family: 'GT-Flaire-Variable';
+  --slant-value: 0;
+  font-variation-settings: 'wght' 700, 'FLAR' 100, 'slnt' var(--slant-value);
+  transition: all 2.3s ease;
+}
+
+.animatedHeading:hover {
+  --slant-value: 15;
+}
+

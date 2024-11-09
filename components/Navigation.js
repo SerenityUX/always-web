@@ -95,19 +95,19 @@ export default function Navigation({ user, onUserUpdate, selectedEventId, showCr
   ];
 
   const handleTabClick = (item) => {
-    router.push(`/?event=${selectedEvent?.id}&tab=${encodeURIComponent(item)}`, undefined, { shallow: true });
+    router.push(`/event?event=${selectedEvent?.id}&tab=${encodeURIComponent(item)}`, undefined, { shallow: true });
   };
 
   const handleEventSelect = (eventObj) => {
     onEventSelect(eventObj.id);
     setShowEventDropdown(false);
     localStorage.setItem('lastVisited', eventObj.id);
-    router.push(`/?eventId=${eventObj.id}${tab ? `&tab=${tab}` : ''}`, undefined, { shallow: true });
+    router.push(`/event?eventId=${eventObj.id}${tab ? `&tab=${tab}` : ''}`, undefined, { shallow: true });
   };
 
   const handleLogout = () => {
     localStorage.removeItem('token');
-    router.push('/signup');
+    router.push('/');
   };
 
   const handleProfilePictureUpdate = (newProfilePictureUrl) => {
@@ -166,7 +166,7 @@ export default function Navigation({ user, onUserUpdate, selectedEventId, showCr
         }
 
         localStorage.setItem('lastVisited', data.id);
-        window.location.href = `/?eventId=${data.id}&tab=Run of Show`;
+        window.location.href = `/event?eventId=${data.id}&tab=Run of Show`;
 
       } catch (error) {
         setError(error.message);
@@ -478,7 +478,7 @@ export default function Navigation({ user, onUserUpdate, selectedEventId, showCr
         const remainingEventIds = Object.keys(user.events).filter(id => id !== eventId);
         if (remainingEventIds.length > 0) {
           onEventSelect(remainingEventIds[0]);
-          router.push(`/?eventId=${remainingEventIds[0]}&tab=Run of Show`);
+          router.push(`/event?eventId=${remainingEventIds[0]}&tab=Run of Show`);
         } else {
           router.push('/');
         }
