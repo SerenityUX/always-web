@@ -44,6 +44,7 @@ export const RunOfShow = ({
 }) => {
 
   const [scrollNumber, setScrollNumber] = useState(75);
+  const [scrollLeft, setScrollLeft] = useState(0);
 
   const handleSliderDrag = (e) => {
     const slider = e.currentTarget;
@@ -233,6 +234,25 @@ export const RunOfShow = ({
       document.removeEventListener('wheel', handleWheel);
     };
   }, []); // Empty dependency array since we don't need to re-add the listener
+
+  useEffect(() => {
+    const handleScroll = (e) => {
+      if (e.target.classList.contains('scroll-container')) {
+        setScrollLeft(e.target.scrollLeft);
+      }
+    };
+
+    const scrollContainer = document.querySelector('.scroll-container');
+    if (scrollContainer) {
+      scrollContainer.addEventListener('scroll', handleScroll);
+    }
+
+    return () => {
+      if (scrollContainer) {
+        scrollContainer.removeEventListener('scroll', handleScroll);
+      }
+    };
+  }, []);
 
   return (
     <div style={{
@@ -939,23 +959,18 @@ fontSize: 16
                   })}
                 </div>
               </div>
-
-
-              {/* Scrollable section */}
-              <div style={{
-                display: "flex",
-                height: "fit-content",
-                width: "100%",
-                flexShrink: 0,
-                overflowX: "scroll",
-                overflowY: "hidden"
-              }}>
-                {/* You Column */}
-
-
-                <div 
-                data-column-id="You"
-                style={{display: "flex", flexDirection: "column", flexShrink: 0}}>
+              <div style={{display: "flex", flexDirection: "column", overflowX: "scroll"}} className="scroll-container">
+                <div style={{
+                  display: 'flex', 
+                  position: "sticky",  // Change from fixed to sticky
+                  top: 0,             // Required for sticky positioning
+                  flexDirection: "row",
+                  height: "fit-content", 
+                  width: "fit-content",
+                  backgroundColor: "#fff",
+                  zIndex: 2
+                  // Remove the transform property
+                }}>
                   <p style={{
                     margin: 0, 
                     height: 22, 
@@ -964,220 +979,277 @@ fontSize: 16
                     borderBottom: "1px solid #EBEBEB", 
                     paddingLeft: 16, 
                     paddingTop: 6, 
-                    paddingBottom: 5
+                    paddingBottom: 5,
                   }}>You</p>
-                  
-                  {/* Add task mapping for current user */}
-                  <div style={{position: "relative"}}>
-                    {selectedEvent?.tasks
-                      ?.filter(task => task.assignedTo.some(person => person.email === user.email))
-                      .map((task, index) => (
-                        <TaskCard 
-                          scrollNumber={parseInt(scrollNumber)}
-                          key={index}
-                          task={task}
-                          titleInputRef={titleInputRef}
-                          selectedEvent={selectedEvent}
-                          setSelectedEvent={setSelectedEvent}  // Add this prop
-                          dayStart={new Date(selectedEvent.startTime)}
-                          setSelectedTask={setSelectedTask}
-                          selectedTask={selectedTask}
-                          columnId={"You"}
-                          setSelectedTaskColumn={setSelectedTaskColumn}
-                          selectedTaskColumn={selectedTaskColumn}
-                          editingTaskTitle={editingTaskTitle}
-                          setEditingTaskTitle={setEditingTaskTitle}
-                          editingTaskDescription={editingTaskDescription}
-                          setEditingTaskDescription={setEditingTaskDescription}
-                          handleTaskUpdate={handleTaskUpdate}
-                          handleDeleteTask={handleDeleteTask}  // Add this prop
-                        />
-                      ))}
-                  </div>
-                  
-                  {/* Existing hour grid */}
-                  {Array.from({ length: hoursDiff }).map((_, index) => (
+
+                  {selectedEvent?.teamMembers?.map((teamMember) => (
+                    <p style={{
+                      margin: 0, 
+                      height: 22, 
+                      width: 201,
+                      borderRight: "1px solid #EBEBEB",
+                      borderBottom: "1px solid #EBEBEB",
+                      paddingLeft: 16,
+                      backgroundColor: "#fff",
+                      paddingTop: 6,
+                      paddingBottom: 5
+                    }}>{teamMember.name}</p>
+                  ))}
+                </div>
+                <div 
+                style={{
+                  display: "flex",
+                  height: "fit-content",
+                  width: "fit-content",
+                  flexDirection: "column",
+                  flexShrink: 0,
+                  overflowX: "scroll",
+                  overflowY: "hidden"
+                }}>
+
+
+                  {/* Scrollable section */}
+                  <div style={{
+                    display: "flex",
+                    width: "fit-content",
+                    flexShrink: 0,
+                    overflowX: "hidden",
+                    position: "relative",
+                    overflowY: "hidden"
+                  }}>
+                    {/* You Column */}
+
                     <div 
-                    key={index} 
-                    onMouseDown={(e) => {
-                      const targetElement = e.currentTarget;
-                      const rect = targetElement.getBoundingClientRect();
-                      const initialY = e.clientY;
-                      let dragStarted = false;
-                      let previewElement = null;
-                      
-                      const columnElement = e.target.closest('[data-column-id]');
-                      const columnId = columnElement ? columnElement.dataset.columnId : 'unknown';
-                      
-                      // Determine the assignee based on column
-                      let assigneeEmail;
-                      if (columnId === 'You') {
-                        assigneeEmail = user.email;
-                      } else {
-                        const teamMember = selectedEvent?.teamMembers?.find(member => member.name === columnId);
-                        assigneeEmail = teamMember?.email;
-                      }
-                      
-                      if (!assigneeEmail) {
-                        console.error('No valid assignee found for column:', columnId);
-                        return;
-                      }
+                    data-column-id="You"
+                    style={{display: "flex", position: "relative", flexDirection: "column"}}>
+                      {/* <p style={{
+                        margin: 0, 
+                        position: "sticky",
+                        top: 0,
+                        height: 22, 
+                        width: 201,
+                        borderRight: "1px solid #EBEBEB", 
+                        borderBottom: "1px solid #EBEBEB", 
+                        paddingLeft: 16, 
+                        paddingTop: 6, 
+                        paddingBottom: 5
+                      }}>You</p> */}
+
+                      {/* Add task mapping for current user */}
+                      <div style={{position: "relative",
+
+              height: "fit-content",
+
+                  }}>
+                        {selectedEvent?.tasks
+                          ?.filter(task => task.assignedTo.some(person => person.email === user.email))
+                          .map((task, index) => (
+                            <TaskCard 
+                              scrollNumber={parseInt(scrollNumber)}
+                              key={index}
+                              task={task}
+                              titleInputRef={titleInputRef}
+                              selectedEvent={selectedEvent}
+                              setSelectedEvent={setSelectedEvent}  // Add this prop
+                              dayStart={new Date(selectedEvent.startTime)}
+                              setSelectedTask={setSelectedTask}
+                              selectedTask={selectedTask}
+                              columnId={"You"}
+                              setSelectedTaskColumn={setSelectedTaskColumn}
+                              selectedTaskColumn={selectedTaskColumn}
+                              editingTaskTitle={editingTaskTitle}
+                              setEditingTaskTitle={setEditingTaskTitle}
+                              editingTaskDescription={editingTaskDescription}
+                              setEditingTaskDescription={setEditingTaskDescription}
+                              handleTaskUpdate={handleTaskUpdate}
+                              handleDeleteTask={handleDeleteTask}  // Add this prop
+                            />
+                          ))}
+                    </div>
                     
-                      const initialMousePos = {
-                        x: e.clientX,
-                        y: e.clientY
-                      };
-                    
-                      const startY = initialY - rect.top + (index * (scrollNumber + 1));
-                      const hoursFromStart = Math.floor(startY / (scrollNumber + 1));
-                      const startTime = new Date(selectedEvent.startTime);
-                      let dragStartTime = new Date(startTime.getTime() + (hoursFromStart * 60 * 60 * 1000));
-                      let dragEndTime = dragStartTime;
-                    
-                      // Create preview element function
-                      const createPreviewElement = () => {
-                        const preview = document.createElement('div');
-                        preview.style.position = 'fixed'; // Changed from 'absolute' to 'fixed'
-                        preview.style.width = '215px';
-                        preview.style.backgroundColor = 'rgba(37, 99, 235, 0.1)';
-                        preview.style.border = '2px dashed rgb(37, 99, 235)';
-                        preview.style.borderRadius = '6px';
-                        preview.style.zIndex = '1000';
-                        preview.style.pointerEvents = 'none';
+                    {/* Existing hour grid */}
+                    {Array.from({ length: hoursDiff }).map((_, index) => (
+                      <div 
+                      key={index} 
+                      onMouseDown={(e) => {
+                        const targetElement = e.currentTarget;
+                        const rect = targetElement.getBoundingClientRect();
+                        const initialY = e.clientY;
+                        let dragStarted = false;
+                        let previewElement = null;
                         
-                        // Add time display
-                        const timeDisplay = document.createElement('div');
-                        timeDisplay.style.padding = '8px';
-                        timeDisplay.style.fontSize = '12px';
-                        timeDisplay.style.color = 'rgb(37, 99, 235)';
-                        timeDisplay.style.fontWeight = 'bold';
-                        preview.appendChild(timeDisplay);
+                        const columnElement = e.target.closest('[data-column-id]');
+                        const columnId = columnElement ? columnElement.dataset.columnId : 'unknown';
                         
-                        // Add "New Task" label
-                        const label = document.createElement('div');
-                        label.textContent = 'New Task';
-                        label.style.padding = '8px';
-                        label.style.fontSize = '14px';
-                        label.style.color = 'rgb(37, 99, 235)';
-                        preview.appendChild(label);
+                        // Determine the assignee based on column
+                        let assigneeEmail;
+                        if (columnId === 'You') {
+                          assigneeEmail = user.email;
+                        } else {
+                          const teamMember = selectedEvent?.teamMembers?.find(member => member.name === columnId);
+                          assigneeEmail = teamMember?.email;
+                        }
                         
-                        document.body.appendChild(preview);
-                        return preview;
-                      };
-                    
-                      // Update preview element function
-                      const handleMouseMove = (moveEvent) => {
-                        const distance = Math.sqrt(
-                          Math.pow(moveEvent.clientX - initialMousePos.x, 2) + 
-                          Math.pow(moveEvent.clientY - initialMousePos.y, 2)
-                        );
-                      
-                        if (!dragStarted && distance >= 5) {
-                          dragStarted = true;
-                          previewElement = createPreviewElement();
+                        if (!assigneeEmail) {
+                          console.error('No valid assignee found for column:', columnId);
+                          return;
                         }
                       
-                        if (dragStarted) {
-                          // Calculate hours from start for both positions
-                          const startHours = Math.floor((initialY - rect.top + (index * (scrollNumber + 1))) / (scrollNumber + 1));
-                          const endHours = Math.ceil((moveEvent.clientY - rect.top + (index * (scrollNumber + 1))) / (scrollNumber + 1));
-                          
-                          // Update drag times
-                          dragStartTime = new Date(startTime.getTime() + (startHours * 60 * 60 * 1000));
-                          dragEndTime = new Date(startTime.getTime() + (endHours * 60 * 60 * 1000));
-                          
-                          // Calculate grid-aligned positions
-                          const gridStartY = (startHours * (scrollNumber + 1)) - (index * (scrollNumber + 1)) + rect.top;
-                          const gridEndY = (endHours * (scrollNumber + 1)) - (index * (scrollNumber + 1)) + rect.top;
-                          
-                          updatePreviewElement(gridStartY, gridEndY);
-                        }
-                      };
+                        const initialMousePos = {
+                          x: e.clientX,
+                          y: e.clientY
+                        };
                       
-                      const updatePreviewElement = (startY, endY) => {
-                        if (!previewElement) return;
+                        const startY = initialY - rect.top + (index * (scrollNumber + 1));
+                        const hoursFromStart = Math.floor(startY / (scrollNumber + 1));
+                        const startTime = new Date(selectedEvent.startTime);
+                        let dragStartTime = new Date(startTime.getTime() + (hoursFromStart * 60 * 60 * 1000));
+                        let dragEndTime = dragStartTime;
+                      
+                        // Create preview element function
+                        const createPreviewElement = () => {
+                          const preview = document.createElement('div');
+                          preview.style.position = 'fixed'; // Changed from 'absolute' to 'fixed'
+                          preview.style.width = '215px';
+                          preview.style.backgroundColor = 'rgba(37, 99, 235, 0.1)';
+                          preview.style.border = '2px dashed rgb(37, 99, 235)';
+                          preview.style.borderRadius = '6px';
+                          preview.style.zIndex = '1000';
+                          preview.style.pointerEvents = 'none';
+                          
+                          // Add time display
+                          const timeDisplay = document.createElement('div');
+                          timeDisplay.style.padding = '8px';
+                          timeDisplay.style.fontSize = '12px';
+                          timeDisplay.style.color = 'rgb(37, 99, 235)';
+                          timeDisplay.style.fontWeight = 'bold';
+                          preview.appendChild(timeDisplay);
+                          
+                          // Add "New Task" label
+                          const label = document.createElement('div');
+                          label.textContent = 'New Task';
+                          label.style.padding = '8px';
+                          label.style.fontSize = '14px';
+                          label.style.color = 'rgb(37, 99, 235)';
+                          preview.appendChild(label);
+                          
+                          document.body.appendChild(preview);
+                          return preview;
+                        };
+                      
+                        // Update preview element function
+                        const handleMouseMove = (moveEvent) => {
+                          const distance = Math.sqrt(
+                            Math.pow(moveEvent.clientX - initialMousePos.x, 2) + 
+                            Math.pow(moveEvent.clientY - initialMousePos.y, 2)
+                          );
                         
-                        // Get scroll positions
-                        const scrollTop = window.scrollY || document.documentElement.scrollTop;
-                        const scrollLeft = window.scrollX || document.documentElement.scrollLeft;
-                        
-                        const top = Math.min(startY, endY) - scrollTop;
-                        const height = Math.abs(endY - startY);
-                        
-                        previewElement.style.top = `${top}px`;
-                        previewElement.style.left = `${rect.left - scrollLeft + 1}px`;
-                        previewElement.style.height = `${height}px`;
-                        
-                        // Update time display
-                        const timeDisplay = previewElement.firstChild;
-                        const startTimeStr = dragStartTime.toLocaleTimeString('en-US', { 
-                          hour: 'numeric',
-                          minute: '2-digit',
-                          hour12: true,
-                          timeZone: 'UTC'
-                        });
-                        const endTimeStr = dragEndTime.toLocaleTimeString('en-US', { 
-                          hour: 'numeric',
-                          minute: '2-digit',
-                          hour12: true,
-                          timeZone: 'UTC'
-                        });
-                        timeDisplay.textContent = `${startTimeStr} - ${endTimeStr}`;
-                      };
-                    
-                      const handleMouseUp = async () => {
-                        if (dragStarted) {
-                          // Remove preview element
-                          if (previewElement) {
-                            previewElement.remove();
+                          if (!dragStarted && distance >= 5) {
+                            dragStarted = true;
+                            previewElement = createPreviewElement();
                           }
-                    
-                          try {
-                            const finalStartTime = dragStartTime < dragEndTime ? dragStartTime : dragEndTime;
-                            const finalEndTime = dragStartTime < dragEndTime ? dragEndTime : dragStartTime;
-                    
-                            const response = await fetch('https://serenidad.click/hacktime/createEventTask', {
-                              method: 'POST',
-                              headers: {
-                                'Content-Type': 'application/json',
-                              },
-                              body: JSON.stringify({
-                                token: localStorage.getItem('token'),
-                                eventId: selectedEventId,
-                                title: '',
-                                description: '',
-                                startTime: finalStartTime.toISOString(),
-                                endTime: finalEndTime.toISOString(),
-                                initialAssignee: assigneeEmail
-                              }),
-                            });
-                    
-                            if (!response.ok) {
-                              const errorData = await response.json();
-                              throw new Error(errorData.error || 'Failed to create task');
+                        
+                          if (dragStarted) {
+                            // Calculate hours from start for both positions
+                            const startHours = Math.floor((initialY - rect.top + (index * (scrollNumber + 1))) / (scrollNumber + 1));
+                            const endHours = Math.ceil((moveEvent.clientY - rect.top + (index * (scrollNumber + 1))) / (scrollNumber + 1));
+                            
+                            // Update drag times
+                            dragStartTime = new Date(startTime.getTime() + (startHours * 60 * 60 * 1000));
+                            dragEndTime = new Date(startTime.getTime() + (endHours * 60 * 60 * 1000));
+                            
+                            // Calculate grid-aligned positions
+                            const gridStartY = (startHours * (scrollNumber + 1)) - (index * (scrollNumber + 1)) + rect.top;
+                            const gridEndY = (endHours * (scrollNumber + 1)) - (index * (scrollNumber + 1)) + rect.top;
+                            
+                            updatePreviewElement(gridStartY, gridEndY);
+                          }
+                        };
+                        
+                        const updatePreviewElement = (startY, endY) => {
+                          if (!previewElement) return;
+                          
+                          // Get scroll positions
+                          const scrollTop = window.scrollY || document.documentElement.scrollTop;
+                          const scrollLeft = window.scrollX || document.documentElement.scrollLeft;
+                          
+                          const top = Math.min(startY, endY) - scrollTop;
+                          const height = Math.abs(endY - startY);
+                          
+                          previewElement.style.top = `${top}px`;
+                          previewElement.style.left = `${rect.left - scrollLeft + 1}px`;
+                          previewElement.style.height = `${height}px`;
+                          
+                          // Update time display
+                          const timeDisplay = previewElement.firstChild;
+                          const startTimeStr = dragStartTime.toLocaleTimeString('en-US', { 
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            hour12: true,
+                            timeZone: 'UTC'
+                          });
+                          const endTimeStr = dragEndTime.toLocaleTimeString('en-US', { 
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            hour12: true,
+                            timeZone: 'UTC'
+                          });
+                          timeDisplay.textContent = `${startTimeStr} - ${endTimeStr}`;
+                        };
+                      
+                        const handleMouseUp = async () => {
+                          if (dragStarted) {
+                            // Remove preview element
+                            if (previewElement) {
+                              previewElement.remove();
                             }
-                    
-                            const newTask = await response.json();
-                            setSelectedEvent(prev => ({
-                              ...prev,
-                              tasks: [...(prev.tasks || []), newTask]
-                            }));
-                            setSelectedTask(newTask);
-                            setSelectedTaskColumn(columnId);
-                    
-                          } catch (error) {
-                            console.error('Failed to create task:', error);
-                            alert('Failed to create task: ' + error.message);
+                      
+                            try {
+                              const finalStartTime = dragStartTime < dragEndTime ? dragStartTime : dragEndTime;
+                              const finalEndTime = dragStartTime < dragEndTime ? dragEndTime : dragStartTime;
+                      
+                              const response = await fetch('https://serenidad.click/hacktime/createEventTask', {
+                                method: 'POST',
+                                headers: {
+                                  'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({
+                                  token: localStorage.getItem('token'),
+                                  eventId: selectedEventId,
+                                  title: '',
+                                  description: '',
+                                  startTime: finalStartTime.toISOString(),
+                                  endTime: finalEndTime.toISOString(),
+                                  initialAssignee: assigneeEmail
+                                }),
+                              });
+                      
+                              if (!response.ok) {
+                                const errorData = await response.json();
+                                throw new Error(errorData.error || 'Failed to create task');
+                              }
+                      
+                              const newTask = await response.json();
+                              setSelectedEvent(prev => ({
+                                ...prev,
+                                tasks: [...(prev.tasks || []), newTask]
+                              }));
+                              setSelectedTask(newTask);
+                              setSelectedTaskColumn(columnId);
+                      
+                            } catch (error) {
+                              console.error('Failed to create task:', error);
+                              alert('Failed to create task: ' + error.message);
+                            }
                           }
-                        }
-                        
-                        document.removeEventListener('mousemove', handleMouseMove);
-                        document.removeEventListener('mouseup', handleMouseUp);
-                      };
-                    
-                      document.addEventListener('mousemove', handleMouseMove);
-                      document.addEventListener('mouseup', handleMouseUp);
-                    }}
+                          
+                          document.removeEventListener('mousemove', handleMouseMove);
+                          document.removeEventListener('mouseup', handleMouseUp);
+                        };
+                      
+                        document.addEventListener('mousemove', handleMouseMove);
+                        document.addEventListener('mouseup', handleMouseUp);
+                      }}
   style={{
     width: 217,
     height: scrollNumber,
@@ -1197,7 +1269,7 @@ fontSize: 16
                   data-column-id={teamMember.name}
 
                   key={teamMember.id} style={{display: "flex", flexDirection: "column", flexShrink: 0}}>
-                    
+{/*                     
                     <p style={{
                       margin: 0, 
                       height: 22, 
@@ -1208,7 +1280,7 @@ fontSize: 16
                       backgroudColor: "#fff",
                       paddingTop: 6,
                       paddingBottom: 5
-                    }}>{teamMember.name}</p>
+                    }}>{teamMember.name}</p> */}
                     
                     {/* Add task mapping for team member */}
                     <div style={{position: "relative"}}>
@@ -1479,6 +1551,8 @@ fontSize: 16
                     }}></div>
                   ))}
                 </div>
+              </div>
+              </div>
               </div>
               </div>
             </>
