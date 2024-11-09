@@ -6,6 +6,7 @@ import styles from '../styles/Landing.module.css';
 export default function Landing() {
   const router = useRouter();
   const [hasLoadedIfHasToken, setHasLoadedIfHasToken] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -14,6 +15,21 @@ export default function Landing() {
     } else {
       setHasLoadedIfHasToken(true);
     }
+  }, []);
+
+  useEffect(() => {
+    const checkIfMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    // Check on initial load
+    checkIfMobile();
+    
+    // Add event listener for window resize
+    window.addEventListener('resize', checkIfMobile);
+    
+    // Cleanup
+    return () => window.removeEventListener('resize', checkIfMobile);
   }, []);
 
   if (!hasLoadedIfHasToken) {
@@ -83,12 +99,12 @@ export default function Landing() {
         </div>
 
         </div>
-        <div style={{width: "100%", height: 48, display: "flex", alignItems: 'center', justifyContent: 'center', backgroundColor: "#492802"}}>
-          <p style={{color: "#FEE353"}}>“I spent the past couple years organizing events! I’m now making a better way to make your run of show.”</p>
+        <div style={{width: "100%", minHeight: 48, height: "100%", display: "flex", alignItems: 'center', justifyContent: 'center', backgroundColor: "#492802"}}>
+          <p style={{color: "#FEE353", lineHeight: 1, margin: 0,}}>“I spent the past couple years organizing events! I’m now making a better way to make your run of show.”</p>
         </div>
 
-        <div style={{display: "flex", alignItems: "center", paddingLeft: "0px", paddingRight: "0px", flexDirection: "row"}}>
-          <div style={{width: "100%", paddingBottom: 128, marginLeft: 32}}>
+        <div className={styles.responsiveContainer}>
+          <div className={styles.contentContainer}>
             <h2 style={{
               margin: 0, 
               fontSize: 50,
@@ -103,8 +119,11 @@ export default function Landing() {
               fontVariationSettings: "'wght' 700, 'FLAR' 100, 'slnt' 0"
             }}>Run of Show<br/> <i>always</i> in your<br/> team's hands</h1>
           </div>
-          <img style={{width: "80%", marginTop: -72, height: "100%", objectFit: "fit", maxHeight: "calc(100vh)"}} src="./productAsset.svg"/>
-          
+          <img 
+            className={styles.productImage} 
+            src={isMobile ? "./mobileVersionProductAsset.svg" : "./productAsset.svg"}
+            alt="Product demonstration"
+          />
         </div>
       </div>}
     </>

@@ -237,3 +237,54 @@
   --slant-value: 15;
 }
 
+/* Add these new responsive classes */
+.responsiveContainer {
+  display: flex;
+  align-items: center;
+  padding-left: 0px;
+  padding-right: 0px;
+  flex-direction: row;
+}
+
+.contentContainer {
+  width: 100%;
+  padding-bottom: 128px;
+  margin-left: 32px;
+}
+
+.productImage {
+  width: 80%;
+  margin-top: -72px;
+  height: 100%;
+  object-fit: fit;
+  max-height: calc(100vh);
+}
+
+@media (max-width: 768px) {
+  .responsiveContainer {
+    flex-direction: column;
+    padding: 16px;
+  }
+
+  .contentContainer {
+    margin-left: 0;
+    padding-bottom: 32px;
+    text-align: left;
+  }
+
+  .contentContainer h1 {
+    font-size: 48px !important;
+  }
+
+  .contentContainer h2 {
+    font-size: 32px !important;
+  }
+
+  .productImage {
+    width: 100%;
+    margin-top: 16px;
+
+    max-height: 100vh;
+  }
+}
+
