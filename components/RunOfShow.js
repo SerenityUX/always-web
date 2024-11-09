@@ -214,11 +214,12 @@ export const RunOfShow = ({
       if (e.ctrlKey) {
         e.preventDefault();
         
-        // Adjust scrollNumber based on wheel delta
-        // Decrease sensitivity by dividing deltaY
-        const delta = -e.deltaY / 10;
+        // Make delta more sensitive (5x) and exponential
+        const delta = -e.deltaY * 10;
+        const exponentialFactor = Math.sign(delta) * Math.pow(Math.abs(delta) / 10, 1.5);
+        
         setScrollNumber(prevNumber => {
-          const newValue = Math.min(310, Math.max(75, prevNumber + delta));
+          const newValue = Math.min(310, Math.max(75, prevNumber + exponentialFactor));
           return Math.round(newValue);
         });
       }
@@ -482,7 +483,7 @@ export const RunOfShow = ({
                       const duration = (eventEnd - eventStart) / (1000 * 60 * 60);
                       const height = Math.max(duration * (scrollNumber + 1), 18);
                       const isShortEvent = ((duration < 1 && scrollNumber <= 150) || (duration <= 0.25 && scrollNumber >= 150)) && !(scrollNumber >= 300);
-                      const isOneHourEvent = (duration === 1 && scrollNumber < 120) || scrollNumber <= 300
+                      const isOneHourEvent = (duration === 1 && scrollNumber < 120) && !(scrollNumber >= 300)
 
                       // Find overlapping events
                       const overlappingEvents = selectedEvent.calendar_events.filter(otherEvent => {
