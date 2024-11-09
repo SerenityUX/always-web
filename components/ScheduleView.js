@@ -166,24 +166,6 @@ export const ScheduleView = ({
                         return;
                       }
 
-                      // Check for overlaps with existing events
-                      const hasOverlap = selectedEvent?.calendar_events?.some(event => {
-                        const existingStart = new Date(event.startTime);
-                        const existingEnd = new Date(event.endTime);
-                        return isTimeOverlapping(
-                          finalStartTime,
-                          finalEndTime,
-                          existingStart,
-                          existingEnd
-                        );
-                      });
-
-                      if (hasOverlap) {
-                        preview.remove();
-                        console.log('Cannot create overlapping events');
-                        return;
-                      }
-
                       try {
                         const response = await fetch('https://serenidad.click/hacktime/createCalendarEvent', {
                           method: 'POST',
@@ -277,7 +259,8 @@ export const ScheduleView = ({
                     const mainEventEnd = new Date(selectedEvent.endTime);
                     return isWithinEventBounds(eventStart, eventEnd, mainEventStart, mainEventEnd);
                   })
-                  .map((event, index) => {
+                  .sort((a, b) => new Date(a.startTime) - new Date(b.startTime)) // Sort by start time
+                  .map((event, index, events) => {
                     const eventStart = new Date(event.startTime);
                     const eventEnd = new Date(event.endTime);
                     const dayStart = new Date(selectedEvent.startTime);
@@ -306,6 +289,25 @@ export const ScheduleView = ({
                     const rawHeight = (duration * 76);
                     const height = Math.max(8, rawHeight - PADDING); // Minimum content height of 40px
 
+                    // Find overlapping events
+                    const overlappingEvents = events.filter(otherEvent => {
+                      if (otherEvent === event) return false;
+                      const otherStart = new Date(otherEvent.startTime);
+                      const otherEnd = new Date(otherEvent.endTime);
+                      return isTimeOverlapping(eventStart, eventEnd, otherStart, otherEnd);
+                    });
+
+                    // Calculate offset and width based on overlaps
+                    const overlapGroup = overlappingEvents.length + 1;
+                    const overlapIndex = overlappingEvents.filter(e => 
+                      new Date(e.startTime) < eventStart || 
+                      (new Date(e.startTime).getTime() === eventStart.getTime() && e.id < event.id)
+                    ).length;
+
+                    const baseWidth = "calc(100% - 48px)"; // Full width minus margins
+                    const adjustedWidth = `calc((${baseWidth}) / ${overlapGroup})`;
+                    const leftOffset = `calc(40px + (${adjustedWidth} * ${overlapIndex}))`;
+
                     return (
                       <div key={index} style={{
                         position: "absolute",
@@ -326,6 +328,12 @@ export const ScheduleView = ({
                                                   </div> 
                                                   <div style={{display: "flex", gap: 16, padding: 16, flexDirection: "column"}}>
                                                     <p 
+                                                      ref={el => {
+                                                        // Auto-focus if title is empty when modal opens
+                                                        if (el && !selectedCalendarEvent.title) {
+                                                          el.focus();
+                                                        }
+                                                      }}
                                                       contentEditable
                                                       suppressContentEditableWarning
                                                       onBlur={(e) => {
@@ -359,9 +367,16 @@ export const ScheduleView = ({
                                                         outline: "none",
                                                         padding: "2px 4px",
                                                         borderRadius: "4px",
+                                                        minWidth: 150,
                                                         transition: "background-color 0.2s",
+                                                        userSelect: "none", // Prevent selection when not editing
+                                                        WebkitUserSelect: "none",
                                                         "&:hover": {
                                                           backgroundColor: "rgba(0, 0, 0, 0.05)"
+                                                        },
+                                                        "&:focus": {
+                                                          userSelect: "text", // Allow selection when editing
+                                                          WebkitUserSelect: "text"
                                                         }
                                                       }}
                                                     >
@@ -482,23 +497,21 @@ export const ScheduleView = ({
                                                   </div>
                                                 </div>
                         }
-                        <div style={{margin: "0 24px", padding: "2px 0", height: height}}>
+                        <div style={{margin: "0", padding: "2px 0", height: height}}>
                           <div 
-                            onClick={() => {
-                              setSelectedCalendarEvent(event);
-                            }}                            
+                            onClick={() => setSelectedCalendarEvent(event)}                            
                             style={{
                               backgroundColor,
                               borderRadius: 8,
                               display: "flex",
-                              flexDirection: duration <= 0.5 ? "row" : "column",
-                              alignItems: duration <= 0.5 ? "center" : "flex-start",
-                              gap: duration <= 0.5 ? 8 : 0,
+                              flexDirection: isShortEvent ? "row" : "column",
+                              alignItems: isShortEvent ? "center" : "flex-start",
+                              gap: isShortEvent ? 8 : 0,
                               justifyContent: "space-between",
                               height: "100%",
-                              padding: duration <= 0.5 ? 8 : 16,
-                              width: "calc(100% - 16px)",
-                              marginLeft: 8,
+                              padding: isShortEvent ? 8 : 16,
+                              width: adjustedWidth,
+                              marginLeft: leftOffset,
                               userSelect: "none",
                               cursor: "pointer",
                             }}
@@ -508,21 +521,18 @@ export const ScheduleView = ({
                                 // Auto-focus if this is the newly created event
                                 if (el && event.id === newEventId) {
                                   el.focus();
-                                  setNewEventId(null); // Clear the newEventId after focusing
+                                  setNewEventId(null);
                                 }
                               }}
                               contentEditable
                               suppressContentEditableWarning
                               onClick={(e) => {
-                                e.stopPropagation(); // Stop the click from bubbling up
+                                e.stopPropagation();
                               }}
                               onBlur={(e) => {
                                 const newTitle = e.target.innerText.trim();
-                                if (newTitle === '' && event.title === '') {
-                                  // Delete the event if it was never given a title
-                                  handleDeleteCalendarEvent(event.id);
-                                } else if (newTitle !== event.title) {
-                                  // Update the title if it changed
+                                if (newTitle !== event.title) {
+                                  // Update the title if it changed, even if empty
                                   handleEventTitleUpdate(event.id, newTitle);
                                 }
                               }}
@@ -531,29 +541,30 @@ export const ScheduleView = ({
                                   e.preventDefault();
                                   e.target.blur();
                                 } else if (e.key === 'Escape') {
-                                  // If it's a new event with no title, delete it
-                                  if (event.title === '' && e.target.innerText.trim() === '') {
-                                    handleDeleteCalendarEvent(event.id);
-                                  } else {
-                                    // Otherwise just blur the input
-                                    e.target.blur();
-                                  }
+                                  e.target.blur();
                                 }
                               }}
                               style={{
                                 margin: 0,
-                                fontSize: duration <= 0.5 ? 14 : 16,
+                                fontSize: isShortEvent ? 14 : 16,
                                 color: "#fff",
                                 outline: 'none',
                                 cursor: "text",
+                                minWidth: 150,
                                 padding: "2px 0px",
                                 borderRadius: "4px",
                                 transition: "background-color 0.2s",
                                 wordWrap: "break-word",
                                 overflowWrap: "break-word",
-                                whiteSpace: "pre-wrap",
-                                minHeight: duration <= 0.5 ? "auto" : "24px",
-                                flex: duration <= 0.5 ? 1 : "auto",
+                                whiteSpace: isShortEvent ? "nowrap" : "pre-wrap",
+                                minHeight: isShortEvent ? "auto" : "24px",
+                                flex: isShortEvent ? 1 : "auto",
+                                userSelect: "none", // Prevent selection when not editing
+                                WebkitUserSelect: "none", // For Safari support
+                                "&:focus": {
+                                  userSelect: "text", // Allow selection only when focused
+                                  WebkitUserSelect: "text"
+                                }
                               }}
                             >
                               {event.title}
