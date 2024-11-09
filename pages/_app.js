@@ -1,16 +1,20 @@
 import "../styles/globals.css";
 import Head from 'next/head';
-import PlausibleProvider from 'next-plausible'
 
 export default function App({ Component, pageProps }) {
   return (
-    <PlausibleProvider domain="always.sh">
-
     <>
       <Head>
         <title>Always</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
+        
+        {/* Plausible Analytics */}
+        <script
+          defer
+          data-domain="always.sh"
+          src="https://plausible.io/js/script.js"
+        />
         
         {/* Open Graph Meta Tags */}
         <meta property="og:title" content="Always - Up-to-date Run of Show" />
@@ -27,6 +31,5 @@ export default function App({ Component, pageProps }) {
       </Head>
       <Component {...pageProps} />
     </>
-    </PlausibleProvider>
   );
 }
