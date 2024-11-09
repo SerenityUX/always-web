@@ -351,13 +351,13 @@ export const RunOfShow = ({
               data-column-id="Event Schedule"
               style={{
                 display: "flex", 
-                overflow: "hidden",
+                overflowY: (selectedCalendarEvent != null) ? ("visible") : ("hidden"),
+                width: (selectedCalendarEvent != null) ? ("640px") : ("220px"),
                 height: "100%",
                 flexDirection: "column", 
                 flexShrink: 0,
                 position: "sticky",
                 left: 0,
-                backgroundColor: "white",
                 zIndex: 1
               }}>
 
@@ -987,7 +987,8 @@ fontSize: 16
                 style={{
                   display: "flex", 
                   flexDirection: "column", 
-                  overflowX: "scroll"
+                  overflowX: "scroll",
+                  marginLeft: selectedCalendarEvent == null ? (0) : (-420)
                 }}>
                 <div style={{
                   display: 'flex', 
@@ -997,7 +998,7 @@ fontSize: 16
                   height: "fit-content", 
                   width: "fit-content",
                   backgroundColor: "#fff",
-                  zIndex: 2
+                  zIndex: selectedCalendarEvent == null ? 2 : 0
                   // Remove the transform property
                 }}>
                   <p style={{

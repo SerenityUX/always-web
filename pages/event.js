@@ -870,6 +870,7 @@ useEffect(() => {
 <div>
         {(selectedEvent != null && currentTab == "Run of Show") && 
                <RunOfShow
+               selectedCalendarEvent={selectedCalendarEvent}
                handleDeleteCalendarEvent={handleDeleteCalendarEvent}
                handleDeleteConfirmation={handleDeleteConfirmation}
                MAX_DURATION={MAX_DURATION}
@@ -880,7 +881,6 @@ useEffect(() => {
                animatingColor={animatingColor}
                isWithinEventBounds={isWithinEventBounds}
                selectedEvent={selectedEvent}
-               selectedCalendarEvent={selectedCalendarEvent}
                newEventId={newEventId}
                setSelectedCalendarEvent={setSelectedCalendarEvent}
                user={user}
