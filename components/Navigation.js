@@ -491,18 +491,7 @@ export default function Navigation({ user, onUserUpdate, selectedEventId, showCr
 
   return (
     <>
-      <Head>
-        {/* Existing meta tags... */}
-        
-        {/* Open Graph / Facebook */}
-        <meta property="og:image" content="/OpenGraph.png" />
-        <meta property="og:image:width" content="1200" />
-        <meta property="og:image:height" content="630" />
-        
-        {/* Twitter */}
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:image" content="/OpenGraph.png" />
-      </Head>
+
       <div style={{backgroundColor: "#F6F8FA", overflow: "visible", borderBottom: '1px solid #EBEBEB'}}>
         <div style={{display: "flex", alignItems: "center", justifyContent: "space-between", paddingLeft: 32, paddingTop: 16, paddingRight: 32}}>
           <div style={{display: "flex", alignItems: "center", justifyContent: "center", gap: 16}}>

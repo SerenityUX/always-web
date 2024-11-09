@@ -737,7 +737,7 @@ useEffect(() => {
 <meta name="twitter:image" content="https://opengraph.b-cdn.net/production/images/94a544e7-a5ba-4c45-98ca-49e926ce44b6.png?token=q8wbxEubxdaLUYDUCG6h2ZPJKc88QHFV2p8MTq5rg18&height=596&width=1200&expires=33267021068"/>
       </Head>
 
-      <div style={{width: "100%", height: "100vh", display: "flex", flexDirection: "column"}}>
+      <div style={{width: "100%", height: "100vh", overflowY: tab == "Run of Show" ? "hidden" : "auto", display: "flex", flexDirection: "column"}}>
         
 
         {isInvitingNewUser && (
@@ -867,7 +867,7 @@ useEffect(() => {
             setSelectedEventId(id);
           }}
         />
-
+<div>
         {(selectedEvent != null && currentTab == "Run of Show") && 
                <RunOfShow
                handleDeleteCalendarEvent={handleDeleteCalendarEvent}
@@ -994,6 +994,7 @@ useEffect(() => {
         </p>
         </div>
         }
+        </div>
       </div>
     </>
   );

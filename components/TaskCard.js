@@ -312,6 +312,10 @@ export const TaskCard = ({
           top: topOffset,
           cursor: "pointer",
           width: 201,
+          alignItems: "center",
+          justifyContent: "center",
+          display: "flex",
+          flexDirection: "column",
           height: height,
           zIndex: (isSelected) ? 103 : 'auto'
         }}>
@@ -749,6 +753,8 @@ export const TaskCard = ({
           backgroundColor: "#fff",
           justifyContent: (isShortTask || isOneHourTask) ? "center" : "space-between",
           display: "flex",
+          width: "calc(100% - 32px)",
+          marginLeft: 16,
           flexDirection: "column",
           height: "calc(100% - 48px)",
           borderRadius: 8,

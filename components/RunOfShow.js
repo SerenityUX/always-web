@@ -237,9 +237,12 @@ export const RunOfShow = ({
   return (
     <div style={{
         flex: 1,
+        overflowY: "scroll",
         display: "flex",
         color: "#59636E",
-        position: "relative"
+        position: "relative",
+        height: "calc(100vh - 98px)",  // Changed from overflowY: "scroll"
+        overflow: "hidden" // Ensure parent doesn't scroll
       }}>
         {(() => {
           // Safety check for selectedEvent and valid dates
@@ -298,10 +301,22 @@ export const RunOfShow = ({
               </div>
             </div>
               {/* Fixed Event Schedule Column */}
+
+              <div style={{
+                display: "flex",
+                // overflowX: "auto",
+                height: "100%",
+                // overflowY: "scroll", // Enable both horizontal and vertical scrolling
+                width: "100%",
+                overflowX: "hidden", // Hide overflow
+                overflowY: "scroll"
+              }}>
               <div 
               data-column-id="Event Schedule"
               style={{
                 display: "flex", 
+                overflow: "hidden",
+                height: "fit-content",
                 flexDirection: "column", 
                 flexShrink: 0,
                 position: "sticky",
@@ -924,12 +939,20 @@ fontSize: 16
                   })}
                 </div>
               </div>
+
+
               {/* Scrollable section */}
               <div style={{
                 display: "flex",
-                overflowX: "auto",
+                height: "fit-content",
+                width: "100%",
+                flexShrink: 0,
+                overflowX: "scroll",
+                overflowY: "hidden"
               }}>
                 {/* You Column */}
+
+
                 <div 
                 data-column-id="You"
                 style={{display: "flex", flexDirection: "column", flexShrink: 0}}>
@@ -1166,12 +1189,15 @@ fontSize: 16
                   ))}
                 </div>
 
+
                 {/* Team Member Columns */}
                 {selectedEvent?.teamMembers?.map((teamMember) => (
+
                   <div 
                   data-column-id={teamMember.name}
 
                   key={teamMember.id} style={{display: "flex", flexDirection: "column", flexShrink: 0}}>
+                    
                     <p style={{
                       margin: 0, 
                       height: 22, 
@@ -1179,6 +1205,7 @@ fontSize: 16
                       borderRight: "1px solid #EBEBEB",
                       borderBottom: "1px solid #EBEBEB",
                       paddingLeft: 16,
+                      backgroudColor: "#fff",
                       paddingTop: 6,
                       paddingBottom: 5
                     }}>{teamMember.name}</p>
@@ -1424,6 +1451,20 @@ fontSize: 16
                     paddingLeft: 16,
                     paddingTop: 6,
                     paddingBottom: 5,
+                    position: "fixed",
+                    cursor: "pointer",
+                    backgroundColor: "#fff",
+                    color: "#0969DA"
+                  }}>+ Add</p>
+                                    <p style={{
+                    margin: 0, 
+                    height: 22, 
+                    width: 201,
+                    borderRight: "1px solid #EBEBEB",
+                    borderBottom: "1px solid #EBEBEB",
+                    paddingLeft: 16,
+                    paddingTop: 6,
+                    paddingBottom: 5,
                     cursor: "pointer",
                     backgroundColor: "#fff",
                     color: "#0969DA"
@@ -1438,6 +1479,7 @@ fontSize: 16
                     }}></div>
                   ))}
                 </div>
+              </div>
               </div>
             </>
           );
