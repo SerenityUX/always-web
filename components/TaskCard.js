@@ -319,7 +319,7 @@ export const TaskCard = ({
           height: height,
           zIndex: (isSelected) ? 103 : 'auto'
         }}>
-          {isSelected &&           <div style={{position: "absolute", fontSize: "16", cursor: "auto", left: 228, borderRadius: 8, width: 300, backgroundColor: "#fff"}}>
+          {isSelected &&           <div style={{position: "absolute", fontSize: "16", cursor: "auto", top: 16, left: 228, borderRadius: 8, width: 300, backgroundColor: "#fff"}}>
                                                     <div style={{width: "calc(100% - 24px)", borderRadius: "16px 16px 0px 0px", paddingTop: 8, paddingBottom: 8, justifyContent: "space-between", paddingLeft: 16, paddingRight: 8, alignItems: "center", display: "flex", backgroundColor: "#F6F8FA"}}>
                                                     <p style={{margin: 0, fontSize: 14}}>Edit Task</p>
                                                     <img 
