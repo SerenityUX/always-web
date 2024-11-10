@@ -1061,6 +1061,7 @@ fontSize: 16
                   <div style={{
                     display: "flex",
                     width: "fit-content",
+                    minWidth: "700px",
                     flexShrink: 0,
                     overflowX: "hidden",
                     position: "relative",
