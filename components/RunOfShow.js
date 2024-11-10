@@ -351,14 +351,19 @@ export const RunOfShow = ({
               data-column-id="Event Schedule"
               style={{
                 display: "flex", 
-                overflowY: "hidden",
+                overflowY: "scroll",
                 width: (selectedCalendarEvent != null) ? ("640px") : ("220px"),
                 height: "100%",
                 flexDirection: "column", 
                 flexShrink: 0,
                 position: "sticky",
                 left: 0,
-                zIndex: 1
+                zIndex: 1,
+                msOverflowStyle: "none",  /* IE and Edge */
+                scrollbarWidth: "none",   /* Firefox */
+                "&::-webkit-scrollbar": { /* Chrome, Safari and Opera */
+                  display: "none"
+                }
               }}>
 
                 <p style={{
