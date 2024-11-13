@@ -32,6 +32,7 @@ export const RunOfShow = ({
   setSelectedEvent,
   selectedTask,
   setSelectedTask,
+  handleColorUpdate,
   selectedTaskColumn,
   setSelectedTaskColumn,
   editingTaskTitle,
@@ -1363,7 +1364,8 @@ fontSize: 16
                         height: scrollNumber,
                         borderRight: "1px solid #EBEBEB",
                         borderBottom: "1px solid #EBEBEB",
-                        flexShrink: 0
+                        flexShrink: 0,
+                        cursor: "pointer"
                       }}
                     ></div>
                   ))}
@@ -1609,7 +1611,9 @@ fontSize: 16
                         height: scrollNumber,
                         borderRight: "1px solid #EBEBEB",
                         borderBottom: "1px solid #EBEBEB",
-                        flexShrink: 0
+                        flexShrink: 0,
+                        cursor: "pointer"
+
                       }}
                       ></div>
                     ))}

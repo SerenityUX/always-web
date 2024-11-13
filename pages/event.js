@@ -868,6 +868,7 @@ useEffect(() => {
 <div>
         {(selectedEvent != null && currentTab == "Run of Show") && 
                <RunOfShow
+               handleColorUpdate={handleColorUpdate}
                selectedCalendarEvent={selectedCalendarEvent}
                handleDeleteCalendarEvent={handleDeleteCalendarEvent}
                handleDeleteConfirmation={handleDeleteConfirmation}
