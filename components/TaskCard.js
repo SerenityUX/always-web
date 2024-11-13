@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 const getInitials = (name) => {
     return name
@@ -159,17 +159,46 @@ export const TaskCard = ({
   
     let isSelected = selectedTask?.id === task.id && selectedTaskColumn === columnId
     const renderProfilePictures = (people, limit) => {
-      // Sort people: those with profile pictures come first
+      // Sort people: put column person first, then sort by profile pictures
       const sortedPeople = [...people].sort((a, b) => {
+        // First check if either person matches the column
+        const aIsColumnPerson = columnId === 'You' ? 
+          a.email === user.email : 
+          a.name === columnId;
+        const bIsColumnPerson = columnId === 'You' ? 
+          b.email === user.email : 
+          b.name === columnId;
+  
+        // Column person should always come first
+        if (aIsColumnPerson) return -1;
+        if (bIsColumnPerson) return 1;
+  
+        // If neither person matches the column, sort by profile pictures
         if (a.profilePicture && !b.profilePicture) return -1;
         if (!a.profilePicture && b.profilePicture) return 1;
         return 0;
       });
   
       if (isShortTask || isOneHourTask) {
-        // For short tasks and one-hour tasks: show only first person
-        const person = sortedPeople[0];
-        if (!person) return null;
+        // Debug logs
+        console.log('Column ID:', columnId);
+        console.log('People:', sortedPeople);
+        console.log('User:', user);
+        console.log('Selected Event:', selectedEvent);
+
+        // Find the person matching the column ID
+        let columnPerson;
+        if (columnId === 'You') {
+          // For the "You" column, find the current user
+          columnPerson = sortedPeople.find(person => person.email === user.email);
+        } else {
+          // For team member columns, find the person by name since columnId is their name
+          columnPerson = sortedPeople.find(person => person.name === columnId);
+        }
+
+        console.log('Found Column Person:', columnPerson);
+
+        if (!columnPerson) return null;
         
         return (
           <div 
@@ -178,8 +207,8 @@ export const TaskCard = ({
               width: 24,
               height: 24,
               borderRadius: 12,
-              backgroundColor: person.profilePicture ? "transparent" : "#666",
-              backgroundImage: person.profilePicture ? `url(${person.profilePicture})` : "none",
+              backgroundColor: columnPerson.profilePicture ? "transparent" : "#666",
+              backgroundImage: columnPerson.profilePicture ? `url("${columnPerson.profilePicture}")` : "none",
               backgroundSize: "cover",
               backgroundPosition: "center",
               display: "flex",
@@ -190,7 +219,7 @@ export const TaskCard = ({
               fontWeight: 500
             }}
           >
-            {!person.profilePicture && getInitials(person.name)}
+            {!columnPerson.profilePicture && getInitials(columnPerson.name)}
           </div>
         );
       } else {
@@ -252,6 +281,8 @@ export const TaskCard = ({
         );
       }
     };
+  
+    const dropdownTriggerRef = useRef(null);
   
     return (
       <div 
@@ -548,159 +579,167 @@ export const TaskCard = ({
                                                         </div>
   
                                                         {/* Add new assignment */}
-                                                        <div style={{
-                                                          padding: "8px",
-                                                          border: "1px dashed #666",
-                                                          borderRadius: "8px",
-                                                          cursor: "pointer",
-                                                          transition: "background-color 0.2s"
-                                                        }}
-                                                        onClick={() => {
-                                                          console.log("user email", user.email)
-                                                          // Show dropdown of available team members
-                                                          const availableMembers = selectedEvent.teamMembers
-                                                            .filter(member => !task.assignedTo.some(assigned => assigned.email === member.email));
+                                                        <div 
+                                                          ref={dropdownTriggerRef}
+                                                          style={{
+                                                            padding: "8px",
+                                                            border: "1px dashed #666",
+                                                            borderRadius: "8px",
+                                                            cursor: "pointer",
+                                                            transition: "background-color 0.2s",
+                                                            position: "relative"
+                                                          }}
+                                                          onClick={(event) => {
+                                                            event.stopPropagation();
+                                                            
+                                                            // Get trigger element position
+                                                            const triggerElement = event.currentTarget;
+                                                            const triggerRect = triggerElement.getBoundingClientRect();
+                                                            
+                                                            // Show dropdown of available team members
+                                                            const availableMembers = selectedEvent.teamMembers
+                                                              .filter(member => !task.assignedTo.some(assigned => assigned.email === member.email));
   
-                                                          // Always add current user if not already assigned
-                                                          if (user && !task.assignedTo.some(assigned => assigned.email === user.email)) {
-                                                            // Add user at the beginning of the list
-                                                            availableMembers.unshift({
-                                                              email: user.email,
-                                                              name: user.name,
-                                                              profilePicture: user.profile_picture_url
-                                                            });
-                                                          }
-  
-                                                          if (availableMembers.length === 0) {
-                                                            alert('All team members are already assigned to this task');
-                                                            return;
-                                                          }
-  
-                                                          // Create and show dropdown
-                                                          const dropdown = document.createElement('div');
-                                                          dropdown.style.position = 'absolute';
-                                                          dropdown.style.backgroundColor = '#fff';
-                                                          dropdown.style.border = '1px solid #D0D7DE';
-                                                          dropdown.style.borderRadius = '8px';
-                                                          dropdown.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
-                                                          dropdown.style.maxHeight = '200px';
-                                                          dropdown.style.overflowY = 'auto';
-                                                          dropdown.style.width = '268px';
-                                                          dropdown.style.zIndex = '1000';
-  
-                                                          availableMembers.forEach(member => {
-                                                            const option = document.createElement('div');
-                                                            option.style.padding = '8px';
-                                                            option.style.display = 'flex';
-                                                            option.style.alignItems = 'center';
-                                                            option.style.gap = '8px';
-                                                            option.style.cursor = 'pointer';
-                                                            option.style.transition = 'background-color 0.2s';
-  
-                                                            const avatar = document.createElement('div');
-                                                            avatar.style.width = '32px';
-                                                            avatar.style.height = '32px';
-                                                            avatar.style.borderRadius = '16px';
-                                                            avatar.style.backgroundColor = member.profilePicture ? 'transparent' : '#666';
-                                                            avatar.style.backgroundImage = member.profilePicture ? `url(${member.profilePicture})` : 'none';
-                                                            avatar.style.backgroundSize = 'cover';
-                                                            avatar.style.backgroundPosition = 'center';
-                                                            avatar.style.display = 'flex';
-                                                            avatar.style.alignItems = 'center';
-                                                            avatar.style.justifyContent = 'center';
-                                                            avatar.style.color = '#EBEBEB';
-                                                            avatar.style.fontSize = '12px';
-                                                            avatar.style.fontWeight = '500';
-  
-                                                            if (!member.profilePicture) {
-                                                              avatar.textContent = getInitials(member.name);
+                                                            // Always add current user if not already assigned
+                                                            if (user && !task.assignedTo.some(assigned => assigned.email === user.email)) {
+                                                              // Add user at the beginning of the list
+                                                              availableMembers.unshift({
+                                                                email: user.email,
+                                                                name: user.name,
+                                                                profilePicture: user.profile_picture_url
+                                                              });
                                                             }
   
-                                                            const info = document.createElement('div');
-                                                            info.innerHTML = `
-                                                              <p style="margin: 0; font-size: 14px">${member.name}</p>
-                                                              <p style="margin: 0; font-size: 12px; color: #666">${member.email}</p>
-                                                            `;
+                                                            if (availableMembers.length === 0) {
+                                                              alert('All team members are already assigned to this task');
+                                                              return;
+                                                            }
   
-                                                            option.appendChild(avatar);
-                                                            option.appendChild(info);
+                                                            // Create and show dropdown
+                                                            const dropdown = document.createElement('div');
+                                                            dropdown.style.position = 'absolute';
+                                                            dropdown.style.backgroundColor = '#fff';
+                                                            dropdown.style.border = '1px solid #D0D7DE';
+                                                            dropdown.style.borderRadius = '8px';
+                                                            dropdown.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
+                                                            dropdown.style.maxHeight = '200px';
+                                                            dropdown.style.overflowY = 'auto';
+                                                            dropdown.style.width = '268px';
+                                                            dropdown.style.zIndex = '1000';
   
-                                                            option.onmouseover = () => {
-                                                              option.style.backgroundColor = '#F6F8FA';
-                                                            };
-                                                            option.onmouseout = () => {
-                                                              option.style.backgroundColor = 'transparent';
-                                                            };
+                                                            availableMembers.forEach(member => {
+                                                              const option = document.createElement('div');
+                                                              option.style.padding = '8px';
+                                                              option.style.display = 'flex';
+                                                              option.style.alignItems = 'center';
+                                                              option.style.gap = '8px';
+                                                              option.style.cursor = 'pointer';
+                                                              option.style.transition = 'background-color 0.2s';
   
-                                                            option.onclick = async () => {
-                                                              try {
-                                                                const response = await fetch('https://serenidad.click/hacktime/assignEventTask', {
-                                                                  method: 'POST',
-                                                                  headers: {
-                                                                    'Content-Type': 'application/json',
-                                                                  },
-                                                                  body: JSON.stringify({
-                                                                    token: localStorage.getItem('token'),
-                                                                    eventId: selectedEvent.id, // Add the eventId
-                                                                    taskId: task.id,
-                                                                    assigneeEmail: member.email
-                                                                  }),
-                                                                });
+                                                              const avatar = document.createElement('div');
+                                                              avatar.style.width = '32px';
+                                                              avatar.style.height = '32px';
+                                                              avatar.style.borderRadius = '16px';
+                                                              avatar.style.backgroundColor = member.profilePicture ? 'transparent' : '#666';
+                                                              avatar.style.backgroundImage = member.profilePicture ? `url(${member.profilePicture})` : 'none';
+                                                              avatar.style.backgroundSize = 'cover';
+                                                              avatar.style.backgroundPosition = 'center';
+                                                              avatar.style.display = 'flex';
+                                                              avatar.style.alignItems = 'center';
+                                                              avatar.style.justifyContent = 'center';
+                                                              avatar.style.color = '#EBEBEB';
+                                                              avatar.style.fontSize = '12px';
+                                                              avatar.style.fontWeight = '500';
   
-                                                                const data = await response.json();
-                                                                
-                                                                if (!response.ok) {
-                                                                  throw new Error(data.error || 'Failed to assign user');
+                                                              if (!member.profilePicture) {
+                                                                avatar.textContent = getInitials(member.name);
+                                                              }
+  
+                                                              const info = document.createElement('div');
+                                                              info.innerHTML = `
+                                                                <p style="margin: 0; font-size: 14px">${member.name}</p>
+                                                                <p style="margin: 0; font-size: 12px; color: #666">${member.email}</p>
+                                                              `;
+  
+                                                              option.appendChild(avatar);
+                                                              option.appendChild(info);
+  
+                                                              option.onmouseover = () => {
+                                                                option.style.backgroundColor = '#F6F8FA';
+                                                              };
+                                                              option.onmouseout = () => {
+                                                                option.style.backgroundColor = 'transparent';
+                                                              };
+  
+                                                              option.onclick = async () => {
+                                                                try {
+                                                                  const response = await fetch('https://serenidad.click/hacktime/assignEventTask', {
+                                                                    method: 'POST',
+                                                                    headers: {
+                                                                      'Content-Type': 'application/json',
+                                                                    },
+                                                                    body: JSON.stringify({
+                                                                      token: localStorage.getItem('token'),
+                                                                      eventId: selectedEvent.id, // Add the eventId
+                                                                      taskId: task.id,
+                                                                      assigneeEmail: member.email
+                                                                    }),
+                                                                  });
+  
+                                                                  const data = await response.json();
+                                                                  
+                                                                  if (!response.ok) {
+                                                                    throw new Error(data.error || 'Failed to assign user');
+                                                                  }
+  
+                                                                  // Update local state with the response data
+                                                                  setSelectedTask(prev => ({
+                                                                    ...prev,
+                                                                    assignedTo: [...prev.assignedTo, member]
+                                                                  }));
+  
+                                                                  // Update the event's tasks array
+                                                                  setSelectedEvent(prev => ({
+                                                                    ...prev,
+                                                                    tasks: prev.tasks.map(t => 
+                                                                      t.id === task.id 
+                                                                        ? { ...t, assignedTo: [...t.assignedTo, member] }
+                                                                        : t
+                                                                    )
+                                                                  }));
+  
+                                                                  dropdown.remove();
+                                                                } catch (error) {
+                                                                  console.error('Failed to assign user:', error);
+                                                                  alert(error.message);
                                                                 }
+                                                              };
   
-                                                                // Update local state with the response data
-                                                                setSelectedTask(prev => ({
-                                                                  ...prev,
-                                                                  assignedTo: [...prev.assignedTo, member]
-                                                                }));
+                                                              dropdown.appendChild(option);
+                                                            });
   
-                                                                // Update the event's tasks array
-                                                                setSelectedEvent(prev => ({
-                                                                  ...prev,
-                                                                  tasks: prev.tasks.map(t => 
-                                                                    t.id === task.id 
-                                                                      ? { ...t, assignedTo: [...t.assignedTo, member] }
-                                                                      : t
-                                                                  )
-                                                                }));
+                                                            // Position dropdown below the "Add" button
+                                                            const rect = event.target.getBoundingClientRect();
+                                                            dropdown.style.top = `${rect.bottom + window.scrollY + 4}px`;
+                                                            dropdown.style.left = `${rect.left + window.scrollX}px`;
   
+                                                            // Add click outside handler
+                                                            const handleClickOutside = (e) => {
+                                                              if (!dropdown.contains(e.target) && e.target !== event.target) {
                                                                 dropdown.remove();
-                                                              } catch (error) {
-                                                                console.error('Failed to assign user:', error);
-                                                                alert(error.message);
+                                                                document.removeEventListener('click', handleClickOutside);
                                                               }
                                                             };
   
-                                                            dropdown.appendChild(option);
-                                                          });
-  
-                                                          // Position dropdown below the "Add" button
-                                                          const rect = event.target.getBoundingClientRect();
-                                                          dropdown.style.top = `${rect.bottom + window.scrollY + 4}px`;
-                                                          dropdown.style.left = `${rect.left + window.scrollX}px`;
-  
-                                                          // Add click outside handler
-                                                          const handleClickOutside = (e) => {
-                                                            if (!dropdown.contains(e.target) && e.target !== event.target) {
-                                                              dropdown.remove();
-                                                              document.removeEventListener('click', handleClickOutside);
-                                                            }
-                                                          };
-  
-                                                          document.addEventListener('click', handleClickOutside);
-                                                          document.body.appendChild(dropdown);
-                                                        }}
-                                                        >
-                                                          <div style={{display: "flex", alignItems: "center", gap: 8, justifyContent: "center"}}>
-                                                            <img src="/icons/plus.svg" style={{width: 20, height: 20, opacity: 0.5}} />
-                                                            <p style={{margin: 0, fontSize: 14, color: "#666"}}>Add team member</p>
+                                                            document.addEventListener('click', handleClickOutside);
+                                                            document.body.appendChild(dropdown);
+                                                          }}
+                                                          >
+                                                            <div style={{display: "flex", alignItems: "center", gap: 8, justifyContent: "center"}}>
+                                                              <img src="/icons/plus.svg" style={{width: 20, height: 20, opacity: 0.5}} />
+                                                              <p style={{margin: 0, fontSize: 14, color: "#666"}}>Add team member</p>
+                                                            </div>
                                                           </div>
-                                                        </div>
                                                       </div>
                                                       <textarea
                                                         value={localDescription}
