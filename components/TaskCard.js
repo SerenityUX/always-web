@@ -166,76 +166,33 @@ export const TaskCard = ({
         return 0;
       });
   
-      if (isShortTask) {
-        // For short tasks: show up to 3 profiles or 2 profiles + overflow
-        if (people.length <= 3) {
-          return sortedPeople.map((person, personIndex) => (
-            <div 
-              key={personIndex}
-              style={{
-                width: 24,
-                height: 24,
-                borderRadius: 12,
-                backgroundColor: person.profilePicture ? "transparent" : "#666",
-                backgroundImage: person.profilePicture ? `url(${person.profilePicture})` : "none",
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#EBEBEB",
-                fontSize: "10px",
-                fontWeight: 500
-              }}
-            >
-              {!person.profilePicture && getInitials(person.name)}
-            </div>
-          ));
-        } else {
-          // Show first 2 profiles + overflow for 4 or more people
-          return (
-            <>
-              {sortedPeople.slice(0, 2).map((person, personIndex) => (
-                <div 
-                  key={personIndex}
-                  style={{
-                    width: 24,
-                    height: 24,
-                    borderRadius: 12,
-                    backgroundColor: person.profilePicture ? "transparent" : "#666",
-                    backgroundImage: person.profilePicture ? `url(${person.profilePicture})` : "none",
-                    backgroundSize: "cover",
-                    backgroundPosition: "center",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "#EBEBEB",
-                    fontSize: "10px",
-                    fontWeight: 500
-                  }}
-                >
-                  {!person.profilePicture && getInitials(person.name)}
-                </div>
-              ))}
-              <div 
-                style={{
-                  width: 24,
-                  height: 24,
-                  borderRadius: 12,
-                  backgroundColor: "#666",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "#EBEBEB",
-                  fontSize: "10px",
-                  fontWeight: 500
-                }}
-              >
-                +{people.length - 2}
-              </div>
-            </>
-          );
-        }
+      if (isShortTask || isOneHourTask) {
+        // For short tasks and one-hour tasks: show only first person
+        const person = sortedPeople[0];
+        if (!person) return null;
+        
+        return (
+          <div 
+            key={0}
+            style={{
+              width: 24,
+              height: 24,
+              borderRadius: 12,
+              backgroundColor: person.profilePicture ? "transparent" : "#666",
+              backgroundImage: person.profilePicture ? `url(${person.profilePicture})` : "none",
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#EBEBEB",
+              fontSize: "10px",
+              fontWeight: 500
+            }}
+          >
+            {!person.profilePicture && getInitials(person.name)}
+          </div>
+        );
       } else {
         // For longer tasks: show up to 4 profiles + overflow
         const remainingCount = people.length - 4;
@@ -827,6 +784,7 @@ export const TaskCard = ({
                     whiteSpace: "nowrap",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
+                    maxWidth: "130px",
                     cursor: "text"
                   }}>
                     {task.title}
