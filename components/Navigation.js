@@ -15,6 +15,10 @@ const commonTimezones = {
   "UTC": "Coordinated Universal Time (UTC)"
 };
 
+// Add these constants at the top of the file after the imports
+const GOOGLE_CLIENT_ID = '691094339111-3blkd3665p0t9qgvig469bjpiasiq0ob.apps.googleusercontent.com';
+const SCOPES = 'https://www.googleapis.com/auth/calendar';
+
 export default function Navigation({ user, onUserUpdate, selectedEventId, showCreateEventModal, setShowCreateEventModal, showEventDropdown, setShowEventDropdown, onEventSelect }) {
   const router = useRouter();
   const [showProfile, setShowProfile] = useState(false);
@@ -676,6 +680,44 @@ export default function Navigation({ user, onUserUpdate, selectedEventId, showCr
                     </ProfilePictureUpload>
                   </div>
                   <p style={{margin: 0}}>{user?.name}</p>
+                </div>
+                <div 
+                  style={{border: "1px solid #EBEBEB", paddingTop: 6, paddingBottom: 6, display: "flex", alignItems: "start", flexDirection: "column", justifyContent: "start", gap: 2, paddingLeft: 12, paddingRight: 12, paddingTop: 12, paddingBottom: 12, borderRadius: 8}}
+                >
+                  <p style={{margin: 0, fontSize: 12, fontWeight: 600}}>Connect Google Calendar</p>
+                  <p style={{margin: 0, fontSize: 12}}>Keep your calendar up to date with your Run of Show automatically</p>
+                  <div 
+                    onClick={() => {
+                      // Initialize Google OAuth
+                      const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(window.location.origin + '/auth/google/callback')}&response_type=code&scope=${encodeURIComponent(SCOPES)}&access_type=offline&prompt=consent`;
+                      
+                      // Open the OAuth popup
+                      const width = 500;
+                      const height = 600;
+                      const left = window.screenX + (window.outerWidth - width) / 2;
+                      const top = window.screenY + (window.outerHeight - height) / 2;
+                      window.open(
+                        googleAuthUrl,
+                        'Connect Google Calendar',
+                        `width=${width},height=${height},left=${left},top=${top}`
+                      );
+                    }}
+                    style={{
+                      color: "#fff",
+                      cursor: "pointer",
+                      backgroundColor: "#0293D4",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      paddingTop: 8,
+                      paddingBottom: 8,
+                      marginTop: 8,
+                      display: "flex",
+                      width: "100%",
+                      borderRadius: 8
+                    }}
+                  >
+                    <p style={{fontSize: 12, margin: 0, userSelect: "none"}}>Connect Calendar</p>
+                  </div>
                 </div>
                 <div 
                   onClick={handleLogout}
