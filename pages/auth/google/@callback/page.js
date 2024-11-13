@@ -8,7 +8,6 @@ export default function GoogleCallback() {
   useEffect(() => {
     const code = searchParams.get('code');
     if (code) {
-      // Get token from localStorage
       const token = localStorage.getItem('token');
       if (!token) {
         console.error('No authentication token found');
@@ -43,7 +42,6 @@ export default function GoogleCallback() {
       })
       .catch(error => {
         console.error('Failed to connect calendar:', error);
-        // Optionally show error to user
         alert('Failed to connect Google Calendar. Please try again.');
       });
     }
