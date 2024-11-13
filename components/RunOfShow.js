@@ -494,6 +494,7 @@ export const RunOfShow = ({
                             
                             setNewEventId(newEvent.id);
                             
+                            // Update the events list
                             setSelectedEvent(prev => ({
                               ...prev,
                               calendar_events: [...(prev.calendar_events || []), {
@@ -502,6 +503,13 @@ export const RunOfShow = ({
                                 endTime: newEvent.end_time
                               }]
                             }));
+
+                            // Set the newly created event as the selected event
+                            setSelectedCalendarEvent({
+                              ...newEvent,
+                              startTime: newEvent.start_time,
+                              endTime: newEvent.end_time
+                            });
 
                           } catch (error) {
                             console.error('Failed to create calendar event:', error);
@@ -603,11 +611,11 @@ export const RunOfShow = ({
                                   setNewEventId(null);
                                 }
                               }}
-                              contentEditable
-                              suppressContentEditableWarning
-                              onClick={(e) => {
-                                e.stopPropagation();
-                              }}
+                              // contentEditable
+                              // suppressContentEditableWarning
+                              // onClick={(e) => {
+                              //   e.stopPropagation();
+                              // }}
                               onBlur={(e) => {
                                 const newTitle = e.target.innerText.trim();
                                 if (newTitle === '' && event.title === '') {
@@ -696,7 +704,6 @@ export const RunOfShow = ({
                       zIndex: 103,
                       top: ((new Date(selectedCalendarEvent.startTime) - new Date(selectedEvent.startTime)) / (1000 * 60 * 60)) * (scrollNumber + 1)
                     }}>
-                      {/* Calculate duration here */}
                       {(() => {
                         const previewDuration = (new Date(selectedCalendarEvent.endTime) - new Date(selectedCalendarEvent.startTime)) / (1000 * 60 * 60);
                         return (
@@ -714,6 +721,17 @@ export const RunOfShow = ({
                               </div> 
                               <div style={{display: "flex", gap: 16, padding: 16, flexDirection: "column"}}>
                                 <p 
+                                  ref={el => {
+                                    // Auto focus and select text when modal opens
+                                    if (el) {
+                                      el.focus();
+                                      const range = document.createRange();
+                                      range.selectNodeContents(el);
+                                      const selection = window.getSelection();
+                                      selection.removeAllRanges();
+                                      selection.addRange(range);
+                                    }
+                                  }}
                                   contentEditable
                                   suppressContentEditableWarning
                                   onBlur={(e) => {
@@ -736,7 +754,7 @@ export const RunOfShow = ({
                                   onKeyDown={(e) => {
                                     if (e.key === 'Enter') {
                                       e.preventDefault();
-                                      e.target.blur();
+                                      e.target.blur(); // This will trigger the onBlur event
                                     }
                                   }}
                                   style={{
@@ -959,7 +977,18 @@ fontSize: 16
                         height: scrollNumber,
                         borderRight: "1px solid #EBEBEB",
                         borderBottom: "1px solid #EBEBEB",
-                        flexShrink: 0
+                        flexShrink: 0,
+                        position: "relative",
+                        "&:hover::before": {
+                          content: '"+',
+                          position: "absolute",
+                          top: "50%",
+                          left: "50%",
+                          transform: "translate(-50%, -50%)",
+                          color: "#00000022",
+                          fontSize: "24px",
+                          pointerEvents: "none"
+                        }
                       }}>
                         <p style={{
                           position: "absolute",
@@ -979,6 +1008,27 @@ fontSize: 16
                             hour12: true 
                           })}
                         </p>
+                        {/* Add hover indicator */}
+                        <div style={{
+                          position: "absolute",
+                          width: "100%",
+                          height: "100%",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: "#00000000",
+                          fontSize: selectedEvent?.calendar_events?.length > 0 ? "24px" : "14px",
+                          transition: "color 0.2s ease",
+                          userSelect: "none",
+                          cursor: "pointer",
+                          "&:hover": {
+                            color: "#00000022"
+                          }
+                        }}
+                        className="calendar-cell-hover"
+                        >
+                          {selectedEvent?.calendar_events?.length > 0 ? "+" : "Drag New Activity"}
+                        </div>
                       </div>
                     );
                   })}
@@ -1127,6 +1177,7 @@ fontSize: 16
                     {Array.from({ length: hoursDiff }).map((_, index) => (
                       <div 
                       key={index} 
+                      className="task-cell"
                       onMouseDown={(e) => {
                         const targetElement = e.currentTarget;
                         const rect = targetElement.getBoundingClientRect();
@@ -1252,6 +1303,7 @@ fontSize: 16
                           });
                           timeDisplay.textContent = `${startTimeStr} - ${endTimeStr}`;
                         };
+                        
                       
                         const handleMouseUp = async () => {
                           if (dragStarted) {
@@ -1306,13 +1358,13 @@ fontSize: 16
                         document.addEventListener('mousemove', handleMouseMove);
                         document.addEventListener('mouseup', handleMouseUp);
                       }}
-  style={{
-    width: 217,
-    height: scrollNumber,
-    borderRight: "1px solid #EBEBEB",
-    borderBottom: "1px solid #EBEBEB",
-    flexShrink: 0
-  }}
+                      style={{
+                        width: 217,
+                        height: scrollNumber,
+                        borderRight: "1px solid #EBEBEB",
+                        borderBottom: "1px solid #EBEBEB",
+                        flexShrink: 0
+                      }}
                     ></div>
                   ))}
                 </div>
@@ -1371,6 +1423,7 @@ fontSize: 16
                     {Array.from({ length: hoursDiff }).map((_, index) => (
                       <div 
                       key={index} 
+                      className="task-cell"
                       onMouseDown={(e) => {
                         const targetElement = e.currentTarget;
                         const rect = targetElement.getBoundingClientRect();

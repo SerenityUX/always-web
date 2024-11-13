@@ -86,3 +86,33 @@ textarea {
   cursor: ew-resize;
   border: none;
 }
+
+.calendar-cell-hover {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.calendar-cell-hover:hover {
+  opacity: 1;
+  color: rgba(0, 0, 0, 0.13) !important;
+}
+
+.task-cell {
+  display: grid;
+  cursor: "pointer";
+  place-items: center;
+}
+
+.task-cell::before {
+  content: "+";
+  color: rgba(0, 0, 0, 0.13);
+  font-size: 24px;
+  pointer-events: none;
+  grid-area: 1 / 1;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.task-cell:hover::before {
+  opacity: 1;
+}
