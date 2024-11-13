@@ -1,19 +1,27 @@
-'use client';
 import { useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/router';
 
 export default function GoogleCallback() {
-  const searchParams = useSearchParams();
+  const router = useRouter();
   
   useEffect(() => {
-    const code = searchParams.get('code');
+    if (!router.isReady) return;
+
+    console.log('Router Query:', router.query);
+    console.log('Current URL:', window.location.href);
+    console.log('Origin:', window.location.origin);
+    console.log('Pathname:', window.location.pathname);
+
+    const { code } = router.query;
     if (code) {
+      console.log('Found authorization code');
       const token = localStorage.getItem('token');
       if (!token) {
         console.error('No authentication token found');
         return;
       }
 
+      // Note that we're sending the request to serenidad.click
       fetch('https://serenidad.click/hacktime/connectGoogleCalendar', {
         method: 'POST',
         headers: {
@@ -45,7 +53,7 @@ export default function GoogleCallback() {
         alert('Failed to connect Google Calendar. Please try again.');
       });
     }
-  }, [searchParams]);
+  }, [router.isReady, router.query]);
 
   return (
     <div className="flex items-center justify-center min-h-screen">
@@ -55,4 +63,4 @@ export default function GoogleCallback() {
       </div>
     </div>
   );
-} 
+}
