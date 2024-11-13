@@ -36,6 +36,7 @@ const formatTime = (date) => {
 
 export const TaskCard = ({ 
     task, 
+    user,
     dayStart, 
     scrollNumber,
     titleInputRef,
@@ -321,7 +322,7 @@ export const TaskCard = ({
         }}>
           {isSelected &&           <div style={{position: "absolute", fontSize: "16", cursor: "auto", top: 16, left: 228, borderRadius: 8, width: 300, backgroundColor: "#fff"}}>
                                                     <div style={{width: "calc(100% - 24px)", borderRadius: "16px 16px 0px 0px", paddingTop: 8, paddingBottom: 8, justifyContent: "space-between", paddingLeft: 16, paddingRight: 8, alignItems: "center", display: "flex", backgroundColor: "#F6F8FA"}}>
-                                                    <p style={{margin: 0, fontSize: 14}}>Edit Task</p>
+                                                    <p onClick={() => console.log(user)} style={{margin: 0, fontSize: 14}}>Edit Task</p>
                                                     <img 
                                                       onClick={() => {
                                                         if (window.confirm('Are you sure you want to delete this task?')) {
@@ -344,6 +345,12 @@ export const TaskCard = ({
         title: newTitle
       }));
       setEditingTaskTitle(newTitle);
+    }}
+    onKeyDown={async (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        e.target.blur();
+      }
     }}
     onBlur={async () => {
       if (localTitle !== task.title) {
@@ -499,13 +506,30 @@ export const TaskCard = ({
                                                                 justifyContent: "center",
                                                                 color: "#EBEBEB",
                                                                 fontSize: "12px",
-                                                                fontWeight: 500
+                                                                fontWeight: 500,
+                                                                flexShrink: 0
                                                               }}>
                                                                 {!person.profilePicture && getInitials(person.name)}
                                                               </div>
-                                                              <div style={{flex: 1}}>
-                                                                <p style={{margin: 0, fontSize: 14}}>{person.name}</p>
-                                                                <p style={{margin: 0, fontSize: 12, color: "#666"}}>{person.email}</p>
+                                                              <div style={{
+                                                                flex: 1,
+                                                                minWidth: 0
+                                                              }}>
+                                                                <p style={{
+                                                                  margin: 0, 
+                                                                  fontSize: 14,
+                                                                  whiteSpace: "nowrap",
+                                                                  overflow: "hidden",
+                                                                  textOverflow: "ellipsis"
+                                                                }}>{person.name}</p>
+                                                                <p style={{
+                                                                  margin: 0, 
+                                                                  fontSize: 12, 
+                                                                  color: "#666",
+                                                                  whiteSpace: "nowrap",
+                                                                  overflow: "hidden",
+                                                                  textOverflow: "ellipsis"
+                                                                }}>{person.email}</p>
                                                               </div>
                                                               <img 
     onClick={async (e) => {
@@ -556,7 +580,8 @@ export const TaskCard = ({
       height: 20,
       cursor: "pointer",
       opacity: 0.5,
-      transition: "opacity 0.2s"
+      transition: "opacity 0.2s",
+      flexShrink: 0
     }}
     onMouseOver={e => e.target.style.opacity = 1}
     onMouseOut={e => e.target.style.opacity = 0.5}
@@ -574,10 +599,16 @@ export const TaskCard = ({
                                                           transition: "background-color 0.2s"
                                                         }}
                                                         onClick={() => {
+                                                          console.log("user email", user.email)
                                                           // Show dropdown of available team members
-                                                          const availableMembers = selectedEvent.teamMembers.filter(
-                                                            member => !task.assignedTo.some(assigned => assigned.email === member.email)
-                                                          );
+                                                          const availableMembers = selectedEvent.teamMembers
+                                                            .filter(member => !task.assignedTo.some(assigned => assigned.email === member.email))
+                                                            // Include the current user if they're not already assigned
+                                                            .concat(
+                                                              user && !task.assignedTo.some(assigned => assigned.email === user.email) ? 
+                                                              [user] : 
+                                                              []
+                                                            );
   
                                                           if (availableMembers.length === 0) {
                                                             alert('All team members are already assigned to this task');
@@ -720,6 +751,12 @@ export const TaskCard = ({
                                                             description: newDescription
                                                           }));
                                                           setEditingTaskDescription(newDescription);
+                                                        }}
+                                                        onKeyDown={async (e) => {
+                                                          if (e.key === 'Enter' && !e.shiftKey) {
+                                                            e.preventDefault();
+                                                            e.target.blur();
+                                                          }
                                                         }}
                                                         onBlur={async () => {
                                                           if (localDescription !== task.description) {

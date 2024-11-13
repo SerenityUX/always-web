@@ -816,8 +816,8 @@ useEffect(() => {
               </div>
               
               <div style={{marginBottom: "16px", display: "flex", flexDirection: "column"}}>
-                <label style={{color: "gray", marginBottom: "8px", display: "block"}}>Role (optional)</label>
-                <textarea
+                <label style={{color: "gray", marginBottom: "8px", display: "block"}}>Title/Role (optional)</label>
+                <input
                   name="roleDescription"
                   value={inviteForm.roleDescription}
                   onChange={handleInviteChange}
@@ -826,9 +826,7 @@ useEffect(() => {
                     padding: "8px",
                     border: "1px solid #D0D7DE",
                     borderRadius: "8px",
-                    fontWeight: "400",
-                    minHeight: "80px",
-                    resize: "vertical"
+                    fontWeight: "400"
                   }}
                 />
               </div>

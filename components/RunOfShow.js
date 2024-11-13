@@ -1066,7 +1066,7 @@ fontSize: 16
                   <div style={{
                     display: "flex",
                     width: "fit-content",
-                    minWidth: "700px",
+                    minWidth: "calc(100vw - 218px)",
                     flexShrink: 0,
                     overflowX: "hidden",
                     position: "relative",
@@ -1103,6 +1103,7 @@ fontSize: 16
                               scrollNumber={parseInt(scrollNumber)}
                               key={index}
                               task={task}
+                              user={user}
                               titleInputRef={titleInputRef}
                               selectedEvent={selectedEvent}
                               setSelectedEvent={setSelectedEvent}  // Add this prop
@@ -1346,6 +1347,7 @@ fontSize: 16
                           <TaskCard 
                             scrollNumber={parseInt(scrollNumber)}
                             key={index}
+                            user={user}
                             task={task}
                             selectedTask={selectedTask}
                             titleInputRef={titleInputRef}
