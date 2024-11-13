@@ -1,9 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/router';
 
-const GoogleCallback = () => {
+function GoogleCallback() {
   const router = useRouter();
-  const [status, setStatus] = useState('Initializing...');
 
   useEffect(() => {
     if (!router.isReady) return;
@@ -12,7 +11,7 @@ const GoogleCallback = () => {
     if (code) {
       const token = localStorage.getItem('token');
       if (!token) {
-        setStatus('Error: No authentication token found');
+        console.error('No authentication token found');
         return;
       }
 
@@ -29,25 +28,32 @@ const GoogleCallback = () => {
       .then(response => response.json())
       .then(data => {
         if (window.opener) {
+          // First, tell the opener to refresh
           window.opener.postMessage({ 
             type: 'GOOGLE_CALENDAR_CONNECTED',
             expiryDate: data.expiryDate 
           }, window.location.origin);
+          
+          // Then refresh the opener window
+          window.opener.location.reload();
+          
+          // Finally, close this popup
           window.close();
         }
       })
       .catch(error => {
-        setStatus(`Error: ${error.message}`);
+        console.error('Failed to connect calendar:', error);
+        alert('Failed to connect Google Calendar. Please try again.');
       });
     }
   }, [router.isReady, router.query]);
 
   return (
     <div>
-      <h1>{status}</h1>
-      <p>Please wait while we complete the setup...</p>
+      <h1>Connecting to Google Calendar...</h1>
+      <p>Please wait while we complete the setup.</p>
     </div>
   );
-};
+}
 
 export default GoogleCallback;
