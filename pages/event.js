@@ -987,10 +987,11 @@ useEffect(() => {
           textAlign: "center", gap: 16,
           flexDirection: "column"
         }}>
-        <p onClick={() => console.log(user.events)}>hmm... seems no event found<br/>
+        <img style={{height: 128, marginTop: 24, width: 128}} src="./outline.gif"/>
+        <p style={{margin: 0}} onClick={() => console.log(user.events)}>welcome to <span style={{fontWeight: 700, color: "#000"}}>always</span>, let's get started<br/>
         <p
         onClick={() => setShowCreateEventModal(true)}
-        style={{color: "#0293D4", cursor: "pointer", textDecoration: "underline"}}>create an event</p>
+        style={{color: "#0293D4", cursor: "pointer", textDecoration: "underline"}}>create your first event</p>
         </p>
         </div>
         }

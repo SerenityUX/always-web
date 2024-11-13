@@ -519,7 +519,20 @@ export default function Navigation({ user, onUserUpdate, selectedEventId, showCr
 
   return (
     <>
-
+      <style>{`
+        @keyframes pulse {
+          0% {
+            box-shadow: 0 0 0 0 rgba(190, 58, 44, 0.4);
+          }
+          70% {
+            box-shadow: 0 0 0 10px rgba(190, 58, 44, 0);
+          }
+          100% {
+            box-shadow: 0 0 0 0 rgba(190, 58, 44, 0);
+          }
+        }
+      `}</style>
+      
       <div style={{backgroundColor: "#F6F8FA", overflow: "visible", borderBottom: '1px solid #EBEBEB'}}>
         <div style={{display: "flex", alignItems: "center", justifyContent: "space-between", paddingLeft: 32, paddingTop: 16, paddingRight: 32}}>
           <div style={{display: "flex", alignItems: "center", justifyContent: "center", gap: 16}}>
@@ -668,11 +681,17 @@ export default function Navigation({ user, onUserUpdate, selectedEventId, showCr
           </div>
           <div ref={profileRef} style={{height: 32, overflow: "visible", width: 32, position: "relative"}}>
             <div onClick={() => setShowProfile(!showProfile)} style={{cursor: "pointer"}}>
+              <div style={{position: "relative"}}>
               <ProfileImage
                 imageUrl={user?.profile_picture_url}
                 name={user?.name}
                 size={32}
               />
+              {user.profile_picture_url == null && 
+              <div style={{position: "absolute", top: 0, right: 0, height: 10, width: 10, backgroundColor: "#BE3A2C", borderRadius: "100%"}}>
+              </div>
+              }
+              </div>
             </div>
             {showProfile && (
               <div style={{position: "fixed", zIndex: 100, display: "flex", gap: 8, flexDirection: "column", border: "1px solid #EBEBEB", width: 196, padding: 12, backgroundColor: "#fff", borderRadius: 16, top: 56, right: 32}}>
@@ -685,6 +704,8 @@ export default function Navigation({ user, onUserUpdate, selectedEventId, showCr
                       size={96}
                     />
                     <ProfilePictureUpload onUpload={handleProfilePictureUpdate}>
+                      <div style={{position: "relative"}}>
+                        
                       <img 
                         style={{
                           height: 16,
@@ -693,17 +714,26 @@ export default function Navigation({ user, onUserUpdate, selectedEventId, showCr
                           cursor: "pointer",
                           backgroundColor: "#fff",
                           borderRadius: "100%",
-                          border: "1px solid #EBEBEB",
+                          border: user.profile_picture_url != null ? ("1px solid #EBEBEB") : ("1px solid #BE3A2C"),
                           position: "absolute",
                           right: 0,
-                          bottom: 0
+                          bottom: 0,
+                          animation: user.profile_picture_url == null ? "pulse 1s infinite" : "none"
                         }}
                         src="./icons/edit.svg"
                         alt="Edit profile picture"
                       />
+                      </div>
                     </ProfilePictureUpload>
                   </div>
                   <p style={{margin: 0}}>{user?.name}</p>
+                  {user.profile_picture_url == null &&
+                  
+                  <div style={{height: 12, display: "flex", alignItems: "center", flexDirection: "row", gap: 4}}>
+                    <div style={{height: 6, width: 6, borderRadius: "100%", backgroundColor: "#BE3A2C"}}></div>
+                  <p style={{margin: 0, fontSize: 12, color: "#BE3A2C"}}>Missing Profile Picture</p>
+                  </div>
+                  }
                 </div>
                 <div 
                   style={{
