@@ -602,13 +602,17 @@ export const TaskCard = ({
                                                           console.log("user email", user.email)
                                                           // Show dropdown of available team members
                                                           const availableMembers = selectedEvent.teamMembers
-                                                            .filter(member => !task.assignedTo.some(assigned => assigned.email === member.email))
-                                                            // Include the current user if they're not already assigned
-                                                            .concat(
-                                                              user && !task.assignedTo.some(assigned => assigned.email === user.email) ? 
-                                                              [user] : 
-                                                              []
-                                                            );
+                                                            .filter(member => !task.assignedTo.some(assigned => assigned.email === member.email));
+  
+                                                          // Always add current user if not already assigned
+                                                          if (user && !task.assignedTo.some(assigned => assigned.email === user.email)) {
+                                                            // Add user at the beginning of the list
+                                                            availableMembers.unshift({
+                                                              email: user.email,
+                                                              name: user.name,
+                                                              profilePicture: user.profile_picture_url
+                                                            });
+                                                          }
   
                                                           if (availableMembers.length === 0) {
                                                             alert('All team members are already assigned to this task');

@@ -470,9 +470,149 @@ export const ScheduleView = ({
                                                       </div>
                                                     </div>
                                                     <div style={{display: "flex", alignItems: "center", gap: 8}}>
+                                                      <img src="./icons/label.svg" style={{width: 24, height: 24}}/>
+                                                      <select 
+                                                        value={selectedCalendarEvent.tag || "Untagged"}
+                                                        onChange={async (e) => {
+                                                          const selectedValue = e.target.value;
+                                                          
+                                                          if (selectedValue === "New Tag") {
+                                                            const newTag = prompt("Enter new tag name:");
+                                                            
+                                                            if (newTag && newTag.trim()) {
+                                                              try {
+                                                                // Create the new tag
+                                                                const createResponse = await fetch('https://serenidad.click/hacktime/createAvailableTag', {
+                                                                  method: 'POST',
+                                                                  headers: {
+                                                                    'Content-Type': 'application/json',
+                                                                  },
+                                                                  body: JSON.stringify({
+                                                                    token: localStorage.getItem('token'),
+                                                                    eventId: selectedEventId,
+                                                                    tag: newTag.trim()
+                                                                  }),
+                                                                });
+
+                                                                if (!createResponse.ok) {
+                                                                  const error = await createResponse.json();
+                                                                  throw new Error(error.error || 'Failed to create tag');
+                                                                }
+
+                                                                // Update local state to include the new tag
+                                                                setSelectedEvent(prev => ({
+                                                                  ...prev,
+                                                                  availableTags: [...(prev.availableTags || []), newTag.trim()]
+                                                                }));
+
+                                                                // Set the new tag as the selected tag for the calendar event
+                                                                const updateResponse = await fetch('https://serenidad.click/hacktime/updateCalendarEvent', {
+                                                                  method: 'POST',
+                                                                  headers: {
+                                                                    'Content-Type': 'application/json',
+                                                                  },
+                                                                  body: JSON.stringify({
+                                                                    token: localStorage.getItem('token'),
+                                                                    calendarEventId: selectedCalendarEvent.id,
+                                                                    startTime: selectedCalendarEvent.startTime,
+                                                                    endTime: selectedCalendarEvent.endTime,
+                                                                    title: selectedCalendarEvent.title,
+                                                                    color: selectedCalendarEvent.color,
+                                                                    tag: newTag.trim()
+                                                                  }),
+                                                                });
+
+                                                                if (!updateResponse.ok) {
+                                                                  throw new Error('Failed to update calendar event');
+                                                                }
+
+                                                                // Update selected calendar event state
+                                                                setSelectedCalendarEvent(prev => ({
+                                                                  ...prev,
+                                                                  tag: newTag.trim()
+                                                                }));
+                                                              } catch (error) {
+                                                                console.error('Failed to create/update tag:', error);
+                                                                alert(error.message);
+                                                              }
+                                                            }
+                                                          } else {
+                                                            // Handle regular tag selection
+                                                            const newLabel = selectedValue === "Untagged" ? null : selectedValue;
+                                                            
+                                                            try {
+                                                              const response = await fetch('https://serenidad.click/hacktime/updateCalendarEvent', {
+                                                                method: 'POST',
+                                                                headers: {
+                                                                  'Content-Type': 'application/json',
+                                                                },
+                                                                body: JSON.stringify({
+                                                                  token: localStorage.getItem('token'),
+                                                                  calendarEventId: selectedCalendarEvent.id,
+                                                                  startTime: selectedCalendarEvent.startTime,
+                                                                  endTime: selectedCalendarEvent.endTime,
+                                                                  title: selectedCalendarEvent.title,
+                                                                  color: selectedCalendarEvent.color,
+                                                                  tag: newLabel
+                                                                }),
+                                                              });
+
+                                                              if (!response.ok) {
+                                                                throw new Error('Failed to update calendar event');
+                                                              }
+
+                                                              // Update local state
+                                                              setSelectedCalendarEvent(prev => ({
+                                                                ...prev,
+                                                                tag: newLabel
+                                                              }));
+
+                                                              setSelectedEvent(prev => ({
+                                                                ...prev,
+                                                                calendar_events: prev.calendar_events.map(evt => 
+                                                                  evt.id === selectedCalendarEvent.id 
+                                                                    ? { ...evt, tag: newLabel } 
+                                                                    : evt
+                                                                )
+                                                              }));
+
+                                                            } catch (error) {
+                                                              console.error('Failed to update tag:', error);
+                                                              alert(error.message);
+                                                            }
+                                                          }
+                                                        }}
+                                                        style={{
+                                                          margin: 0,
+                                                          padding: "4px 8px",
+                                                          backgroundColor: "#F3F2F8",
+                                                          borderRadius: 4,
+                                                          minWidth: 120,
+                                                          fontSize: 16,
+                                                          border: "none",
+                                                          cursor: "pointer",
+                                                          appearance: "none",
+                                                          backgroundImage: "url('./icons/chevron-down.svg')",
+                                                          backgroundRepeat: "no-repeat",
+                                                          backgroundPosition: "right 8px center",
+                                                          backgroundSize: "16px",
+                                                          paddingRight: "28px"
+                                                        }}
+                                                      >
+                                                        <option value="Untagged">Untagged</option>
+                                                        {selectedEvent?.availableTags?.map((tag, index) => (
+                                                          <option key={index} value={tag}>
+                                                            {tag}
+                                                          </option>
+                                                        ))}
+                                                        <option value="New Tag">+ New Tag</option>
+                                                      </select>
+                                                    </div>
+                                                    <div style={{display: "flex", alignItems: "center", gap: 8}}>
                                                       <img src="./icons/calendar.svg" style={{width: 24, height: 24}}/>
                                                       <p style={{margin: 0, fontSize: 16}}>Friday, November 1, 2024</p>
                                                     </div>
+
                                                     <div style={{display: "flex", alignItems: "center", gap: 8}}>
                                                       <img src="./icons/paint.svg" style={{width: 24, height: 24}}/>
                                                       <p style={{margin: 0, fontSize: 16}}>Calendar Color</p>
@@ -615,13 +755,18 @@ export const ScheduleView = ({
                     }).toUpperCase();
 
                     return (
-                      <div key={index} style={{
-                        width: "100%",
-                        position: "relative",
-                        height: 75,
-                        borderBottom: "1px solid #EBEBEB",
-                        flexShrink: 0
-                      }}>
+                      <div 
+                        key={index} 
+                        className="calendar-cell"
+                        style={{
+                          width: "100%",
+                          position: "relative",
+                          height: 75,
+                          borderBottom: "1px solid #EBEBEB",
+                          flexShrink: 0,
+                          cursor: "pointer"
+                        }}
+                      >
                         <p style={{
                           position: "absolute",
                           fontSize: 9,
@@ -630,7 +775,8 @@ export const ScheduleView = ({
                           marginTop: -6,
                           backgroundColor: "#fff",
                           userSelect: "none",
-                          color: "#A2A2A2"
+                          color: "#A2A2A2",
+                          pointerEvents: "none"
                         }}>
                           {showDayLabel && (
                             <span style={{ display: 'block' }}>{dayLabel}</span>
@@ -641,6 +787,22 @@ export const ScheduleView = ({
                             hour12: true 
                           })}
                         </p>
+                        <div className="calendar-cell-hover" style={{
+                          position: "absolute",
+                          left: "40px",
+                          right: "8px",
+                          top: 0,
+                          bottom: 0,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: "24px",
+                          color: "rgba(0, 0, 0, 0.13)",
+                          pointerEvents: "none",
+                          backgroundColor: "rgba(0, 0, 0, 0.02)"
+                        }}>
+                          +
+                        </div>
                       </div>
                     );
                   });

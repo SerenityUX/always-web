@@ -117,3 +117,12 @@ textarea {
 .task-cell:hover::before {
   opacity: 1;
 }
+
+.calendar-cell {
+  position: relative;
+  cursor: pointer;
+}
+
+.calendar-cell:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+}
