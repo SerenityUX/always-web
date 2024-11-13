@@ -1137,7 +1137,7 @@ fontSize: 16
                         <p style={{
                           position: "absolute",
                           fontSize: 9,
-                          paddingLeft: 2,
+                          paddingLeft: 5,
                           width: 28, 
                           marginTop: -6,
                           backgroundColor: "#fff",
