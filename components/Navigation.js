@@ -17,7 +17,10 @@ const commonTimezones = {
 
 // Add these constants at the top of the file after the imports
 const GOOGLE_CLIENT_ID = '691094339111-3blkd3665p0t9qgvig469bjpiasiq0ob.apps.googleusercontent.com';
-const SCOPES = 'https://www.googleapis.com/auth/calendar';
+const REDIRECT_URI = process.env.NODE_ENV === 'development' 
+  ? 'http://localhost:3000/auth/google/callback'
+  : 'https://always.sh/auth/google/callback'; // No @ symbol needed
+const SCOPES = 'https://www.googleapis.com/auth/calendar.events';
 
 export default function Navigation({ user, onUserUpdate, selectedEventId, showCreateEventModal, setShowCreateEventModal, showEventDropdown, setShowEventDropdown, onEventSelect }) {
   const router = useRouter();
@@ -689,7 +692,7 @@ export default function Navigation({ user, onUserUpdate, selectedEventId, showCr
                   <div 
                     onClick={() => {
                       // Initialize Google OAuth
-                      const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(window.location.origin + '/auth/google/callback')}&response_type=code&scope=${encodeURIComponent(SCOPES)}&access_type=offline&prompt=consent`;
+                      const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=${encodeURIComponent(SCOPES)}&access_type=offline&prompt=consent`;
                       
                       // Open the OAuth popup
                       const width = 500;
