@@ -723,8 +723,8 @@ export const RunOfShow = ({
                               <div style={{display: "flex", gap: 16, padding: 16, flexDirection: "column"}}>
                                 <p 
                                   ref={el => {
-                                    // Auto focus and select text when modal opens
-                                    if (el) {
+                                    // Only auto focus when modal first opens
+                                    if (el && selectedCalendarEvent.title === '') {
                                       el.focus();
                                       const range = document.createRange();
                                       range.selectNodeContents(el);
