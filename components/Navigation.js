@@ -496,6 +496,27 @@ export default function Navigation({ user, onUserUpdate, selectedEventId, showCr
     }
   };
 
+  // Add this useEffect near the top of the Navigation component
+  useEffect(() => {
+    const handleMessage = async (event) => {
+      if (event.data.type === 'GOOGLE_CALENDAR_CONNECTED') {
+        // Refresh user data
+        const response = await fetch('https://serenidad.click/hacktime/auth', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        if (response.ok) {
+          const userData = await response.json();
+          onUserUpdate(userData);
+        }
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [onUserUpdate]);
+
   return (
     <>
 
@@ -685,42 +706,77 @@ export default function Navigation({ user, onUserUpdate, selectedEventId, showCr
                   <p style={{margin: 0}}>{user?.name}</p>
                 </div>
                 <div 
-                  style={{border: "1px solid #EBEBEB", paddingTop: 6, paddingBottom: 6, display: "flex", alignItems: "start", flexDirection: "column", justifyContent: "start", gap: 2, paddingLeft: 12, paddingRight: 12, paddingTop: 12, paddingBottom: 12, borderRadius: 8}}
+                  style={{
+                    border: "1px solid #EBEBEB", 
+                    paddingTop: 6, 
+                    paddingBottom: 6, 
+                    display: "flex", 
+                    alignItems: "start", 
+                    flexDirection: "column", 
+                    justifyContent: "start", 
+                    gap: 2, 
+                    paddingLeft: 12, 
+                    paddingRight: 12, 
+                    paddingTop: 12, 
+                    paddingBottom: 12, 
+                    borderRadius: 8
+                  }}
                 >
-                  <p style={{margin: 0, fontSize: 12, fontWeight: 600}}>Connect Google Calendar</p>
-                  <p style={{margin: 0, fontSize: 12}}>Keep your calendar up to date with your Run of Show automatically</p>
-                  <div 
-                    onClick={() => {
-                      // Initialize Google OAuth
-                      const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=${encodeURIComponent(SCOPES)}&access_type=offline&prompt=consent`;
-                      
-                      // Open the OAuth popup
-                      const width = 500;
-                      const height = 600;
-                      const left = window.screenX + (window.outerWidth - width) / 2;
-                      const top = window.screenY + (window.outerHeight - height) / 2;
-                      window.open(
-                        googleAuthUrl,
-                        'Connect Google Calendar',
-                        `width=${width},height=${height},left=${left},top=${top}`
-                      );
-                    }}
-                    style={{
-                      color: "#fff",
-                      cursor: "pointer",
-                      backgroundColor: "#0293D4",
-                      justifyContent: "center",
-                      alignItems: "center",
-                      paddingTop: 8,
-                      paddingBottom: 8,
-                      marginTop: 8,
-                      display: "flex",
-                      width: "100%",
-                      borderRadius: 8
-                    }}
-                  >
-                    <p style={{fontSize: 12, margin: 0, userSelect: "none"}}>Connect Calendar</p>
-                  </div>
+                  <p style={{margin: 0, fontSize: 12, fontWeight: 600}}>Google Calendar</p>
+                  <p style={{margin: 0, fontSize: 12}}>
+                    Keep your calendar up to date with your Run of Show automatically
+                  </p>
+                  
+                  {user?.is_google_calendar_connected ? (
+                    <div
+                      style={{
+                        color: "#1a7f37",
+                        backgroundColor: "#dafbe1",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        paddingTop: 8,
+                        paddingBottom: 8,
+                        marginTop: 8,
+                        display: "flex",
+                        width: "100%",
+                        borderRadius: 8,
+                        border: "1px solid #1a7f37"
+                      }}
+                    >
+                      <p style={{fontSize: 12, margin: 0, userSelect: "none"}}>Connected</p>
+                    </div>
+                  ) : (
+                    <div 
+                      onClick={() => {
+                        const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=${encodeURIComponent(SCOPES)}&access_type=offline&prompt=consent`;
+                        
+                        const width = 500;
+                        const height = 600;
+                        const left = window.screenX + (window.outerWidth - width) / 2;
+                        const top = window.screenY + (window.outerHeight - height) / 2;
+                        window.open(
+                          googleAuthUrl,
+                          'Connect Google Calendar',
+                          `width=${width},height=${height},left=${left},top=${top}`
+                        );
+                      }}
+                      style={{
+                        color: "#fff",
+                        cursor: "pointer",
+                        backgroundColor: "#0293D4",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        paddingTop: 8,
+                        paddingBottom: 8,
+                        marginTop: 8,
+                        display: "flex",
+                        width: "100%",
+                        borderRadius: 8
+                      }}
+                    >
+                      <p style={{fontSize: 12, margin: 0, userSelect: "none"}}>Connect Calendar</p>
+                    </div>
+                  )}
                 </div>
                 <div 
                   onClick={handleLogout}
