@@ -598,10 +598,10 @@ export const TaskCard = ({
                                                             
                                                             // Show dropdown of available team members
                                                             const availableMembers = selectedEvent.teamMembers
-                                                              .filter(member => !task.assignedTo.some(assigned => assigned.email === member.email));
+                                                              .filter(member => !task?.assignedTo?.some(assigned => assigned.email === member.email));
   
                                                             // Always add current user if not already assigned
-                                                            if (user && !task.assignedTo.some(assigned => assigned.email === user.email)) {
+                                                            if (user && !task?.assignedTo?.some(assigned => assigned.email === user.email)) {
                                                               // Add user at the beginning of the list
                                                               availableMembers.unshift({
                                                                 email: user.email,

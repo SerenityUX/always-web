@@ -696,7 +696,12 @@ export default function Navigation({ user, onUserUpdate, selectedEventId, showCr
             {showProfile && (
               <div style={{position: "fixed", zIndex: 100, display: "flex", gap: 8, flexDirection: "column", border: "1px solid #EBEBEB", width: 196, padding: 12, backgroundColor: "#fff", borderRadius: 16, top: 56, right: 32}}>
                 <div style={{display: "flex", border: "1px solid #EBEBEB", alignItems: "center", backgroundColor: "#F6F8FA", padding: 16, paddingTop: 8, gap: 14, borderRadius: 8, justifyContent: "center", flexDirection: "column"}}>
-                  <div style={{height: 8, width: 8, border: "1px solid #EBEBEB", backgroundColor: "#fff", borderRadius: "100%"}}></div>
+                  <div style={{height: 8, position: "relative", width: 8, border: "1px solid #EBEBEB", backgroundColor: "#fff", borderRadius: "100%"}}></div>
+                  {user.organization != null  &&
+                  <div style={{position: "absolute", backgroundColor: "#5F6368", top: 16, color: "#fff", borderRadius: "8px 8px 0px 0px", display: "flex", alignItems: "center", justifyContent: "center", left: 16, paddingTop: 4, paddingBottom: 4,width: "calc(100% - 32px)"}}>
+                    <p style={{margin: 0, fontSize: 14, fontWeight: 600}}>{user?.organization?.organizationName} {user?.organization?.organizationRole}</p>
+                  </div>
+                  }
                   <div style={{position: "relative", height: 96, width: 96}}>
                     <ProfileImage
                       imageUrl={user?.profile_picture_url}
@@ -735,7 +740,7 @@ export default function Navigation({ user, onUserUpdate, selectedEventId, showCr
                   </div>
                   }
                 </div>
-                <div 
+                {/* <div 
                   style={{
                     border: "1px solid #EBEBEB", 
                     paddingTop: 6, 
@@ -807,7 +812,8 @@ export default function Navigation({ user, onUserUpdate, selectedEventId, showCr
                       <p style={{fontSize: 12, margin: 0, userSelect: "none"}}>Connect Calendar</p>
                     </div>
                   )}
-                </div>
+                </div> */}
+
                 <div 
                   onClick={handleLogout}
                   style={{border: "1px solid #EBEBEB", cursor: "pointer", paddingTop: 6, paddingBottom: 6, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 8}}

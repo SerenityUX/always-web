@@ -1291,7 +1291,7 @@ fontSize: 16
 
                   }}>
                         {selectedEvent?.tasks
-                          ?.filter(task => task.assignedTo.some(person => person.email === user.email))
+                          ?.filter(task => task?.assignedTo?.some(person => person.email === user.email))
                           .map((task, index) => (
                             <TaskCard 
                               scrollNumber={parseInt(scrollNumber)}
@@ -1538,7 +1538,7 @@ fontSize: 16
                     {/* Add task mapping for team member */}
                     <div style={{position: "relative"}}>
                       {selectedEvent?.tasks
-                        ?.filter(task => task.assignedTo.some(person => person.email === teamMember.email))
+                        ?.filter(task => task?.assignedTo?.some(person => person.email === teamMember.email))
                         .map((task, index) => (
                           
                           <TaskCard 
