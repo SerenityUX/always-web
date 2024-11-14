@@ -54,8 +54,16 @@ export const ScheduleView = ({
               width: 800, 
               marginTop: 24
             }}>
-              <p style={{margin: 0}}>Event Schedule</p>
-              
+              <div style={{display: "flex", width: "100%", alignItems: "center", justifyContent: "space-between"}}>
+                <p style={{margin: 0}}>Event Schedule</p>
+                <div 
+                  onClick={() => window.open(`https://serenidad.click/hacktime/getSchedule/${selectedEvent.id}`, '_blank')}
+
+                style={{width: 24, height: 24, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 16, cursor: "pointer", backgroundColor: "#737373"}}>
+                  <p style={{fontSize: 8, margin: 0, color: "#fff", fontWeight: 800}}>API</p>
+                </div>
+              </div>
+
               <div 
                 style={{
                   display: "flex",

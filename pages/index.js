@@ -65,6 +65,7 @@ export default function Landing() {
         backgroundColor: "#FEE353",
         height: "100vh",
         overflow: "hidden",
+        position: "relative",
         margin: 0,
         fontFamily: "GT-Flexa-Variable, sans-serif",
         fontVariationSettings: "'wght' 400, 'slnt' 0"

@@ -297,6 +297,8 @@ export const RunOfShow = ({
           
           return (
             <>
+
+            
             <div className="zoom-slider" style={{
               position: "fixed", 
               display: "flex", 
@@ -322,17 +324,67 @@ export const RunOfShow = ({
                 gap: 4
               }}>
                 <img style={{height: 12, width: 12, userSelect: 'none', pointerEvents: "none"}} src="/icons/magnify.svg"/>
-                <input
-                  type="range"
-                  className="zoom-range"
-                  min="75"
-                  max="310"
-                  value={scrollNumber}
-                  onChange={(e) => {
-                    setScrollNumber(parseInt(e.target.value))
-                    console.log(parseInt(e.target.value))
-                  }}
-                />
+                <style>
+  {`
+    .zoom-range {
+      width: 100%;
+      -webkit-appearance: none;
+      background: transparent;
+    }
+    .zoom-range::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: ${12 + (scrollNumber - 75) * 0.017}px;
+      width: ${12 + (scrollNumber - 75) * 0.017}px;
+      border-radius: 50%;
+      background: white;
+      cursor: pointer;
+      margin-top: ${-((12 + (scrollNumber - 75) * 0.017) / 2) + 1}px;
+      box-shadow: ${
+        scrollNumber > 200 
+          ? `0 1px 3px rgba(100, 100, 100, ${Math.min((scrollNumber - 200) / 110, 0.15)})`
+          : 'none'
+      };
+      transition: box-shadow 0.2s ease;
+    }
+    .zoom-range::-webkit-slider-runnable-track {
+      width: 100%;
+      height: 2px;
+      background: #ffffff40;
+      border-radius: 1px;
+    }
+    .zoom-range::-moz-range-thumb {
+      height: ${12 + (scrollNumber - 75) * 0.017}px;
+      width: ${12 + (scrollNumber - 75) * 0.017}px;
+      border-radius: 50%;
+      background: white;
+      cursor: pointer;
+      border: none;
+      box-shadow: ${
+        scrollNumber > 200 
+          ? `0 1px 3px rgba(100, 100, 100, ${Math.min((scrollNumber - 200) / 110, 0.15)})`
+          : 'none'
+      };
+      transition: box-shadow 0.2s ease;
+    }
+    .zoom-range::-moz-range-track {
+      width: 100%;
+      height: 2px;
+      background: #ffffff40;
+      border-radius: 1px;
+    }
+  `}
+</style>
+  <input
+    type="range"
+    className="zoom-range"
+    min="75"
+    max="310"
+    value={scrollNumber}
+    onChange={(e) => {
+      setScrollNumber(parseInt(e.target.value))
+      console.log(parseInt(e.target.value))
+    }}
+  />
               </div>
             </div>
               {/* Fixed Event Schedule Column */}

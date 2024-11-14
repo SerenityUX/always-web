@@ -757,7 +757,13 @@ useEffect(() => {
 
       <div style={{width: "100%", height: "100vh", overflowY: tab == "Run of Show" ? "hidden" : "auto", display: "flex", flexDirection: "column"}}>
         
-
+      {/* <div style={{position: "fixed", bottom: 54, display: 'flex', gap: 4, flexDirection: "column", right: 16, backgroundColor: "rgb(116, 116, 116)", color: "#fff", paddingLeft: 12, paddingRight: 12, paddingTop: 12, paddingBottom: 12, border: "1px solid #fff", width: 150, zIndex: 2, borderRadius: 8}}>
+          <div>
+          <p style={{margin: 0, fontWeight: 900, fontSize: 8}}>TUTORIAL 1/3</p>
+          <p style={{margin: 0, fontSize: 14,}}>Add Calendar Event</p>
+          </div>
+          <p style={{margin: 0, fontSize: 12,}}>drag the "Event Schedule" column into your Run of Show or Schedule.</p>
+        </div> */}
         {isInvitingNewUser && (
           <div 
             onClick={(e) => {
