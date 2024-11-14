@@ -1198,6 +1198,8 @@ fontSize: 16
                   zIndex: (selectedCalendarEvent != null || selectedTask != null) ? 0 : 2
                   // Remove the transform property
                 }}>
+                              {!selectedEvent.notMemberOrOwner && (
+
                   <p style={{
                     margin: 0, 
                     height: 22, 
@@ -1208,7 +1210,7 @@ fontSize: 16
                     paddingTop: 6, 
                     paddingBottom: 5,
                   }}>You</p>
-
+                              )}
                   {selectedEvent?.teamMembers?.map((teamMember) => (
                     <p style={{
                       margin: 0, 
@@ -1267,7 +1269,7 @@ fontSize: 16
                     overflowY: "hidden"
                   }}>
                     {/* You Column */}
-
+                    {!selectedEvent.notMemberOrOwner && (
                     <div 
                     data-column-id="You"
                     style={{display: "flex", position: "relative", flexDirection: "column"}}>
@@ -1512,7 +1514,7 @@ fontSize: 16
                       }}
                     ></div>
                   ))}
-                </div>
+                </div>)}
 
 
                 {/* Team Member Columns */}

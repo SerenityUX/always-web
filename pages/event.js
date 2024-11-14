@@ -192,7 +192,25 @@ useEffect(() => {
         });
 
         const userData = await response.json();
-        
+         // If organizationEvents exists, process and merge with events
+         if (userData.organizationEvents) {
+          // Create a map of event IDs that the user owns/is member of
+          const userEventIds = new Set(Object.keys(userData.events || {}));
+          
+          // Process organization events
+          const processedOrgEvents = Object.entries(userData.organizationEvents).reduce((acc, [id, event]) => {
+            acc[id] = {
+              ...event,
+              // Add notMemberOrOwner flag if the event isn't in user's events
+              notMemberOrOwner: !userEventIds.has(id)
+            };
+            return acc;
+          }, {});
+          
+          // Replace events with processed organization events
+          userData.events = processedOrgEvents;
+        }
+
         const eventIds = Object.keys(userData.events);
 
         setUser(userData);

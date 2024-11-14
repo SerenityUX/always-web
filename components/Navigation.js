@@ -508,6 +508,11 @@ export default function Navigation({ user, onUserUpdate, selectedEventId, showCr
         });
         if (response.ok) {
           const userData = await response.json();
+          
+          if (userData.organizationEvents) {
+            userData.events = userData.organizationEvents;
+          }
+
           onUserUpdate(userData);
         }
       }
