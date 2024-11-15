@@ -77,6 +77,12 @@ const commonTimezones = {
   "UTC": "Coordinated Universal Time (UTC)"
 };
 
+// Add this helper function at the top level
+const getEventCount = (events) => {
+  if (!events) return 0;
+  return Object.keys(events).length;
+};
+
 export default function Event() {
   const router = useRouter();
   const { tab, eventId } = router.query;
@@ -795,6 +801,105 @@ useEffect(() => {
     }
   };
 
+  // Add this state at the top of your component
+  const [animatedText, setAnimatedText] = useState('');
+  const [showGif, setShowGif] = useState(false);
+
+  // Update the initial state
+  const [showTutorial, setShowTutorial] = useState(false); // Start with false
+
+  // Add this effect to update based on user data
+  useEffect(() => {
+    if (user) {
+      setShowTutorial(!user.hasCompletedTutorial);
+    }
+  }, [user]); // Depend on user changes
+
+  // Add this function to handle tutorial completion
+  const completeTutorial = async () => {
+    try {
+      const response = await fetch('https://serenidad.click/hacktime/completeTutorial', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          token: localStorage.getItem('token')
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to mark tutorial as complete');
+      }
+    } catch (error) {
+      console.error('Error completing tutorial:', error);
+    }
+  };
+
+  // Update the close button handler
+  const handleCloseTutorial = () => {
+    setShowTutorial(false);
+    completeTutorial();
+  };
+  const hasCalendarEvents = selectedEvent?.calendar_events?.length > 0;
+  const hasNamedCalendarEvent = selectedEvent?.calendar_events?.some(event => event.title && event.title.trim() !== '');
+  const hasTask = selectedEvent?.tasks?.length > 0;
+  
+  let initialText;
+  // Update the useEffect to mark tutorial complete when it ends naturally
+  useEffect(() => {
+
+    if (hasTask) {
+      initialText = "wonderful, you're a fast learner. You've got the basics down. It's now time to invite the rest of your team & organize your event.";
+    } else if (hasNamedCalendarEvent) {
+      initialText = "coolio. To create your first task, drag under the \"You\" column";
+    } else if (hasCalendarEvents) {
+      initialText = "alright... now type the name of the calendar event in & give it a tag & color if you'd like";
+    } else {
+      initialText = "Woo we made it!!! We have entered your Run of Show. Drag in the Event Schedule column to create a calendar event.";
+    }
+
+    // Don't start new animation if user is typing in an input
+    if (document.activeElement.tagName === 'INPUT' || 
+        document.activeElement.tagName === 'TEXTAREA' ||
+        document.activeElement.getAttribute('contenteditable') === 'true') {
+      return;
+    }
+
+    let currentIndex = 0;
+    let letterInterval;
+
+    // Reset states when text changes
+    setAnimatedText('');
+    setShowGif(false);
+
+    const startDelay = setTimeout(() => {
+      letterInterval = setInterval(() => {
+        if (currentIndex >= initialText.length) {
+          clearInterval(letterInterval);
+          
+          if (hasTask) {
+            // For final message, complete tutorial and hide it
+            setTimeout(() => {
+              completeTutorial(); // Call the API to mark tutorial as complete
+              setShowTutorial(false);
+            }, 5000);
+          } else if (!hasCalendarEvents || hasNamedCalendarEvent) {
+            setShowGif(true);
+          }
+          return;
+        }
+        setAnimatedText(initialText.slice(0, currentIndex + 1));
+        currentIndex++;
+      }, 35);
+    }, 1500);
+
+    return () => {
+      clearTimeout(startDelay);
+      clearInterval(letterInterval);
+    };
+  }, [selectedEvent?.calendar_events, selectedEvent?.tasks]);
+
   if (loading) {
     return <div></div>;
   }
@@ -823,124 +928,81 @@ useEffect(() => {
 
       <div style={{width: "100%", height: "100vh", overflowY: tab == "Run of Show" ? "hidden" : "auto", display: "flex", flexDirection: "column"}}>
         
-      {/* <div style={{position: "fixed", bottom: 54, display: 'flex', gap: 4, flexDirection: "column", right: 16, backgroundColor: "rgb(116, 116, 116)", color: "#fff", paddingLeft: 12, paddingRight: 12, paddingTop: 12, paddingBottom: 12, border: "1px solid #fff", width: 150, zIndex: 2, borderRadius: 8}}>
-          <div>
-          <p style={{margin: 0, fontWeight: 900, fontSize: 8}}>TUTORIAL 1/3</p>
-          <p style={{margin: 0, fontSize: 14,}}>Add Calendar Event</p>
-          </div>
-          <p style={{margin: 0, fontSize: 12,}}>drag the "Event Schedule" column into your Run of Show or Schedule.</p>
-        </div> */}
-        {isInvitingNewUser && (
-          <div 
-            onClick={(e) => {
-              // Only close if clicking the background (not the modal itself)
-              if (e.target === e.currentTarget) {
-                setIsInvitingNewUser(false);
-                setInviteForm({ email: '', name: '', roleDescription: '' }); // Reset form
-                setInviteError(''); // Clear any errors
-                setInvalidEmail(false); // Reset invalid email state
+      {selectedEvent && getEventCount(user?.events) === 1 && showTutorial && !user?.hasCompletedTutorial && (
+        <div style={{
+          position: "fixed", 
+          bottom: 54, 
+          display: 'flex', 
+          gap: 4, 
+          flexDirection: "column", 
+          right: 16, 
+          backgroundColor: "#fff", 
+          color: "#000", 
+          paddingLeft: 12, 
+          paddingRight: 12, 
+          paddingTop: 12, 
+          paddingBottom: 12, 
+          border: "1px solid #EBEBEB", 
+          width: 250, 
+          zIndex: 2, 
+          borderRadius: 8,
+          opacity: 1,
+          transition: 'opacity 0.5s ease-out'
+        }}>
+<div style={{display: "flex", flexDirection: "row", alignItems: "center", gap: 8, justifyContent: "space-between", width: "100%"}}>
+  <div style={{display: "flex", flexDirection: "row", alignItems: "center", gap: 8}}>
+    <img 
+      style={{height: 32, width: 32, objectFit: "cover", borderRadius: "100%", border:"1px solid #EBEBEB"}} 
+      src={hasTask > 0 ? "dog-2.gif" :"./dog-1.gif"}
+      loop={0}
+    />
+    <p style={{fontSize: 16, margin: 0}}>Always</p>
+  </div>
+  <button 
+    onClick={handleCloseTutorial}
+    style={{
+      background: 'none',
+      border: 'none',
+      padding: '4px 8px',
+      cursor: 'pointer',
+      fontSize: '16px',
+      color: '#8F8F8F',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: '4px',
+      transition: 'background-color 0.2s ease',
+      ':hover': {
+        backgroundColor: '#F5F5F5'
+      }
+    }}
+  >
+    ✕
+  </button>
+</div>
+          <p style={{
+            margin: 0, 
+            fontSize: 12,
+            opacity: animatedText.length > 0 ? 1 : 0,
+            transition: 'opacity 0.3s ease-in'
+          }}>
+            {animatedText}
+          </p>
+          {showGif && (
+            <img 
+              style={{
+                maxWidth: "100%", 
+                borderRadius: 8,
+                animation: "fadeIn 0.5s ease-in-out"
+              }} 
+              src={selectedEvent?.calendar_events?.some(event => event.title && event.title.trim() !== '') 
+                ? "./createTask.gif" 
+                : "./createCalendarEvent.gif"
               }
-            }}
-            style={{
-              width: "100%",
-              alignItems: "center",
-              justifyContent: "center",
-              position: "fixed",
-              zIndex: 101,
-              height: "100vh",
-              display: "flex",
-              backgroundColor: "rgba(0, 0, 0, 0.5)"
-            }}
-          >
-            <div style={{maxWidth: 500, width: "100%", padding: 32, backgroundColor: "#fff", borderRadius: "8px"}}>
-              <p style={{margin: 0, fontWeight: "bold", fontSize: "24px", marginBottom: "16px"}}>Invite to Event</p>
-              
-              {inviteError && (
-                <div style={{
-                  color: 'red',
-                  marginBottom: '16px',
-                  padding: '8px',
-                  backgroundColor: '#ffebee',
-                  borderRadius: '4px'
-                }}>
-                  {inviteError}
-                </div>
-              )}
-
-              <div style={{display: "flex", gap: "16px", marginBottom: "16px"}}>
-                <div style={{display: "flex", flexDirection: "column", width: "100%"}}>
-                  <label style={{color: "gray", marginBottom: "8px", display: "block"}}>Email</label>
-                  <input
-                    ref={emailInputRef}
-                    name="email"
-                    value={inviteForm.email}
-                    onChange={handleInviteChange}
-                    placeholder="Enter email address"
-                    style={{
-                      padding: "8px",
-                      border: `1px solid ${invalidEmail ? '#ff0000' : '#D0D7DE'}`,
-                      borderRadius: "8px",
-                      fontWeight: "400",
-                      outline: "none",
-                      backgroundColor: invalidEmail ? '#fff5f5' : 'white'
-                    }}
-                  />
-                </div>
-
-                
-                <div style={{display: "flex", flexDirection: "column", width: "100%"}}>
-                  <label style={{color: "gray", marginBottom: "8px", display: "block"}}>Name</label>
-                  <input
-                    name="name"
-                    value={inviteForm.name}
-                    onChange={handleInviteChange}
-                    placeholder="Enter full name"
-                    style={{
-                      padding: "8px",
-                      border: "1px solid #D0D7DE",
-                      borderRadius: "8px",
-                      fontWeight: "400"
-                    }}
-                  />
-                </div>
-              </div>
-              
-              <div style={{marginBottom: "16px", display: "flex", flexDirection: "column"}}>
-                <label style={{color: "gray", marginBottom: "8px", display: "block"}}>Title/Role (optional)</label>
-                <input
-                  name="roleDescription"
-                  value={inviteForm.roleDescription}
-                  onChange={handleInviteChange}
-                  placeholder="Enter team member's role"
-                  style={{
-                    padding: "8px",
-                    border: "1px solid #D0D7DE",
-                    borderRadius: "8px",
-                    fontWeight: "400"
-                  }}
-                />
-              </div>
-
-              <button 
-                onClick={handleInviteSubmit}
-                disabled={inviteLoading || !inviteForm.email || !inviteForm.name}
-                style={{
-                  width: "100%",
-                  background: inviteLoading || !inviteForm.email || !inviteForm.name ? '#666' : 'black',
-                  color: "white",
-                  padding: "12px",
-                  borderRadius: "8px",
-                  border: "none",
-                  cursor: inviteLoading || !inviteForm.email || !inviteForm.name ? 'default' : 'pointer',
-                  marginBottom: "16px"
-                }}
-              >
-                {inviteLoading ? "Sending..." : "Send Invitation"}
-              </button>
-
-            </div>
-          </div>
-        )}
+            />
+          )}
+        </div>
+      )}
         <Navigation 
           user={user}
           setShowEventDropdown={setShowEventDropdown}
@@ -1077,7 +1139,7 @@ useEffect(() => {
           flexDirection: "column"
         }}>
         <img style={{height: 128, marginTop: 24, width: 128}} src="./outline.gif"/>
-        <p style={{margin: 0}} onClick={() => console.log(user.events)}>welcome to <span style={{fontWeight: 700, color: "#000"}}>always</span>, let's get started<br/></p>
+        <p style={{margin: 0}}>welcome to <span style={{fontWeight: 700, color: "#000"}}>always</span>, let's get started<br/></p>
         {/* <p
         onClick={() => setShowCreateEventModal(true)}
         style={{color: "#0293D4", cursor: "pointer", textDecoration: "underline"}}>create your first event</p>
