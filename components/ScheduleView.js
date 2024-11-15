@@ -56,11 +56,19 @@ export const ScheduleView = ({
             }}>
               <div style={{display: "flex", width: "100%", alignItems: "center", justifyContent: "space-between"}}>
                 <p style={{margin: 0}}>Event Schedule</p>
+<div style={{display: "flex", flexDirection: "row", gap: 16}}>
+<div 
+                  onClick={() => window.open(`/viewschedule?id=${selectedEvent.id}`, '_blank')}
+
+                style={{width: 24, height: 24, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 16, cursor: "pointer", backgroundColor: "#737373"}}>
+                  <img style={{height: 16, width: 16, filter: "brightness(0) invert(1)"}} src="./icons/share.svg"/>
+                </div>
                 <div 
                   onClick={() => window.open(`https://serenidad.click/hacktime/getSchedule/${selectedEvent.id}`, '_blank')}
 
                 style={{width: 24, height: 24, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 16, cursor: "pointer", backgroundColor: "#737373"}}>
                   <p style={{fontSize: 8, margin: 0, color: "#fff", fontWeight: 800}}>API</p>
+                </div>
                 </div>
               </div>
 
