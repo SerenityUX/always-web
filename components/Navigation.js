@@ -508,7 +508,7 @@ export default function Navigation({ user, onUserUpdate, selectedEventId, showCr
         });
         if (response.ok) {
           const userData = await response.json();
-          
+
           if (userData.organizationEvents) {
             userData.events = userData.organizationEvents;
           }
@@ -539,9 +539,12 @@ export default function Navigation({ user, onUserUpdate, selectedEventId, showCr
       `}</style>
       
       <div style={{backgroundColor: "#F6F8FA", overflow: "visible", borderBottom: '1px solid #EBEBEB'}}>
-        <div style={{display: "flex", alignItems: "center", justifyContent: "space-between", paddingLeft: 32, paddingTop: 16, paddingRight: 32}}>
+        <div style={{display: "flex",
+          marginBottom: Object.keys(user.events).length == 0 ? 16 : 0,
+          alignItems: "center", justifyContent: "space-between", paddingLeft: 32, paddingTop: 16, paddingRight: 32}}>
           <div style={{display: "flex", alignItems: "center", justifyContent: "center", gap: 16}}>
           <h1 style={{margin: 0, fontSize: 24, height: 24, fontWeight: 600, opacity: 0.9}}>Always</h1>
+          {Object.keys(user.events).length != 0 &&
           <div ref={eventDropdownRef} style={{ position: "relative" }}>
             <div 
               onClick={() => setShowEventDropdown(!showEventDropdown)}
@@ -682,9 +685,9 @@ export default function Navigation({ user, onUserUpdate, selectedEventId, showCr
                 </div>
               </div>
             )}
+          </div>}
           </div>
-          </div>
-          <div ref={profileRef} style={{height: 32, overflow: "visible", width: 32, position: "relative"}}>
+          <div onClick={() => console.log(Object.keys(user.events).length === 0 ? "user.events is empty" : "user.events is not empty")} ref={profileRef} style={{height: 32, overflow: "visible", width: 32, position: "relative"}}>
             <div onClick={() => setShowProfile(!showProfile)} style={{cursor: "pointer"}}>
               <div style={{position: "relative"}}>
               <ProfileImage
@@ -829,6 +832,7 @@ export default function Navigation({ user, onUserUpdate, selectedEventId, showCr
             )}
           </div>
         </div>
+        { selectedEvent != null &&
         <div style={{display: "flex", gap: 24, paddingLeft: 32, paddingTop: 12, paddingRight: 32}}>
           {navItems.map((item) => (
             <div 
@@ -855,7 +859,7 @@ export default function Navigation({ user, onUserUpdate, selectedEventId, showCr
               </h2>
             </div>
           ))}
-        </div>
+        </div>}
         {showCreateEventModal && (
           <CreateEventModal 
             onEventSelect={onEventSelect}

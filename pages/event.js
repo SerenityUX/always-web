@@ -67,6 +67,16 @@ const MAX_DURATION = 23.99 * 60 * 60 * 1000; // Just under 24 hours in milliseco
 // Add this constant at the top of the file with other constants
 const TABS = ["Run of Show", "Schedule", "Announcements", "Team"];
 
+// Add this constant at the top with other constants
+const commonTimezones = {
+  "America/Los_Angeles": "Pacific Time (PT)",
+  "America/Denver": "Mountain Time (MT)",
+  "America/Chicago": "Central Time (CT)",
+  "America/New_York": "Eastern Time (ET)",
+  "GMT": "Greenwich Mean Time (GMT)",
+  "UTC": "Coordinated Universal Time (UTC)"
+};
+
 export default function Event() {
   const router = useRouter();
   const { tab, eventId } = router.query;
@@ -729,6 +739,62 @@ useEffect(() => {
     return () => document.removeEventListener('keydown', handleTabNavigation);
   }, [currentTab, selectedEventId, router]);
 
+  // Inside the Event component, add this state
+  const [createEventForm, setCreateEventForm] = useState({
+    title: '',
+    startDate: new Date().toISOString().split('T')[0],
+    startTime: '09:00',
+    endDate: new Date().toISOString().split('T')[0],
+    endTime: '17:00',
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [createEventError, setCreateEventError] = useState('');
+
+  // Add this handler function
+  const handleCreateFirstEvent = async (e) => {
+    e.preventDefault();
+    setCreateEventError('');
+    setIsSubmitting(true);
+
+    try {
+      const startTime = `${createEventForm.startDate} ${createEventForm.startTime}:00`;
+      const endTime = `${createEventForm.endDate} ${createEventForm.endTime}:00`;
+
+      if (new Date(endTime) <= new Date(startTime)) {
+        throw new Error('End time must be after start time');
+      }
+
+      const response = await fetch('https://serenidad.click/hacktime/createEvent', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          token: localStorage.getItem('token'),
+          title: createEventForm.title,
+          startTime,
+          endTime,
+          timezone: createEventForm.timezone
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create event');
+      }
+
+      localStorage.setItem('lastVisited', data.id);
+      window.location.href = `/event?eventId=${data.id}&tab=Run of Show`;
+
+    } catch (error) {
+      setCreateEventError(error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   if (loading) {
     return <div></div>;
   }
@@ -1011,11 +1077,259 @@ useEffect(() => {
           flexDirection: "column"
         }}>
         <img style={{height: 128, marginTop: 24, width: 128}} src="./outline.gif"/>
-        <p style={{margin: 0}} onClick={() => console.log(user.events)}>welcome to <span style={{fontWeight: 700, color: "#000"}}>always</span>, let's get started<br/>
-        <p
+        <p style={{margin: 0}} onClick={() => console.log(user.events)}>welcome to <span style={{fontWeight: 700, color: "#000"}}>always</span>, let's get started<br/></p>
+        {/* <p
         onClick={() => setShowCreateEventModal(true)}
         style={{color: "#0293D4", cursor: "pointer", textDecoration: "underline"}}>create your first event</p>
-        </p>
+         */}
+         <div style={{width: 500, textAlign: "left", display: "flex", flexDirection: "column", padding: 32, marginTop: 24, borderRadius: 8, border: "1px solid #EBEBEB", backgroundColor: "#fff"}}>
+          
+          {createEventError && (
+            <div style={{
+              color: 'red',
+              marginBottom: '16px',
+              padding: '8px',
+              backgroundColor: '#ffebee',
+              borderRadius: '4px'
+            }}>
+              {createEventError}
+            </div>
+          )}
+
+          <form onSubmit={handleCreateFirstEvent} style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px'
+          }}>
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              flex: '1'
+            }}>
+              <label style={{
+                marginBottom: '8px', 
+                fontSize: '14px'
+              }}>
+                Event Name
+              </label>
+              <input
+                type="text"
+                value={createEventForm.title}
+                onChange={(e) => setCreateEventForm(prev => ({...prev, title: e.target.value}))}
+                required
+                style={{
+                  flex: '1',
+                  padding: '8px',
+                  fontSize: '16px',
+                  borderRadius: '4px',
+                  border: '1px solid #EBEBEB'
+                }}
+              />
+            </div>
+            {(createEventForm.title != "" && createEventForm.title != null) &&   
+            <div 
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                flex: '1',
+                animation: 'fadeIn 0.3s ease-in-out'
+              }}
+            >
+              <style jsx>{`
+                @keyframes fadeIn {
+                  from {
+                    opacity: 0;
+                    transform: translateY(-10px);
+                  }
+                  to {
+                    opacity: 1;
+                    transform: translateY(0);
+                  }
+                }
+              `}</style>
+              <label style={{
+                marginBottom: '8px', 
+                fontSize: '14px'
+              }}>
+                Timezone
+              </label>
+              <select
+                value={createEventForm.timezone}
+                onChange={(e) => setCreateEventForm(prev => ({...prev, timezone: e.target.value}))}
+                required
+                style={{
+                  flex: '1',
+                  padding: '8px',
+                  fontSize: '16px',
+                  borderRadius: '4px',
+                  border: '1px solid #EBEBEB',
+                  backgroundColor: '#fff'
+                }}
+              >
+                <optgroup label="Common Timezones">
+                  {Object.entries(commonTimezones).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="All Timezones">
+                  {Intl.supportedValuesOf('timeZone').map(tz => (
+                    <option key={tz} value={tz}>
+                      {tz.replace(/_/g, ' ')}
+                    </option>
+                  ))}
+                </optgroup>
+              </select>
+            </div>}
+            {(createEventForm.title != "" && createEventForm.title != null) &&   
+
+            <div 
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '16px',
+                animation: 'fadeIn 0.3s ease-in-out',
+                animationDelay: '0.1s', // Slight delay for staggered effect
+                opacity: 0, // Start hidden
+                animationFillMode: 'forwards' // Keep final state
+              }}
+            >
+              <div style={{
+                display: 'flex',
+                gap: '16px'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  flex: '1'
+                }}>
+                  <label style={{
+                    marginBottom: '8px', 
+                    fontSize: '14px'
+                  }}>
+                    Start Date
+                  </label>
+                  <input
+                    type="date"
+                    value={createEventForm.startDate}
+                    onChange={(e) => setCreateEventForm(prev => ({...prev, startDate: e.target.value}))}
+                    required
+                    style={{
+                      flex: '1',
+                      padding: '8px',
+                      fontSize: '16px',
+                      borderRadius: '4px',
+                      border: '1px solid #EBEBEB'
+                    }}
+                  />
+                </div>
+
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  flex: '1'
+                }}>
+                  <label style={{
+                    marginBottom: '8px', 
+                    fontSize: '14px'
+                  }}>
+                    Start Time
+                  </label>
+                  <input
+                    type="time"
+                    value={createEventForm.startTime}
+                    onChange={(e) => setCreateEventForm(prev => ({...prev, startTime: e.target.value}))}
+                    required
+                    style={{
+                      flex: '1',
+                      padding: '8px',
+                      fontSize: '16px',
+                      borderRadius: '4px',
+                      border: '1px solid #EBEBEB'
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div style={{
+                display: 'flex',
+                gap: '16px'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  flex: '1'
+                }}>
+                  <label style={{
+                    marginBottom: '8px', 
+                    fontSize: '14px'
+                  }}>
+                    End Date
+                  </label>
+                  <input
+                    type="date"
+                    value={createEventForm.endDate}
+                    onChange={(e) => setCreateEventForm(prev => ({...prev, endDate: e.target.value}))}
+                    required
+                    style={{
+                      flex: '1',
+                      padding: '8px',
+                      fontSize: '16px',
+                      borderRadius: '4px',
+                      border: '1px solid #EBEBEB'
+                    }}
+                  />
+                </div>
+
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  flex: '1'
+                }}>
+                  <label style={{
+                    marginBottom: '8px', 
+                    fontSize: '14px'
+                  }}>
+                    End Time
+                  </label>
+                  <input
+                    type="time"
+                    value={createEventForm.endTime}
+                    onChange={(e) => setCreateEventForm(prev => ({...prev, endTime: e.target.value}))}
+                    required
+                    style={{
+                      flex: '1',
+                      padding: '8px',
+                      fontSize: '16px',
+                      borderRadius: '4px',
+                      border: '1px solid #EBEBEB'
+                    }}
+                  />
+                </div>
+              </div>
+            </div>}
+
+            <button
+              type="submit"
+              disabled={(createEventForm.title == "" || createEventForm.title == null) || isSubmitting}
+              style={{
+                padding: '12px',
+                fontSize: '16px',
+                backgroundColor: '#007AFF',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: (createEventForm.title == "" || createEventForm.title == null) || isSubmitting ? 'not-allowed' : 'pointer',
+                opacity: (createEventForm.title == "" || createEventForm.title == null) || isSubmitting ? 0.7 : 1,
+                marginTop: '8px',
+                animation: "* 0.3 ease-in"
+              }}
+            >
+              {isSubmitting ? 'Creating...' : 'Create First Event'}
+            </button>
+          </form>
+          </div>
         </div>
         }
         </div>
