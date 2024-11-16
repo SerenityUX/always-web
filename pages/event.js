@@ -900,6 +900,23 @@ useEffect(() => {
     };
   }, [selectedEvent?.calendar_events, selectedEvent?.tasks]);
 
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.matchMedia("(max-width: 500px)").matches);
+    };
+
+    // Initial check
+    checkMobile();
+
+    // Add event listener for window resize
+    window.addEventListener("resize", checkMobile);
+
+    // Cleanup event listener on component unmount
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
   if (loading) {
     return <div></div>;
   }
@@ -925,7 +942,7 @@ useEffect(() => {
 <meta name="twitter:description" content=""/>
 <meta name="twitter:image" content="https://opengraph.b-cdn.net/production/images/94a544e7-a5ba-4c45-98ca-49e926ce44b6.png?token=q8wbxEubxdaLUYDUCG6h2ZPJKc88QHFV2p8MTq5rg18&height=596&width=1200&expires=33267021068"/>
       </Head>
-
+      {!isMobile &&
       <div style={{width: "100%", height: "100vh", overflowY: tab == "Run of Show" ? "hidden" : "auto", display: "flex", flexDirection: "column"}}>
         
       {selectedEvent && getEventCount(user?.events) === 1 && showTutorial && !user?.hasCompletedTutorial && (
@@ -1017,6 +1034,7 @@ useEffect(() => {
             setSelectedEventId(id);
           }}
         />
+
 <div>
         {(selectedEvent != null && currentTab == "Run of Show") && 
                <RunOfShow
@@ -1395,7 +1413,22 @@ useEffect(() => {
         </div>
         }
         </div>
-      </div>
+      </div>}
+      {isMobile && 
+      <div style={{maxWidth: "100vw", flexDirection: "column", overflow: "hidden", paddingLeft: 16, paddingRight: 16, height: "100vh", display: "flex", justifyContent: "center", alignItems: "center"}}>
+        <img style={{width: 256, height: 256}} src="./outline.gif"/>
+        <p style={{fontSize: 24}}>Welcome to Always! to use always
+        on your phone, download the
+        always mobile app!</p>
+        <button 
+          style={{width: "100%", paddingTop: 12, paddingBottom: 12, backgroundColor: "#000", color: "#fff", borderRadius: 8, fontSize: 18}}
+          onClick={() => window.location.href = 'https://apps.apple.com/us/app/always-sh/id6737702662'}
+        >
+          Download iOS App
+        </button>
+        <button disabled={true} style={{width: "100%", paddingTop: 12, paddingBottom: 12, backgroundColor: "#fff", border: "1px solid #000", opacity: 0.3, color: "#000", borderRadius: 8, fontSize: 18, marginTop: 24}}>Android App Coming Soon...</button>
+
+      </div>}
     </>
   );
 }
