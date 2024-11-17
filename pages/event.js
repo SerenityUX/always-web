@@ -1020,6 +1020,118 @@ useEffect(() => {
           )}
         </div>
       )}
+              {isInvitingNewUser && (
+          <div 
+            onClick={(e) => {
+              // Only close if clicking the background (not the modal itself)
+              if (e.target === e.currentTarget) {
+                setIsInvitingNewUser(false);
+                setInviteForm({ email: '', name: '', roleDescription: '' }); // Reset form
+                setInviteError(''); // Clear any errors
+                setInvalidEmail(false); // Reset invalid email state
+              }
+            }}
+            style={{
+              width: "100%",
+              alignItems: "center",
+              justifyContent: "center",
+              position: "fixed",
+              zIndex: 101,
+              height: "100vh",
+              display: "flex",
+              backgroundColor: "rgba(0, 0, 0, 0.5)"
+            }}
+          >
+            <div style={{maxWidth: 500, width: "100%", padding: 32, backgroundColor: "#fff", borderRadius: "8px"}}>
+              <p style={{margin: 0, fontWeight: "bold", fontSize: "24px", marginBottom: "16px"}}>Invite to Event</p>
+              
+              {inviteError && (
+                <div style={{
+                  color: 'red',
+                  marginBottom: '16px',
+                  padding: '8px',
+                  backgroundColor: '#ffebee',
+                  borderRadius: '4px'
+                }}>
+                  {inviteError}
+                </div>
+              )}
+
+              <div style={{display: "flex", gap: "16px", marginBottom: "16px"}}>
+                <div style={{display: "flex", flexDirection: "column", width: "100%"}}>
+                  <label style={{color: "gray", marginBottom: "8px", display: "block"}}>Email</label>
+                  <input
+                    ref={emailInputRef}
+                    name="email"
+                    value={inviteForm.email}
+                    onChange={handleInviteChange}
+                    placeholder="Enter email address"
+                    style={{
+                      padding: "8px",
+                      border: `1px solid ${invalidEmail ? '#ff0000' : '#D0D7DE'}`,
+                      borderRadius: "8px",
+                      fontWeight: "400",
+                      outline: "none",
+                      backgroundColor: invalidEmail ? '#fff5f5' : 'white'
+                    }}
+                  />
+                </div>
+
+                
+                <div style={{display: "flex", flexDirection: "column", width: "100%"}}>
+                  <label style={{color: "gray", marginBottom: "8px", display: "block"}}>Name</label>
+                  <input
+                    name="name"
+                    value={inviteForm.name}
+                    onChange={handleInviteChange}
+                    placeholder="Enter full name"
+                    style={{
+                      padding: "8px",
+                      border: "1px solid #D0D7DE",
+                      borderRadius: "8px",
+                      fontWeight: "400"
+                    }}
+                  />
+                </div>
+              </div>
+              
+              <div style={{marginBottom: "16px", display: "flex", flexDirection: "column"}}>
+                <label style={{color: "gray", marginBottom: "8px", display: "block"}}>Title/Role (optional)</label>
+                <input
+                  name="roleDescription"
+                  value={inviteForm.roleDescription}
+                  onChange={handleInviteChange}
+                  placeholder="Enter team member's role"
+                  style={{
+                    padding: "8px",
+                    border: "1px solid #D0D7DE",
+                    borderRadius: "8px",
+                    fontWeight: "400"
+                  }}
+                />
+              </div>
+
+              <button 
+                onClick={handleInviteSubmit}
+                disabled={inviteLoading || !inviteForm.email || !inviteForm.name}
+                style={{
+                  width: "100%",
+                  background: inviteLoading || !inviteForm.email || !inviteForm.name ? '#666' : 'black',
+                  color: "white",
+                  padding: "12px",
+                  borderRadius: "8px",
+                  border: "none",
+                  cursor: inviteLoading || !inviteForm.email || !inviteForm.name ? 'default' : 'pointer',
+                  marginBottom: "16px"
+                }}
+              >
+                {inviteLoading ? "Sending..." : "Send Invitation"}
+              </button>
+
+            </div>
+          </div>
+        )}
+ 
         <Navigation 
           user={user}
           setShowEventDropdown={setShowEventDropdown}
