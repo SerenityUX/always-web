@@ -626,7 +626,17 @@ export const ScheduleView = ({
                                                     </div>
                                                     <div style={{display: "flex", alignItems: "center", gap: 8}}>
                                                       <img src="./icons/calendar.svg" style={{width: 24, height: 24}}/>
-                                                      <p style={{margin: 0, fontSize: 16}}>Friday, November 1, 2024</p>
+                                                      <p style={{margin: 0, fontSize: 16}}>
+                                                      {new Date(selectedCalendarEvent.startTime).toLocaleDateString('en-US', {
+                                      weekday: 'long',
+                                      month: 'long',
+                                      day: 'numeric',
+                                      year: 'numeric',
+                                      timeZone: 'UTC'
+                                    })}
+
+                                                      </p>
+                                                      
                                                     </div>
 
                                                     <div style={{display: "flex", alignItems: "center", gap: 8}}>
