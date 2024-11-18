@@ -1007,6 +1007,9 @@ useEffect(() => {
       }));
 
       setShowEditEventModal(false);
+      
+      // Reload the page after successful edit
+      window.location.reload();
 
     } catch (error) {
       setEditEventError(error.message);

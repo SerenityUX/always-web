@@ -13,6 +13,48 @@ const formatTime = (date) => {
 const ViewSchedule = () => {
   const [scheduleData, setScheduleData] = useState(null);
   const [error, setError] = useState(null);
+  const [currentTime, setCurrentTime] = useState(() => {
+    const now = new Date();
+    return new Date(Date.UTC(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+      now.getHours(),
+      now.getMinutes()
+    ));
+  });
+  const [isWithinEvent, setIsWithinEvent] = useState(false);
+  
+  const timelineRef = React.useRef(null);
+
+  useEffect(() => {
+    if (isWithinEvent && scheduleData) {
+      const startTime = new Date(scheduleData.event.startTime);
+      const scrollOffset = ((currentTime - startTime) / (1000 * 60 * 60)) * 76;
+      
+      window.scrollTo({
+        top: scrollOffset - window.innerHeight / 2,
+        behavior: 'smooth'
+      });
+    }
+  }, [isWithinEvent, scheduleData, currentTime]);
+
+  useEffect(() => {
+    // Update current time every minute
+    const timer = setInterval(() => {
+      const now = new Date();
+      const utcNow = new Date(Date.UTC(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate(),
+        now.getHours(),
+        now.getMinutes()
+      ));
+      setCurrentTime(utcNow);
+    }, 60000);
+
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const fetchSchedule = async () => {
@@ -31,6 +73,38 @@ const ViewSchedule = () => {
 
         const data = await response.json();
         setScheduleData(data);
+
+        const now = new Date();
+        // Convert to UTC while keeping same hour/minute
+        const utcNow = new Date(Date.UTC(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate(),
+          now.getHours(),
+          now.getMinutes()
+        ));
+
+        const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        console.log(
+          `User's current time: ${now.toLocaleString('en-US', { timeZone: userTimeZone })}`,
+          `\nTimezone: ${userTimeZone}`
+        );
+
+        const eventStart = new Date(data.event.startTime);
+        const eventEnd = new Date(data.event.endTime);
+        
+        const isCurrentlyWithinEvent = utcNow >= eventStart && utcNow <= eventEnd;
+        setIsWithinEvent(isCurrentlyWithinEvent);
+
+        if (isCurrentlyWithinEvent) {
+          console.log('User is viewing during the event! 🎉');
+        } else if (utcNow < eventStart) {
+          console.log('Event has not started yet. Time until event:', 
+            Math.round((eventStart - utcNow) / (1000 * 60 * 60)), 'hours');
+        } else {
+          console.log('Event has ended. Time since event ended:', 
+            Math.round((utcNow - eventEnd) / (1000 * 60 * 60)), 'hours');
+        }
       } catch (err) {
         setError(err.message);
       }
@@ -91,13 +165,60 @@ const ViewSchedule = () => {
           <p style={{margin: 0}}>{scheduleData.event.title}</p>
         </div>
 
-        <div style={{
-          display: "flex",
-          flexDirection: "column",
-          marginTop: 24,
-          borderTop: "1px solid #EBEBEB",
-          position: "relative"
-        }}>
+        <div 
+          ref={timelineRef}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            marginTop: 24,
+            borderTop: "1px solid #EBEBEB",
+            position: "relative"
+          }}
+        >
+          {/* Add current time indicator */}
+          {isWithinEvent && (
+            <div style={{
+              position: "absolute",
+              top: ((currentTime - startTime) / (1000 * 60 * 60)) * 76,
+              left: 40,
+              display: "flex",
+              alignItems: "center",
+              zIndex: 2, marginLeft: -34,
+              pointerEvents: "none",
+              transform: "translateY(-4px)"
+            }}>
+              <div style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0px"
+              }}>
+                {/* <div style={{
+                  margin: 0,
+                  fontSize: "9px",
+                  color: "#ff0000",
+                  textTransform: "uppercase",
+                  fontWeight: 500,
+                  backgroundColor: "#ff0000",
+                  padding: "1px 4px",
+                  borderRadius: "2px 0px 0px 2px",
+                  letterSpacing: "0.5px",
+                  border: "1px solid #ff0000",
+                  height: 8, width: 8, borderRadius: 16, overflow: "hidden",
+                }}>
+                  
+                </div> */}
+                <div style={{height: 8, width: 8, backgroundColor: "#BE3A2C", borderRadius: 4,}}>
+                
+                </div>
+                <div style={{
+                  width: "800px",
+                  height: "2px", borderRadius: "3px 3px 3px 3px",
+                  backgroundColor: "#BE3A2C"
+                }} />
+              </div>
+            </div>
+          )}
+
           {/* Time Grid */}
           {(() => {
             const hoursDiff = Math.ceil((endTime - startTime) / (1000 * 60 * 60));
