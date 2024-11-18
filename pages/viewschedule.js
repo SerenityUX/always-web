@@ -211,7 +211,7 @@ const ViewSchedule = () => {
                 
                 </div>
                 <div style={{
-                  width: "800px",
+                  maxWidth: "800px",
                   height: "2px", borderRadius: "3px 3px 3px 3px",
                   backgroundColor: "#BE3A2C"
                 }} />
@@ -305,7 +305,7 @@ const ViewSchedule = () => {
                     justifyContent: "space-between",
                     height: "100%",
                     padding: isShortEvent ? 8 : 16,
-                    width: "calc(100% - 48px)",
+                    width: "calc(100% - 90px)",
                     marginLeft: "40px",
                     userSelect: "none"
                   }}>
