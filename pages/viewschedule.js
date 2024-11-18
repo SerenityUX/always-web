@@ -211,7 +211,9 @@ const ViewSchedule = () => {
                 
                 </div>
                 <div style={{
-                  maxWidth: "800px",
+                  width: "800px",
+                  maxWidth: "100%",
+                  display: "flex", 
                   height: "2px", borderRadius: "3px 3px 3px 3px",
                   backgroundColor: "#BE3A2C"
                 }} />
@@ -276,7 +278,7 @@ const ViewSchedule = () => {
             const eventStart = new Date(event.time.start);
             const eventEnd = new Date(event.time.end);
             
-            const topOffset = ((eventStart - startTime) / (1000 * 60 * 60)) * 76;
+            const topOffset = (((eventStart - startTime) / (1000 * 60 * 60)) * 76) - 2;
             const duration = (eventEnd - eventStart) / (1000 * 60 * 60);
             const isShortEvent = duration < 1;
 
