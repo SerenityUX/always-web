@@ -917,6 +917,104 @@ useEffect(() => {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
+  // Add these new state variables near the other state declarations
+  const [showEditEventModal, setShowEditEventModal] = useState(false);
+  const [editEventForm, setEditEventForm] = useState({
+    title: '',
+    startDate: '',
+    startTime: '',
+    endDate: '',
+    endTime: '',
+    timezone: ''
+  });
+  const [editEventLoading, setEditEventLoading] = useState(false);
+  const [editEventError, setEditEventError] = useState('');
+
+  // Update the useEffect that initializes the edit form
+  useEffect(() => {
+    if (showEditEventModal && selectedEvent) {
+      const startDate = new Date(selectedEvent.startTime);
+      const endDate = new Date(selectedEvent.endTime);
+      
+      // Convert to 24-hour format for the time input
+      const formatTimeForInput = (date) => {
+        const hours = date.getUTCHours().toString().padStart(2, '0');
+        const minutes = date.getUTCMinutes().toString().padStart(2, '0');
+        return `${hours}:${minutes}`;
+      };
+      
+      setEditEventForm({
+        title: selectedEvent.title || '',
+        startDate: startDate.toISOString().split('T')[0],
+        startTime: formatTimeForInput(startDate),
+        endDate: endDate.toISOString().split('T')[0],
+        endTime: formatTimeForInput(endDate),
+        timezone: selectedEvent.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone
+      });
+    }
+  }, [showEditEventModal, selectedEvent]);
+
+  // Update the handleEditEvent function
+  const handleEditEvent = async (e) => {
+    e.preventDefault();
+    setEditEventError('');
+    setEditEventLoading(true);
+
+    try {
+      // Format the datetime strings to match create event format
+      const startTime = `${editEventForm.startDate}T${editEventForm.startTime}:00.000Z`;
+      const endTime = `${editEventForm.endDate}T${editEventForm.endTime}:00.000Z`;
+
+      if (new Date(endTime) <= new Date(startTime)) {
+        throw new Error('End time must be after start time');
+      }
+
+      const response = await fetch('https://serenidad.click/hacktime/editEvent', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          token: localStorage.getItem('token'),
+          eventId: selectedEventId,
+          title: editEventForm.title,
+          startTime,
+          endTime,
+          timezone: editEventForm.timezone
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update event');
+      }
+
+      // Update both selectedEvent and user's events
+      setSelectedEvent(data);
+      setUser(prevUser => ({
+        ...prevUser,
+        events: {
+          ...prevUser.events,
+          [selectedEventId]: {
+            ...prevUser.events[selectedEventId],
+            title: editEventForm.title,
+            startTime,
+            endTime,
+            timezone: editEventForm.timezone
+          }
+        }
+      }));
+
+      setShowEditEventModal(false);
+
+    } catch (error) {
+      setEditEventError(error.message);
+    } finally {
+      setEditEventLoading(false);
+    }
+  };
+
   if (loading) {
     return <div></div>;
   }
@@ -1140,11 +1238,17 @@ useEffect(() => {
           showCreateEventModal={showCreateEventModal}
           setShowCreateEventModal={setShowCreateEventModal}
           showEventDropdown={creatingEvent}
-          // onEventSelect={handleEventSelect}
           onEventSelect={(id) => {
             console.log('Event selected:', id);
             setSelectedEventId(id);
           }}
+          showEditEventModal={showEditEventModal}
+          setShowEditEventModal={setShowEditEventModal}
+          editEventForm={editEventForm}
+          setEditEventForm={setEditEventForm}
+          handleEditEvent={handleEditEvent}
+          editEventLoading={editEventLoading}
+          editEventError={editEventError}
         />
 
 <div>
@@ -1541,6 +1645,267 @@ useEffect(() => {
         <button disabled={true} style={{width: "100%", paddingTop: 12, paddingBottom: 12, backgroundColor: "#fff", border: "1px solid #000", opacity: 0.3, color: "#000", borderRadius: 8, fontSize: 18, marginTop: 24}}>Android App Coming Soon...</button>
 
       </div>}
+      {/* {selectedEvent && (
+        <div style={{
+          position: 'absolute',
+          top: 16,
+          right: 16,
+          display: 'flex',
+          gap: 8,
+          alignItems: 'center'
+        }}>
+          <img
+            src="/icons/settings.svg"
+            alt="Settings"
+            style={{
+              width: 24,
+              height: 24,
+              cursor: 'pointer'
+            }}
+            onClick={() => setShowEditEventModal(true)}
+          />
+        </div>
+      )} */}
+      {showEditEventModal && (
+        <div 
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowEditEventModal(false);
+              setEditEventError('');
+            }
+          }}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000
+          }}
+        >
+          <div style={{
+            width: 500,
+            backgroundColor: '#fff',
+            borderRadius: 8,
+            padding: 32
+          }}>
+            <h2 style={{ margin: '0 0 24px 0' }}>Edit Event</h2>
+            
+            {editEventError && (
+              <div style={{
+                color: 'red',
+                marginBottom: '16px',
+                padding: '8px',
+                backgroundColor: '#ffebee',
+                borderRadius: '4px'
+              }}>
+                {editEventError}
+              </div>
+            )}
+
+            <form onSubmit={handleEditEvent} style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px'
+            }}>
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column'
+              }}>
+                <label style={{
+                  marginBottom: '8px',
+                  fontSize: '14px'
+                }}>
+                  Event Name
+                </label>
+                <input
+                  type="text"
+                  value={editEventForm.title}
+                  onChange={(e) => setEditEventForm(prev => ({...prev, title: e.target.value}))}
+                  required
+                  style={{
+                    padding: '8px',
+                    fontSize: '16px',
+                    borderRadius: '4px',
+                    border: '1px solid #EBEBEB'
+                  }}
+                />
+              </div>
+
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column'
+              }}>
+                <label style={{
+                  marginBottom: '8px',
+                  fontSize: '14px'
+                }}>
+                  Timezone
+                </label>
+                <select
+                  value={editEventForm.timezone}
+                  onChange={(e) => setEditEventForm(prev => ({...prev, timezone: e.target.value}))}
+                  required
+                  style={{
+                    padding: '8px',
+                    fontSize: '16px',
+                    borderRadius: '4px',
+                    border: '1px solid #EBEBEB',
+                    backgroundColor: '#fff'
+                  }}
+                >
+                  <optgroup label="Common Timezones">
+                    {Object.entries(commonTimezones).map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="All Timezones">
+                    {Intl.supportedValuesOf('timeZone').map(tz => (
+                      <option key={tz} value={tz}>
+                        {tz.replace(/_/g, ' ')}
+                      </option>
+                    ))}
+                  </optgroup>
+                </select>
+              </div>
+
+              <div style={{
+                display: 'flex',
+                gap: '16px'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  flex: '1'
+                }}>
+                  <label style={{
+                    marginBottom: '8px',
+                    fontSize: '14px'
+                  }}>
+                    Start Date
+                  </label>
+                  <input
+                    type="date"
+                    value={editEventForm.startDate}
+                    onChange={(e) => setEditEventForm(prev => ({...prev, startDate: e.target.value}))}
+                    required
+                    style={{
+                      padding: '8px',
+                      fontSize: '16px',
+                      borderRadius: '4px',
+                      border: '1px solid #EBEBEB'
+                    }}
+                  />
+                </div>
+
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  flex: '1'
+                }}>
+                  <label style={{
+                    marginBottom: '8px',
+                    fontSize: '14px'
+                  }}>
+                    Start Time
+                  </label>
+                  <input
+                    type="time"
+                    value={editEventForm.startTime}
+                    onChange={(e) => setEditEventForm(prev => ({...prev, startTime: e.target.value}))}
+                    required
+                    style={{
+                      padding: '8px',
+                      fontSize: '16px',
+                      borderRadius: '4px',
+                      border: '1px solid #EBEBEB'
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div style={{
+                display: 'flex',
+                gap: '16px'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  flex: '1'
+                }}>
+                  <label style={{
+                    marginBottom: '8px',
+                    fontSize: '14px'
+                  }}>
+                    End Date
+                  </label>
+                  <input
+                    type="date"
+                    value={editEventForm.endDate}
+                    onChange={(e) => setEditEventForm(prev => ({...prev, endDate: e.target.value}))}
+                    required
+                    style={{
+                      padding: '8px',
+                      fontSize: '16px',
+                      borderRadius: '4px',
+                      border: '1px solid #EBEBEB'
+                    }}
+                  />
+                </div>
+
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  flex: '1'
+                }}>
+                  <label style={{
+                    marginBottom: '8px',
+                    fontSize: '14px'
+                  }}>
+                    End Time
+                  </label>
+                  <input
+                    type="time"
+                    value={editEventForm.endTime}
+                    onChange={(e) => setEditEventForm(prev => ({...prev, endTime: e.target.value}))}
+                    required
+                    style={{
+                      padding: '8px',
+                      fontSize: '16px',
+                      borderRadius: '4px',
+                      border: '1px solid #EBEBEB'
+                    }}
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={editEventLoading}
+                style={{
+                  padding: '12px',
+                  fontSize: '16px',
+                  backgroundColor: '#007AFF',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: editEventLoading ? 'not-allowed' : 'pointer',
+                  opacity: editEventLoading ? 0.7 : 1,
+                  marginTop: '8px'
+                }}
+              >
+                {editEventLoading ? 'Updating...' : 'Update Event'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </>
   );
 }

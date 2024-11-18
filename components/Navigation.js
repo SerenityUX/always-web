@@ -22,7 +22,23 @@ const REDIRECT_URI = process.env.NODE_ENV === 'development'
   : 'https://always.sh/auth/google/callback'; // No @ symbol needed
 const SCOPES = 'https://www.googleapis.com/auth/calendar.events';
 
-export default function Navigation({ user, onUserUpdate, selectedEventId, showCreateEventModal, setShowCreateEventModal, showEventDropdown, setShowEventDropdown, onEventSelect }) {
+export default function Navigation({ 
+  user, 
+  onUserUpdate, 
+  selectedEventId, 
+  showCreateEventModal, 
+  setShowCreateEventModal, 
+  showEventDropdown, 
+  setShowEventDropdown, 
+  onEventSelect,
+  showEditEventModal,
+  setShowEditEventModal,
+  editEventForm,
+  setEditEventForm,
+  handleEditEvent,
+  editEventLoading,
+  editEventError
+}) {
   const router = useRouter();
   const [showProfile, setShowProfile] = useState(false);
   const profileRef = useRef(null);
@@ -30,6 +46,7 @@ export default function Navigation({ user, onUserUpdate, selectedEventId, showCr
   // const [showEventDropdown, setShowEventDropdown] = useState(false);
   const eventDropdownRef = useRef(null);
   // const [showCreateEventModal, setShowCreateEventModal] = useState(false);
+  const [selectedEventToEdit, setSelectedEventToEdit] = useState(null);
 
   // Transform events object into array and sort by title
   const eventsList = user?.events ? 
@@ -522,6 +539,22 @@ export default function Navigation({ user, onUserUpdate, selectedEventId, showCr
     return () => window.removeEventListener('message', handleMessage);
   }, [onUserUpdate]);
 
+  useEffect(() => {
+    if (showEditEventModal && selectedEventToEdit) {
+      const startDate = new Date(selectedEventToEdit.startTime);
+      const endDate = new Date(selectedEventToEdit.endTime);
+      
+      setEditEventForm({
+        title: selectedEventToEdit.title || '',
+        startDate: startDate.toISOString().split('T')[0],
+        startTime: startDate.toTimeString().slice(0,5),
+        endDate: endDate.toISOString().split('T')[0],
+        endTime: endDate.toTimeString().slice(0,5),
+        timezone: selectedEventToEdit.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone
+      });
+    }
+  }, [showEditEventModal, selectedEventToEdit, setEditEventForm]);
+
   return (
     <>
       <style>{`
@@ -612,13 +645,13 @@ export default function Navigation({ user, onUserUpdate, selectedEventId, showCr
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.backgroundColor = "#F6F8FA";
-                      e.currentTarget.querySelector('.trash-icon').style.opacity = "0.6";
+                      e.currentTarget.querySelector('.action-icons').style.opacity = "0.6";
                     }}
                     onMouseLeave={(e) => {
                       if (selectedEventId !== eventObj.id) {
                         e.currentTarget.style.backgroundColor = "transparent";
                       }
-                      e.currentTarget.querySelector('.trash-icon').style.opacity = "0";
+                      e.currentTarget.querySelector('.action-icons').style.opacity = "0";
                     }}
                   >
                     <div 
@@ -632,22 +665,45 @@ export default function Navigation({ user, onUserUpdate, selectedEventId, showCr
                     >
                       {eventObj.title}
                     </div>
-                    <img 
-                      className="trash-icon"
-                      src="/icons/trash.svg"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteEvent(eventObj.id);
-                      }}
+                    <div 
+                      className="action-icons"
                       style={{
-                        width: "24px",
-                        height: "24px",
-                        cursor: "pointer",
+                        display: "flex",
+                        gap: "4px",
                         opacity: "0",
+                        alignItems: "center",
                         transition: "opacity 0.2s"
                       }}
-                      alt="Delete event"
-                    />
+                    >
+                      <img 
+                        src="/icons/settings.svg"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowEditEventModal(true);
+                          setShowEventDropdown(false);
+                          setSelectedEventToEdit(eventObj);
+                        }}
+                        style={{
+                          width: "18x",
+                          height: "18px",
+                          cursor: "pointer"
+                        }}
+                        alt="Edit event"
+                      />
+                      <img 
+                        src="/icons/trash.svg"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteEvent(eventObj.id);
+                        }}
+                        style={{
+                          width: "24px",
+                          height: "24px",
+                          cursor: "pointer"
+                        }}
+                        alt="Delete event"
+                      />
+                    </div>
                   </div>
                 ))}
                 <div
