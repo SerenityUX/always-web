@@ -438,11 +438,34 @@ export const RunOfShow = ({
                     userSelect: "none"
                   }}
                   onMouseDown={(e) => {
+                    // First, check if we're clicking on an existing calendar event
+                    const existingEvent = e.target.closest('.calendar-event');
+                    if (existingEvent || selectedCalendarEvent !== null) {
+                      return;
+                    }
+
+                    // Get initial measurements and times
                     const targetElement = e.currentTarget;
                     const rect = targetElement.getBoundingClientRect();
                     const initialY = e.clientY;
+                    const clickY = initialY - rect.top;
+                    const startTime = new Date(selectedEvent.startTime);
+                    const clickHour = Math.floor(clickY / (scrollNumber + 1));
+                    const clickDateTime = new Date(startTime.getTime() + (clickHour * 60 * 60 * 1000));
+
+                    // Check if any existing event overlaps with the click time
+                    const hasOverlappingEvent = selectedEvent?.calendar_events?.some(event => {
+                      const eventStart = new Date(event.startTime);
+                      const eventEnd = new Date(event.endTime);
+                      return clickDateTime >= eventStart && clickDateTime < eventEnd;
+                    });
+
+                    if (hasOverlappingEvent) {
+                      return;
+                    }
+
                     let dragStarted = false;
-                    let dragTimeout;
+                    let isDragging = false;
                     
                     // Store initial mouse position
                     const initialMousePos = {
@@ -450,139 +473,146 @@ export const RunOfShow = ({
                       y: e.clientY
                     };
 
-                    const handleMouseMove = (moveEvent) => {
-                      // Calculate distance moved
+                    const startY = initialY - rect.top;
+                    const hoursFromStart = Math.floor(startY / (scrollNumber + 1));
+                    let dragStartTime = new Date(startTime.getTime() + (hoursFromStart * 60 * 60 * 1000));
+                    let dragEndTime = new Date(dragStartTime.getTime() + (60 * 60 * 1000)); // Default 1 hour duration
+
+                    // Create preview element
+                    const preview = document.createElement('div');
+                    preview.style.position = 'absolute';
+                    preview.style.left = '40px';
+                    preview.style.width = 'calc(100% - 48px)';
+                    preview.style.backgroundColor = 'rgb(2, 147, 212)';
+                    preview.style.borderRadius = '8px';
+                    preview.style.zIndex = '1';
+                    preview.style.opacity = '0.8';
+                    targetElement.appendChild(preview);
+
+                    const updatePreview = (start, end) => {
+                      const startHours = Math.floor((start - startTime) / (1000 * 60 * 60));
+                      const endHours = Math.ceil((end - startTime) / (1000 * 60 * 60));
+                      
+                      const topPos = startHours * (scrollNumber + 1);
+                      const height = (endHours - startHours) * (scrollNumber + 1);
+                      
+                      preview.style.top = `${topPos}px`;
+                      preview.style.height = `${height}px`;
+                    };
+
+                    updatePreview(dragStartTime, dragEndTime);
+                    dragStarted = true;
+
+                    const handleDragMove = (moveEvent) => {
                       const distance = Math.sqrt(
                         Math.pow(moveEvent.clientX - initialMousePos.x, 2) + 
                         Math.pow(moveEvent.clientY - initialMousePos.y, 2)
                       );
 
-                      // Only start drag if we've moved at least 5 pixels
-                      if (!dragStarted && distance < 5) {
-                        return;
+                      // Set isDragging if mouse has moved more than 5 pixels
+                      if (!isDragging && distance > 5) {
+                        isDragging = true;
+                      }
+
+                      if (isDragging) {
+                        const endY = moveEvent.clientY - rect.top;
+                        const endHoursFromStart = Math.ceil(endY / (scrollNumber + 1));
+                        const potentialEndTime = new Date(startTime.getTime() + (endHoursFromStart * 60 * 60 * 1000));
+                        
+                        // Check if the new drag position would overlap with any existing events
+                        const wouldOverlap = selectedEvent?.calendar_events?.some(event => {
+                          const eventStart = new Date(event.startTime);
+                          const eventEnd = new Date(event.endTime);
+                          return (dragStartTime < eventEnd && potentialEndTime > eventStart);
+                        });
+
+                        // Only update dragEndTime if it wouldn't cause overlap
+                        if (!wouldOverlap) {
+                          dragEndTime = potentialEndTime;
+                          
+                          // Ensure dragEndTime is at least 1 hour after dragStartTime
+                          if (dragEndTime <= dragStartTime) {
+                            dragEndTime = new Date(dragStartTime.getTime() + (60 * 60 * 1000)); // Add 1 hour
+                          }
+                          
+                          updatePreview(dragStartTime, dragEndTime);
+                        }
                       }
                     };
 
-                    // Start listening for mouse movement immediately
-                    document.addEventListener('mousemove', handleMouseMove);
+                    document.addEventListener('mousemove', handleDragMove);
 
-                    // Set timeout for drag initialization
-                    dragTimeout = setTimeout(() => {
-                      const startY = initialY - rect.top;
-                      const hoursFromStart = Math.floor(startY / (scrollNumber + 1));
-                      const startTime = new Date(selectedEvent.startTime);
-                      let dragStartTime = new Date(startTime.getTime() + (hoursFromStart * 60 * 60 * 1000));
-                      let dragEndTime = dragStartTime;
-                      
+                    const handleMouseUp = async () => {
+                      // Remove preview element if it exists
+                      if (preview.parentNode) {
+                        preview.remove();
+                      }
 
-                      // Create preview element
-                      const preview = document.createElement('div');
-                      preview.style.position = 'absolute';
-                      preview.style.left = '40px';
-                      preview.style.width = 'calc(100% - 48px)';
-                      preview.style.backgroundColor = 'rgb(2, 147, 212)';
-                      preview.style.borderRadius = '8px';
-                      preview.style.zIndex = '1';
-                      preview.style.opacity = '0.8';
-                      targetElement.appendChild(preview);
-
-                      const updatePreview = (start, end) => {
-                        const startHours = Math.floor((start - startTime) / (1000 * 60 * 60));
-                        const endHours = Math.ceil((end - startTime) / (1000 * 60 * 60));
+                      try {
+                        // If not dragging, use the default 1-hour duration
+                        // If dragging, use the dragged times
+                        const finalStartTime = isDragging ? 
+                          (dragStartTime < dragEndTime ? dragStartTime : dragEndTime) : 
+                          dragStartTime;
+                        let finalEndTime = isDragging ? 
+                          (dragStartTime < dragEndTime ? dragEndTime : dragStartTime) : 
+                          new Date(dragStartTime.getTime() + (60 * 60 * 1000)); // Default 1 hour for clicks
                         
-                        const topPos = startHours * (scrollNumber + 1);
-                        const height = (endHours - startHours) * (scrollNumber + 1);
-                        
-                        preview.style.top = `${topPos}px`;
-                        preview.style.height = `${height}px`;
-                      };
-
-                      updatePreview(dragStartTime, dragEndTime);
-                      dragStarted = true;
-
-                      // Replace the initial mousemove handler with the drag handler
-                      document.removeEventListener('mousemove', handleMouseMove);
-                      
-                      const handleDragMove = (moveEvent) => {
-                        const endY = moveEvent.clientY - rect.top;
-                        const endHoursFromStart = Math.ceil(endY / (scrollNumber + 1));
-                        dragEndTime = new Date(startTime.getTime() + (endHoursFromStart * 60 * 60 * 1000));
-                        updatePreview(dragStartTime, dragEndTime);
-                      };
-
-                      document.addEventListener('mousemove', handleDragMove);
-
-                      const handleMouseUp = async () => {
-                        if (dragStarted) {
-                          // Remove preview element
-                          if (preview.parentNode) {
-                            preview.remove();
-                          }
-                    
-                          try {
-                            const finalStartTime = dragStartTime < dragEndTime ? dragStartTime : dragEndTime;
-                            const finalEndTime = dragStartTime < dragEndTime ? dragEndTime : dragStartTime;
-                    
-                            const response = await fetch('https://serenidad.click/hacktime/createCalendarEvent', {
-                              method: 'POST',
-                              headers: {
-                                'Content-Type': 'application/json',
-                              },
-                              body: JSON.stringify({
-                                token: localStorage.getItem('token'),
-                                eventId: selectedEventId,
-                                calendarEventId: crypto.randomUUID(),
-                                title: '', // Start with empty title
-                                startTime: finalStartTime.toISOString(),
-                                endTime: finalEndTime.toISOString(),
-                                color: '2,147,212'
-                              }),
-                            });
-                    
-                            if (!response.ok) {
-                              throw new Error('Failed to create calendar event');
-                            }
-                    
-                            const newEvent = await response.json();
-                            
-                            setNewEventId(newEvent.id);
-                            
-                            // Update the events list
-                            setSelectedEvent(prev => ({
-                              ...prev,
-                              calendar_events: [...(prev.calendar_events || []), {
-                                ...newEvent,
-                                startTime: newEvent.start_time,
-                                endTime: newEvent.end_time
-                              }]
-                            }));
-
-                            // Set the newly created event as the selected event
-                            setSelectedCalendarEvent({
-                              ...newEvent,
-                              startTime: newEvent.start_time,
-                              endTime: newEvent.end_time
-                            });
-
-                          } catch (error) {
-                            console.error('Failed to create calendar event:', error);
-                          }
+                        // Ensure end time is at least 1 hour after start time
+                        if (finalEndTime <= finalStartTime) {
+                          finalEndTime = new Date(finalStartTime.getTime() + (60 * 60 * 1000)); // Add 1 hour
                         }
+
+                        const response = await fetch('https://serenidad.click/hacktime/createCalendarEvent', {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                          },
+                          body: JSON.stringify({
+                            token: localStorage.getItem('token'),
+                            eventId: selectedEventId,
+                            calendarEventId: crypto.randomUUID(),
+                            title: '',
+                            startTime: finalStartTime.toISOString(),
+                            endTime: finalEndTime.toISOString(),
+                            color: '2,147,212'
+                          }),
+                        });
+
+                        if (!response.ok) {
+                          throw new Error('Failed to create calendar event');
+                        }
+
+                        const newEvent = await response.json();
                         
-                        document.removeEventListener('mousemove', handleDragMove);
-                        document.removeEventListener('mouseup', handleMouseUp);
-                      };
+                        setNewEventId(newEvent.id);
+                        
+                        // Update the events list
+                        setSelectedEvent(prev => ({
+                          ...prev,
+                          calendar_events: [...(prev.calendar_events || []), {
+                            ...newEvent,
+                            startTime: newEvent.start_time,
+                            endTime: newEvent.end_time
+                          }]
+                        }));
 
-                      document.addEventListener('mouseup', handleMouseUp);
-                    }, 500); // 500ms delay
+                        // Set the newly created event as the selected event
+                        setSelectedCalendarEvent({
+                          ...newEvent,
+                          startTime: newEvent.start_time,
+                          endTime: newEvent.end_time
+                        });
 
-                    // Handle early mouse up (before drag starts)
-                    const handleEarlyMouseUp = () => {
-                      clearTimeout(dragTimeout);
-                      document.removeEventListener('mousemove', handleMouseMove);
-                      document.removeEventListener('mouseup', handleEarlyMouseUp);
+                      } catch (error) {
+                        console.error('Failed to create calendar event:', error);
+                      }
+                      
+                      document.removeEventListener('mousemove', handleDragMove);
+                      document.removeEventListener('mouseup', handleMouseUp);
                     };
-                    document.addEventListener('mouseup', handleEarlyMouseUp);
+
+                    document.addEventListener('mouseup', handleMouseUp);
                   }}
                 >
 
@@ -1458,7 +1488,8 @@ fontSize: 16
                             Math.pow(moveEvent.clientY - initialMousePos.y, 2)
                           );
                         
-                          if (!dragStarted && distance >= 5) {
+                          // Start drag immediately if mouse moves at all
+                          if (!dragStarted) {
                             dragStarted = true;
                             previewElement = createPreviewElement();
                           }
@@ -1472,9 +1503,14 @@ fontSize: 16
                             dragStartTime = new Date(startTime.getTime() + (startHours * 60 * 60 * 1000));
                             dragEndTime = new Date(startTime.getTime() + (endHours * 60 * 60 * 1000));
                             
+                            // Ensure dragEndTime is at least 1 hour after dragStartTime during drag
+                            if (dragEndTime <= dragStartTime) {
+                              dragEndTime = new Date(dragStartTime.getTime() + (60 * 60 * 1000)); // Add 1 hour
+                            }
+                            
                             // Calculate grid-aligned positions
                             const gridStartY = (startHours * (scrollNumber + 1)) - (index * (scrollNumber + 1)) + rect.top;
-                            const gridEndY = (endHours * (scrollNumber + 1)) - (index * (scrollNumber + 1)) + rect.top;
+                            const gridEndY = ((dragEndTime - startTime) / (1000 * 60 * 60)) * (scrollNumber + 1) - (index * (scrollNumber + 1)) + rect.top;
                             
                             updatePreviewElement(gridStartY, gridEndY);
                           }
@@ -1513,16 +1549,24 @@ fontSize: 16
                         
                       
                         const handleMouseUp = async () => {
+                          // Consider it a drag operation even if no movement occurred
+                          dragStarted = true;
+                          
                           if (dragStarted) {
-                            // Remove preview element
+                            // Remove preview element if it exists
                             if (previewElement) {
                               previewElement.remove();
                             }
                       
                             try {
                               const finalStartTime = dragStartTime < dragEndTime ? dragStartTime : dragEndTime;
-                              const finalEndTime = dragStartTime < dragEndTime ? dragEndTime : dragStartTime;
-                      
+                              let finalEndTime = dragStartTime < dragEndTime ? dragEndTime : dragStartTime;
+                              
+                              // Ensure end time is at least 1 hour after start time
+                              if (finalEndTime <= finalStartTime) {
+                                finalEndTime = new Date(finalStartTime.getTime() + (60 * 60 * 1000)); // Add 1 hour
+                              }
+
                               const response = await fetch('https://serenidad.click/hacktime/createEventTask', {
                                 method: 'POST',
                                 headers: {
@@ -1705,7 +1749,8 @@ fontSize: 16
                             Math.pow(moveEvent.clientY - initialMousePos.y, 2)
                           );
                         
-                          if (!dragStarted && distance >= 5) {
+                          // Start drag immediately if mouse moves at all
+                          if (!dragStarted) {
                             dragStarted = true;
                             previewElement = createPreviewElement();
                           }
@@ -1719,9 +1764,14 @@ fontSize: 16
                             dragStartTime = new Date(startTime.getTime() + (startHours * 60 * 60 * 1000));
                             dragEndTime = new Date(startTime.getTime() + (endHours * 60 * 60 * 1000));
                             
+                            // Ensure dragEndTime is at least 1 hour after dragStartTime during drag
+                            if (dragEndTime <= dragStartTime) {
+                              dragEndTime = new Date(dragStartTime.getTime() + (60 * 60 * 1000)); // Add 1 hour
+                            }
+                            
                             // Calculate grid-aligned positions
                             const gridStartY = (startHours * (scrollNumber + 1)) - (index * (scrollNumber + 1)) + rect.top;
-                            const gridEndY = (endHours * (scrollNumber + 1)) - (index * (scrollNumber + 1)) + rect.top;
+                            const gridEndY = ((dragEndTime - startTime) / (1000 * 60 * 60)) * (scrollNumber + 1) - (index * (scrollNumber + 1)) + rect.top;
                             
                             updatePreviewElement(gridStartY, gridEndY);
                           }
@@ -1760,16 +1810,24 @@ fontSize: 16
                         
                       
                         const handleMouseUp = async () => {
+                          // Consider it a drag operation even if no movement occurred
+                          dragStarted = true;
+                          
                           if (dragStarted) {
-                            // Remove preview element
+                            // Remove preview element if it exists
                             if (previewElement) {
                               previewElement.remove();
                             }
                       
                             try {
                               const finalStartTime = dragStartTime < dragEndTime ? dragStartTime : dragEndTime;
-                              const finalEndTime = dragStartTime < dragEndTime ? dragEndTime : dragStartTime;
-                      
+                              let finalEndTime = dragStartTime < dragEndTime ? dragEndTime : dragStartTime;
+                              
+                              // Ensure end time is at least 1 hour after start time
+                              if (finalEndTime <= finalStartTime) {
+                                finalEndTime = new Date(finalStartTime.getTime() + (60 * 60 * 1000)); // Add 1 hour
+                              }
+
                               const response = await fetch('https://serenidad.click/hacktime/createEventTask', {
                                 method: 'POST',
                                 headers: {
@@ -1846,7 +1904,7 @@ fontSize: 16
                     
                   ))}
                 </div>
-              </div>
+                </div>
               </div>
               </div>
               </div>
