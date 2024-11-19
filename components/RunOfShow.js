@@ -50,7 +50,7 @@ export const RunOfShow = ({
   setIsInvitingNewUser
 }) => {
 
-  const [scrollNumber, setScrollNumber] = useState(75);
+  const [scrollNumber, setScrollNumber] = useState(100);
   const [scrollLeft, setScrollLeft] = useState(0);
 
   const eventScheduleRef = useRef(null);
