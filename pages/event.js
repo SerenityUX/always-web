@@ -42,6 +42,29 @@ const isWithinEventBounds = (startTime, endTime, eventStartTime, eventEndTime) =
 
 
 // Add this helper at the top with other helpers
+const roundEventTimes = (startTime, endTime) => {
+  // Create Date objects
+  const start = new Date(startTime);
+  const end = new Date(endTime);
+  
+  // Round down start time to nearest hour
+  start.setUTCMinutes(0);
+  start.setUTCSeconds(0);
+  start.setUTCMilliseconds(0);
+  
+  // Round up end time to next hour
+  if (end.getUTCMinutes() > 0 || end.getUTCSeconds() > 0 || end.getUTCMilliseconds() > 0) {
+    end.setUTCHours(end.getUTCHours() + 1);
+    end.setUTCMinutes(0);
+    end.setUTCSeconds(0);
+    end.setUTCMilliseconds(0);
+  }
+  
+  return {
+    startTime: start.toISOString(),
+    endTime: end.toISOString()
+  };
+};
 
 // Add this helper function to convert 24h time string to Date
 const timeStringToDate = (timeStr, baseDate) => {
@@ -81,6 +104,23 @@ const commonTimezones = {
 const getEventCount = (events) => {
   if (!events) return 0;
   return Object.keys(events).length;
+};
+
+// Add this helper function to process event data with rounded times
+const processEventWithRoundedTimes = (event) => {
+  if (!event) return null;
+  
+  // Round the main event times
+  const { startTime: roundedStart, endTime: roundedEnd } = roundEventTimes(
+    event.startTime,
+    event.endTime
+  );
+
+  return {
+    ...event,
+    startTime: roundedStart,
+    endTime: roundedEnd
+  };
 };
 
 export default function Event() {
@@ -215,8 +255,10 @@ useEffect(() => {
           
           // Process organization events
           const processedOrgEvents = Object.entries(userData.organizationEvents).reduce((acc, [id, event]) => {
+            // Round the times for each event
+            const processedEvent = processEventWithRoundedTimes(event);
             acc[id] = {
-              ...event,
+              ...processedEvent,
               // Add notMemberOrOwner flag if the event isn't in user's events
               notMemberOrOwner: !userEventIds.has(id)
             };
@@ -225,6 +267,12 @@ useEffect(() => {
           
           // Replace events with processed organization events
           userData.events = processedOrgEvents;
+        } else if (userData.events) {
+          // Process regular events if no organization events
+          userData.events = Object.entries(userData.events).reduce((acc, [id, event]) => {
+            acc[id] = processEventWithRoundedTimes(event);
+            return acc;
+          }, {});
         }
 
         const eventIds = Object.keys(userData.events);
@@ -259,8 +307,9 @@ useEffect(() => {
 
   useEffect(() => {
     if (user && eventId && user.events[eventId]) {
+      const processedEvent = processEventWithRoundedTimes(user.events[eventId]);
       setSelectedEventId(eventId);
-      setSelectedEvent(user.events[eventId]);
+      setSelectedEvent(processedEvent);
       localStorage.setItem('lastVisited', eventId);
     }
   }, [user, eventId]);
@@ -771,6 +820,9 @@ useEffect(() => {
         throw new Error('End time must be after start time');
       }
 
+      // Round the times
+      const { startTime: roundedStart, endTime: roundedEnd } = roundEventTimes(startTime, endTime);
+
       const response = await fetch('https://serenidad.click/hacktime/createEvent', {
         method: 'POST',
         headers: {
@@ -961,13 +1013,15 @@ useEffect(() => {
     setEditEventLoading(true);
 
     try {
-      // Format the datetime strings to match create event format
       const startTime = `${editEventForm.startDate}T${editEventForm.startTime}:00.000Z`;
       const endTime = `${editEventForm.endDate}T${editEventForm.endTime}:00.000Z`;
 
       if (new Date(endTime) <= new Date(startTime)) {
         throw new Error('End time must be after start time');
       }
+
+      // Round the times
+      const { startTime: roundedStart, endTime: roundedEnd } = roundEventTimes(startTime, endTime);
 
       const response = await fetch('https://serenidad.click/hacktime/editEvent', {
         method: 'POST',
@@ -999,8 +1053,8 @@ useEffect(() => {
           [selectedEventId]: {
             ...prevUser.events[selectedEventId],
             title: editEventForm.title,
-            startTime,
-            endTime,
+            startTime: roundedStart,
+            endTime: roundedEnd,
             timezone: editEventForm.timezone
           }
         }

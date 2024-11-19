@@ -269,6 +269,149 @@ export const RunOfShow = ({
     };
   }, []); // Empty dependency array since we don't need to re-add the listeners
 
+  const handleMouseDown = (e, index, rect, columnId, assigneeEmail) => {
+    const initialY = e.clientY;
+    let dragStarted = false;
+    let previewElement = null;
+    const isControlPressed = e.ctrlKey || e.metaKey; // Check for Control/Command key
+
+    const initialMousePos = {
+      x: e.clientX,
+      y: e.clientY
+    };
+
+    const startY = initialY - rect.top + (index * (scrollNumber + 1));
+    const hoursFromStart = Math.floor(startY / (scrollNumber + 1));
+    const startTime = new Date(selectedEvent.startTime);
+    let dragStartTime = new Date(startTime.getTime() + (hoursFromStart * 60 * 60 * 1000));
+    let dragEndTime = dragStartTime;
+
+    const handleMouseMove = (moveEvent) => {
+      const distance = Math.sqrt(
+        Math.pow(moveEvent.clientX - initialMousePos.x, 2) + 
+        Math.pow(moveEvent.clientY - initialMousePos.y, 2)
+      );
+
+      // Start drag if mouse moves more than 5 pixels
+      if (!dragStarted && distance > 5) {
+        dragStarted = true;
+        previewElement = createPreviewElement();
+      }
+
+      if (dragStarted) {
+        const currentY = moveEvent.clientY - rect.top + (index * (scrollNumber + 1));
+        
+        if (isControlPressed) {
+          // Grid-snap behavior for Control key
+          const endHours = Math.ceil(currentY / (scrollNumber + 1));
+          dragEndTime = new Date(startTime.getTime() + (endHours * 60 * 60 * 1000));
+        } else {
+          // Free-form behavior - snap to 15-minute intervals
+          const minutesFromStart = Math.round((currentY / (scrollNumber + 1)) * 60 / 15) * 15;
+          dragEndTime = new Date(startTime.getTime() + (minutesFromStart * 60 * 1000));
+        }
+
+        // Update preview position
+        if (previewElement) {
+          const scrollTop = window.scrollY || document.documentElement.scrollTop;
+          const scrollLeft = window.scrollX || document.documentElement.scrollLeft;
+          
+          const startPos = isControlPressed ? 
+            (Math.floor(startY / (scrollNumber + 1)) * (scrollNumber + 1)) :
+            startY;
+          
+          const endPos = isControlPressed ?
+            (Math.ceil(currentY / (scrollNumber + 1)) * (scrollNumber + 1)) :
+            currentY;
+
+          const top = Math.min(startPos, endPos) + rect.top - scrollTop;
+          const height = Math.abs(endPos - startPos);
+          
+          previewElement.style.top = `${top}px`;
+          previewElement.style.left = `${rect.left - scrollLeft + 1}px`;
+          previewElement.style.height = `${height}px`;
+          
+          // Update time display
+          const timeDisplay = previewElement.firstChild;
+          const startTimeStr = dragStartTime.toLocaleTimeString('en-US', { 
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true,
+            timeZone: 'UTC'
+          });
+          const endTimeStr = dragEndTime.toLocaleTimeString('en-US', { 
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true,
+            timeZone: 'UTC'
+          });
+          timeDisplay.textContent = `${startTimeStr} - ${endTimeStr}`;
+        }
+      }
+    };
+
+    const handleMouseUp = async () => {
+      if (!dragStarted) {
+        // Single click behavior - create 1-hour event
+        dragEndTime = new Date(dragStartTime.getTime() + (60 * 60 * 1000));
+      }
+      
+      // Remove preview element if it exists
+      if (previewElement) {
+        previewElement.remove();
+      }
+
+      try {
+        const finalStartTime = dragStartTime < dragEndTime ? dragStartTime : dragEndTime;
+        let finalEndTime = dragStartTime < dragEndTime ? dragEndTime : dragStartTime;
+        
+        // Ensure minimum duration
+        if (finalEndTime <= finalStartTime) {
+          finalEndTime = new Date(finalStartTime.getTime() + (15 * 60 * 1000)); // 15 minutes minimum
+        }
+
+        const response = await fetch('https://serenidad.click/hacktime/createEventTask', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            token: localStorage.getItem('token'),
+            eventId: selectedEventId,
+            title: '',
+            description: '',
+            startTime: finalStartTime.toISOString(),
+            endTime: finalEndTime.toISOString(),
+            initialAssignee: assigneeEmail
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to create task');
+        }
+
+        const newTask = await response.json();
+        setSelectedEvent(prev => ({
+          ...prev,
+          tasks: [...(prev.tasks || []), newTask]
+        }));
+        setSelectedTask(newTask);
+        setSelectedTaskColumn(columnId);
+
+      } catch (error) {
+        console.error('Failed to create task:', error);
+        alert('Failed to create task: ' + error.message);
+      }
+      
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
   return (
     <div style={{
         flex: 1,
