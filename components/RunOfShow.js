@@ -13,6 +13,12 @@ const COLORS = [
 const EVENT_WIDTH = 140; // Base width of an event
 const EVENT_OVERLAP_OFFSET = 20; // Horizontal offset for overlapping events
 
+// Add this helper function at the top of the RunOfShow component, with other constants
+const roundToNearestFiveMinutes = (date) => {
+  const ms = 1000 * 60 * 5; // 5 minutes in milliseconds
+  return new Date(Math.round(date.getTime() / ms) * ms);
+};
+
 export const RunOfShow = ({
   selectedEvent,
   user,
@@ -270,20 +276,27 @@ export const RunOfShow = ({
   }, []); // Empty dependency array since we don't need to re-add the listeners
 
   const handleMouseDown = (e, index, rect, columnId, assigneeEmail) => {
+    const isControlPressed = e.ctrlKey || e.metaKey;
+
     const initialY = e.clientY;
     let dragStarted = false;
     let previewElement = null;
-    const isControlPressed = e.ctrlKey || e.metaKey; // Check for Control/Command key
 
     const initialMousePos = {
       x: e.clientX,
       y: e.clientY
     };
 
-    const startY = initialY - rect.top + (index * (scrollNumber + 1));
-    const hoursFromStart = Math.floor(startY / (scrollNumber + 1));
+    // Calculate exact start position without rounding
+    const exactStartY = initialY - rect.top + (index * (scrollNumber + 1));
+    const exactHoursFromStart = exactStartY / (scrollNumber + 1);
     const startTime = new Date(selectedEvent.startTime);
-    let dragStartTime = new Date(startTime.getTime() + (hoursFromStart * 60 * 60 * 1000));
+    
+    // Set initial dragStartTime based on whether Control/CMD is pressed
+    let dragStartTime = isControlPressed ?
+      new Date(startTime.getTime() + (Math.floor(exactHoursFromStart) * 60 * 60 * 1000)) :
+      roundToNearestFiveMinutes(new Date(startTime.getTime() + (exactHoursFromStart * 60 * 60 * 1000)));
+    
     let dragEndTime = dragStartTime;
 
     const handleMouseMove = (moveEvent) => {
@@ -292,61 +305,53 @@ export const RunOfShow = ({
         Math.pow(moveEvent.clientY - initialMousePos.y, 2)
       );
 
-      // Start drag if mouse moves more than 5 pixels
-      if (!dragStarted && distance > 5) {
+      // Start drag immediately if mouse moves at all
+      if (!dragStarted) {
         dragStarted = true;
         previewElement = createPreviewElement();
       }
 
       if (dragStarted) {
-        const currentY = moveEvent.clientY - rect.top + (index * (scrollNumber + 1));
+        // Calculate exact position without rounding
+        const exactY = moveEvent.clientY - rect.top + (index * (scrollNumber + 1));
+        const exactHoursFromStart = exactY / (scrollNumber + 1);
         
-        if (isControlPressed) {
-          // Grid-snap behavior for Control key
-          const endHours = Math.ceil(currentY / (scrollNumber + 1));
+        // Check if CMD/Control is pressed
+        const isSnapToGrid = moveEvent.metaKey || moveEvent.ctrlKey;
+        
+        if (isSnapToGrid) {
+          // Use rounded calculations when CMD/Control is pressed
+          const endHours = Math.ceil((moveEvent.clientY - rect.top + (index * (scrollNumber + 1))) / (scrollNumber + 1));
           dragEndTime = new Date(startTime.getTime() + (endHours * 60 * 60 * 1000));
+          
+          console.log('Snapped to grid:', dragEndTime.toISOString());
         } else {
-          // Free-form behavior - snap to 15-minute intervals
-          const minutesFromStart = Math.round((currentY / (scrollNumber + 1)) * 60 / 15) * 15;
-          dragEndTime = new Date(startTime.getTime() + (minutesFromStart * 60 * 1000));
+          // Use 5-minute rounded calculations when no modifier key is pressed
+          const exactY = moveEvent.clientY - rect.top + (index * (scrollNumber + 1));
+          const exactHoursFromStart = exactY / (scrollNumber + 1);
+          dragEndTime = roundToNearestFiveMinutes(new Date(startTime.getTime() + (exactHoursFromStart * 60 * 60 * 1000)));
+          
+          console.log('Free-form position:', dragEndTime.toISOString());
         }
 
-        // Update preview position
-        if (previewElement) {
-          const scrollTop = window.scrollY || document.documentElement.scrollTop;
-          const scrollLeft = window.scrollX || document.documentElement.scrollLeft;
-          
-          const startPos = isControlPressed ? 
-            (Math.floor(startY / (scrollNumber + 1)) * (scrollNumber + 1)) :
-            startY;
-          
-          const endPos = isControlPressed ?
-            (Math.ceil(currentY / (scrollNumber + 1)) * (scrollNumber + 1)) :
-            currentY;
-
-          const top = Math.min(startPos, endPos) + rect.top - scrollTop;
-          const height = Math.abs(endPos - startPos);
-          
-          previewElement.style.top = `${top}px`;
-          previewElement.style.left = `${rect.left - scrollLeft + 1}px`;
-          previewElement.style.height = `${height}px`;
-          
-          // Update time display
-          const timeDisplay = previewElement.firstChild;
-          const startTimeStr = dragStartTime.toLocaleTimeString('en-US', { 
-            hour: 'numeric',
-            minute: '2-digit',
-            hour12: true,
-            timeZone: 'UTC'
-          });
-          const endTimeStr = dragEndTime.toLocaleTimeString('en-US', { 
-            hour: 'numeric',
-            minute: '2-digit',
-            hour12: true,
-            timeZone: 'UTC'
-          });
-          timeDisplay.textContent = `${startTimeStr} - ${endTimeStr}`;
+        // Ensure minimum duration
+        if (dragEndTime <= dragStartTime) {
+          dragEndTime = new Date(dragStartTime.getTime() + (15 * 60 * 1000)); // 15 minutes minimum
         }
+        
+        // Calculate preview position
+        const startPos = isSnapToGrid ? 
+          (Math.floor((dragStartTime - startTime) / (1000 * 60 * 60)) * (scrollNumber + 1)) :
+          ((dragStartTime - startTime) / (1000 * 60 * 60) * (scrollNumber + 1));
+          
+        const endPos = isSnapToGrid ?
+          (Math.ceil((dragEndTime - startTime) / (1000 * 60 * 60)) * (scrollNumber + 1)) :
+          ((dragEndTime - startTime) / (1000 * 60 * 60) * (scrollNumber + 1));
+        
+        const gridStartY = startPos - (index * (scrollNumber + 1)) + rect.top;
+        const gridEndY = endPos - (index * (scrollNumber + 1)) + rect.top;
+        
+        updatePreviewElement(gridStartY, gridEndY);
       }
     };
 
@@ -587,14 +592,20 @@ export const RunOfShow = ({
                       return;
                     }
 
-                    // Get initial measurements and times
+                    const isControlPressed = e.ctrlKey || e.metaKey;
                     const targetElement = e.currentTarget;
                     const rect = targetElement.getBoundingClientRect();
                     const initialY = e.clientY;
                     const clickY = initialY - rect.top;
                     const startTime = new Date(selectedEvent.startTime);
-                    const clickHour = Math.floor(clickY / (scrollNumber + 1));
-                    const clickDateTime = new Date(startTime.getTime() + (clickHour * 60 * 60 * 1000));
+                    
+                    // Calculate exact hours without rounding
+                    const exactHoursFromStart = clickY / (scrollNumber + 1);
+                    
+                    // Set initial time based on whether Control/CMD is pressed
+                    let clickDateTime = isControlPressed ?
+                      new Date(startTime.getTime() + (Math.floor(exactHoursFromStart) * 60 * 60 * 1000)) :
+                      roundToNearestFiveMinutes(new Date(startTime.getTime() + (exactHoursFromStart * 60 * 60 * 1000)));
 
                     // Check if any existing event overlaps with the click time
                     const hasOverlappingEvent = selectedEvent?.calendar_events?.some(event => {
@@ -617,8 +628,10 @@ export const RunOfShow = ({
                     };
 
                     const startY = initialY - rect.top;
-                    const hoursFromStart = Math.floor(startY / (scrollNumber + 1));
-                    let dragStartTime = new Date(startTime.getTime() + (hoursFromStart * 60 * 60 * 1000));
+                    const clickExactHoursFromStart = startY / (scrollNumber + 1);  // Renamed from exactHoursFromStart
+                    let dragStartTime = isControlPressed ?
+                      new Date(startTime.getTime() + (Math.floor(clickExactHoursFromStart) * 60 * 60 * 1000)) :
+                      roundToNearestFiveMinutes(new Date(startTime.getTime() + (clickExactHoursFromStart * 60 * 60 * 1000)));
                     let dragEndTime = new Date(dragStartTime.getTime() + (60 * 60 * 1000)); // Default 1 hour duration
 
                     // Create preview element
@@ -630,17 +643,51 @@ export const RunOfShow = ({
                     preview.style.borderRadius = '8px';
                     preview.style.zIndex = '1';
                     preview.style.opacity = '0.8';
+
+                    // Add time display div
+                    const timeDisplay = document.createElement('div');
+                    timeDisplay.style.padding = '8px';
+                    timeDisplay.style.fontSize = '12px';
+                    timeDisplay.style.color = '#fff';
+                    timeDisplay.style.fontWeight = 'bold';
+                    preview.appendChild(timeDisplay);
+
                     targetElement.appendChild(preview);
 
-                    const updatePreview = (start, end) => {
-                      const startHours = Math.floor((start - startTime) / (1000 * 60 * 60));
-                      const endHours = Math.ceil((end - startTime) / (1000 * 60 * 60));
+                    const updatePreview = (dragStartTime, dragEndTime) => {
+                      const isSnapToGrid = e.metaKey || e.ctrlKey;
+                      const scrollTop = window.scrollY || document.documentElement.scrollTop;
+                      const scrollLeft = window.scrollX || document.documentElement.scrollLeft;
                       
-                      const topPos = startHours * (scrollNumber + 1);
-                      const height = (endHours - startHours) * (scrollNumber + 1);
+                      // Calculate exact hours from start for both times
+                      const startHours = (dragStartTime - startTime) / (1000 * 60 * 60);
+                      const endHours = (dragEndTime - startTime) / (1000 * 60 * 60);
                       
-                      preview.style.top = `${topPos}px`;
+                      // Convert hours to pixels using the same calculation as the actual event
+                      const startPos = startHours * (scrollNumber + 1);
+                      const endPos = endHours * (scrollNumber + 1);
+                      
+                      // Calculate final position relative to the container
+                      const top = Math.min(startPos, endPos);
+                      const height = Math.abs(endPos - startPos);
+                      
+                      preview.style.top = `${top}px`;
                       preview.style.height = `${height}px`;
+                      
+                      // Update time display
+                      const startTimeStr = dragStartTime.toLocaleTimeString('en-US', { 
+                        hour: 'numeric',
+                        minute: '2-digit',
+                        hour12: true,
+                        timeZone: 'UTC'
+                      });
+                      const endTimeStr = dragEndTime.toLocaleTimeString('en-US', { 
+                        hour: 'numeric',
+                        minute: '2-digit',
+                        hour12: true,
+                        timeZone: 'UTC'
+                      });
+                      timeDisplay.textContent = `${startTimeStr} - ${endTimeStr}`;
                     };
 
                     updatePreview(dragStartTime, dragEndTime);
@@ -652,34 +699,32 @@ export const RunOfShow = ({
                         Math.pow(moveEvent.clientY - initialMousePos.y, 2)
                       );
 
-                      // Set isDragging if mouse has moved more than 5 pixels
                       if (!isDragging && distance > 5) {
                         isDragging = true;
                       }
 
                       if (isDragging) {
-                        const endY = moveEvent.clientY - rect.top;
-                        const endHoursFromStart = Math.ceil(endY / (scrollNumber + 1));
-                        const potentialEndTime = new Date(startTime.getTime() + (endHoursFromStart * 60 * 60 * 1000));
+                        const isSnapToGrid = moveEvent.metaKey || moveEvent.ctrlKey;
+                        // Remove the index calculation since we're not in the grid
+                        const exactY = moveEvent.clientY - rect.top;
+                        const exactHoursFromStart = exactY / (scrollNumber + 1);
                         
-                        // Check if the new drag position would overlap with any existing events
-                        const wouldOverlap = selectedEvent?.calendar_events?.some(event => {
-                          const eventStart = new Date(event.startTime);
-                          const eventEnd = new Date(event.endTime);
-                          return (dragStartTime < eventEnd && potentialEndTime > eventStart);
-                        });
-
-                        // Only update dragEndTime if it wouldn't cause overlap
-                        if (!wouldOverlap) {
-                          dragEndTime = potentialEndTime;
-                          
-                          // Ensure dragEndTime is at least 1 hour after dragStartTime
-                          if (dragEndTime <= dragStartTime) {
-                            dragEndTime = new Date(dragStartTime.getTime() + (60 * 60 * 1000)); // Add 1 hour
-                          }
-                          
-                          updatePreview(dragStartTime, dragEndTime);
+                        if (isSnapToGrid) {
+                          // Snap to hour grid when Control/CMD is pressed
+                          dragEndTime = new Date(startTime.getTime() + (Math.ceil(exactHoursFromStart) * 60 * 60 * 1000));
+                        } else {
+                          // Use exact position with 5-minute snapping
+                          dragEndTime = roundToNearestFiveMinutes(
+                            new Date(startTime.getTime() + (exactHoursFromStart * 60 * 60 * 1000))
+                          );
                         }
+
+                        // Ensure minimum duration
+                        if (dragEndTime <= dragStartTime) {
+                          dragEndTime = new Date(dragStartTime.getTime() + (15 * 60 * 1000));
+                        }
+
+                        updatePreview(dragStartTime, dragEndTime);
                       }
                     };
 
@@ -1559,6 +1604,8 @@ fontSize: 16
                       key={index} 
                       className="task-cell"
                       onMouseDown={(e) => {
+                        const isControlPressed = e.ctrlKey || e.metaKey;
+
                         const targetElement = e.currentTarget;
                         const rect = targetElement.getBoundingClientRect();
                         const initialY = e.clientY;
@@ -1588,9 +1635,11 @@ fontSize: 16
                         };
                       
                         const startY = initialY - rect.top + (index * (scrollNumber + 1));
-                        const hoursFromStart = Math.floor(startY / (scrollNumber + 1));
+                        const exactHoursFromStart = startY / (scrollNumber + 1);  // Remove Math.floor
                         const startTime = new Date(selectedEvent.startTime);
-                        let dragStartTime = new Date(startTime.getTime() + (hoursFromStart * 60 * 60 * 1000));
+                        let dragStartTime = isControlPressed ?
+                          new Date(startTime.getTime() + (Math.floor(exactHoursFromStart) * 60 * 60 * 1000)) :
+                          roundToNearestFiveMinutes(new Date(startTime.getTime() + (exactHoursFromStart * 60 * 60 * 1000)));
                         let dragEndTime = dragStartTime;
                       
                         // Create preview element function
@@ -1638,22 +1687,44 @@ fontSize: 16
                           }
                         
                           if (dragStarted) {
-                            // Calculate hours from start for both positions
-                            const startHours = Math.floor((initialY - rect.top + (index * (scrollNumber + 1))) / (scrollNumber + 1));
-                            const endHours = Math.ceil((moveEvent.clientY - rect.top + (index * (scrollNumber + 1))) / (scrollNumber + 1));
+                            // Calculate exact position without rounding
+                            const exactY = moveEvent.clientY - rect.top + (index * (scrollNumber + 1));
+                            const exactHoursFromStart = exactY / (scrollNumber + 1);
                             
-                            // Update drag times
-                            dragStartTime = new Date(startTime.getTime() + (startHours * 60 * 60 * 1000));
-                            dragEndTime = new Date(startTime.getTime() + (endHours * 60 * 60 * 1000));
+                            // Check if CMD/Control is pressed
+                            const isSnapToGrid = moveEvent.metaKey || moveEvent.ctrlKey;
                             
-                            // Ensure dragEndTime is at least 1 hour after dragStartTime during drag
+                            if (isSnapToGrid) {
+                              // Use rounded calculations when CMD/Control is pressed
+                              const endHours = Math.ceil((moveEvent.clientY - rect.top + (index * (scrollNumber + 1))) / (scrollNumber + 1));
+                              dragEndTime = new Date(startTime.getTime() + (endHours * 60 * 60 * 1000));
+                              
+                              console.log('Snapped to grid:', dragEndTime.toISOString());
+                            } else {
+                              // Use 5-minute rounded calculations when no modifier key is pressed
+                              const exactY = moveEvent.clientY - rect.top + (index * (scrollNumber + 1));
+                              const exactHoursFromStart = exactY / (scrollNumber + 1);
+                              dragEndTime = roundToNearestFiveMinutes(new Date(startTime.getTime() + (exactHoursFromStart * 60 * 60 * 1000)));
+                              
+                              console.log('Free-form position:', dragEndTime.toISOString());
+                            }
+
+                            // Ensure minimum duration
                             if (dragEndTime <= dragStartTime) {
-                              dragEndTime = new Date(dragStartTime.getTime() + (60 * 60 * 1000)); // Add 1 hour
+                              dragEndTime = new Date(dragStartTime.getTime() + (15 * 60 * 1000)); // 15 minutes minimum
                             }
                             
-                            // Calculate grid-aligned positions
-                            const gridStartY = (startHours * (scrollNumber + 1)) - (index * (scrollNumber + 1)) + rect.top;
-                            const gridEndY = ((dragEndTime - startTime) / (1000 * 60 * 60)) * (scrollNumber + 1) - (index * (scrollNumber + 1)) + rect.top;
+                            // Calculate preview position
+                            const startPos = isSnapToGrid ? 
+                              (Math.floor((dragStartTime - startTime) / (1000 * 60 * 60)) * (scrollNumber + 1)) :
+                              ((dragStartTime - startTime) / (1000 * 60 * 60) * (scrollNumber + 1));
+                              
+                            const endPos = isSnapToGrid ?
+                              (Math.ceil((dragEndTime - startTime) / (1000 * 60 * 60)) * (scrollNumber + 1)) :
+                              ((dragEndTime - startTime) / (1000 * 60 * 60) * (scrollNumber + 1));
+                            
+                            const gridStartY = startPos - (index * (scrollNumber + 1)) + rect.top;
+                            const gridEndY = endPos - (index * (scrollNumber + 1)) + rect.top;
                             
                             updatePreviewElement(gridStartY, gridEndY);
                           }
@@ -1820,6 +1891,8 @@ fontSize: 16
                       key={index} 
                       className="task-cell"
                       onMouseDown={(e) => {
+                        const isControlPressed = e.ctrlKey || e.metaKey;
+
                         const targetElement = e.currentTarget;
                         const rect = targetElement.getBoundingClientRect();
                         const initialY = e.clientY;
@@ -1849,9 +1922,11 @@ fontSize: 16
                         };
                       
                         const startY = initialY - rect.top + (index * (scrollNumber + 1));
-                        const hoursFromStart = Math.floor(startY / (scrollNumber + 1));
+                        const exactHoursFromStart = startY / (scrollNumber + 1);  // Remove Math.floor
                         const startTime = new Date(selectedEvent.startTime);
-                        let dragStartTime = new Date(startTime.getTime() + (hoursFromStart * 60 * 60 * 1000));
+                        let dragStartTime = isControlPressed ?
+                          new Date(startTime.getTime() + (Math.floor(exactHoursFromStart) * 60 * 60 * 1000)) :
+                          roundToNearestFiveMinutes(new Date(startTime.getTime() + (exactHoursFromStart * 60 * 60 * 1000)));
                         let dragEndTime = dragStartTime;
                       
                         // Create preview element function
@@ -1899,22 +1974,44 @@ fontSize: 16
                           }
                         
                           if (dragStarted) {
-                            // Calculate hours from start for both positions
-                            const startHours = Math.floor((initialY - rect.top + (index * (scrollNumber + 1))) / (scrollNumber + 1));
-                            const endHours = Math.ceil((moveEvent.clientY - rect.top + (index * (scrollNumber + 1))) / (scrollNumber + 1));
+                            // Calculate exact position without rounding
+                            const exactY = moveEvent.clientY - rect.top + (index * (scrollNumber + 1));
+                            const exactHoursFromStart = exactY / (scrollNumber + 1);
                             
-                            // Update drag times
-                            dragStartTime = new Date(startTime.getTime() + (startHours * 60 * 60 * 1000));
-                            dragEndTime = new Date(startTime.getTime() + (endHours * 60 * 60 * 1000));
+                            // Check if CMD/Control is pressed
+                            const isSnapToGrid = moveEvent.metaKey || moveEvent.ctrlKey;
                             
-                            // Ensure dragEndTime is at least 1 hour after dragStartTime during drag
+                            if (isSnapToGrid) {
+                              // Use rounded calculations when CMD/Control is pressed
+                              const endHours = Math.ceil((moveEvent.clientY - rect.top + (index * (scrollNumber + 1))) / (scrollNumber + 1));
+                              dragEndTime = new Date(startTime.getTime() + (endHours * 60 * 60 * 1000));
+                              
+                              console.log('Snapped to grid:', dragEndTime.toISOString());
+                            } else {
+                              // Use 5-minute rounded calculations when no modifier key is pressed
+                              const exactY = moveEvent.clientY - rect.top + (index * (scrollNumber + 1));
+                              const exactHoursFromStart = exactY / (scrollNumber + 1);
+                              dragEndTime = roundToNearestFiveMinutes(new Date(startTime.getTime() + (exactHoursFromStart * 60 * 60 * 1000)));
+                              
+                              console.log('Free-form position:', dragEndTime.toISOString());
+                            }
+
+                            // Ensure minimum duration
                             if (dragEndTime <= dragStartTime) {
-                              dragEndTime = new Date(dragStartTime.getTime() + (60 * 60 * 1000)); // Add 1 hour
+                              dragEndTime = new Date(dragStartTime.getTime() + (15 * 60 * 1000)); // 15 minutes minimum
                             }
                             
-                            // Calculate grid-aligned positions
-                            const gridStartY = (startHours * (scrollNumber + 1)) - (index * (scrollNumber + 1)) + rect.top;
-                            const gridEndY = ((dragEndTime - startTime) / (1000 * 60 * 60)) * (scrollNumber + 1) - (index * (scrollNumber + 1)) + rect.top;
+                            // Calculate preview position
+                            const startPos = isSnapToGrid ? 
+                              (Math.floor((dragStartTime - startTime) / (1000 * 60 * 60)) * (scrollNumber + 1)) :
+                              ((dragStartTime - startTime) / (1000 * 60 * 60) * (scrollNumber + 1));
+                              
+                            const endPos = isSnapToGrid ?
+                              (Math.ceil((dragEndTime - startTime) / (1000 * 60 * 60)) * (scrollNumber + 1)) :
+                              ((dragEndTime - startTime) / (1000 * 60 * 60) * (scrollNumber + 1));
+                            
+                            const gridStartY = startPos - (index * (scrollNumber + 1)) + rect.top;
+                            const gridEndY = endPos - (index * (scrollNumber + 1)) + rect.top;
                             
                             updatePreviewElement(gridStartY, gridEndY);
                           }
