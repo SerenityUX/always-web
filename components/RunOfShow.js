@@ -732,23 +732,22 @@ export const RunOfShow = ({
 
                     const handleMouseUp = async () => {
                       // Remove preview element if it exists
-                      if (preview.parentNode) {
+                      if (preview && preview.parentNode) {
                         preview.remove();
                       }
 
                       try {
-                        // If not dragging, use the default 1-hour duration
-                        // If dragging, use the dragged times
-                        const finalStartTime = isDragging ? 
-                          (dragStartTime < dragEndTime ? dragStartTime : dragEndTime) : 
-                          dragStartTime;
-                        let finalEndTime = isDragging ? 
-                          (dragStartTime < dragEndTime ? dragEndTime : dragStartTime) : 
-                          new Date(dragStartTime.getTime() + (60 * 60 * 1000)); // Default 1 hour for clicks
-                        
-                        // Ensure end time is at least 1 hour after start time
-                        if (finalEndTime <= finalStartTime) {
-                          finalEndTime = new Date(finalStartTime.getTime() + (60 * 60 * 1000)); // Add 1 hour
+                        let finalStartTime, finalEndTime;
+
+                        if (!isDragging) {
+                          // For single clicks - round to full hour block
+                          const hourStart = Math.floor(clickExactHoursFromStart);
+                          finalStartTime = new Date(startTime.getTime() + (hourStart * 60 * 60 * 1000));
+                          finalEndTime = new Date(startTime.getTime() + ((hourStart + 1) * 60 * 60 * 1000));
+                        } else {
+                          // For drags - use the existing 5-min snapping behavior
+                          finalStartTime = dragStartTime < dragEndTime ? dragStartTime : dragEndTime;
+                          finalEndTime = dragStartTime < dragEndTime ? dragEndTime : dragStartTime;
                         }
 
                         const response = await fetch('https://serenidad.click/hacktime/createCalendarEvent', {
@@ -800,6 +799,7 @@ export const RunOfShow = ({
                       document.removeEventListener('mouseup', handleMouseUp);
                     };
 
+                    document.addEventListener('mousemove', handleDragMove);
                     document.addEventListener('mouseup', handleMouseUp);
                   }}
                 >
