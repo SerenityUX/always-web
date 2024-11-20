@@ -357,8 +357,13 @@ export const RunOfShow = ({
 
     const handleMouseUp = async () => {
       if (!dragStarted) {
-        // Single click behavior - create 1-hour event
-        dragEndTime = new Date(dragStartTime.getTime() + (60 * 60 * 1000));
+        // For single clicks - behave exactly like CMD press
+        const hourStart = Math.floor(exactHoursFromStart);
+        dragStartTime = new Date(startTime.getTime() + (hourStart * 60 * 60 * 1000));
+        dragStartTime.setUTCMinutes(0, 0, 0);  // Zero out minutes/seconds
+        
+        dragEndTime = new Date(startTime.getTime() + ((hourStart + 1) * 60 * 60 * 1000));
+        dragEndTime.setUTCMinutes(0, 0, 0);  // Zero out minutes/seconds
       }
       
       // Remove preview element if it exists
@@ -586,9 +591,9 @@ export const RunOfShow = ({
                     userSelect: "none"
                   }}
                   onMouseDown={(e) => {
-                    // First, check if we're clicking on an existing calendar event
+                    // First, check if we're clicking on an existing calendar event or if there's a selected task
                     const existingEvent = e.target.closest('.calendar-event');
-                    if (existingEvent || selectedCalendarEvent !== null) {
+                    if (existingEvent || selectedCalendarEvent !== null || selectedTask !== null) {  // Add selectedTask check
                       return;
                     }
 
@@ -1604,6 +1609,11 @@ fontSize: 16
                       key={index} 
                       className="task-cell"
                       onMouseDown={(e) => {
+                        // Add check for selected task at the start
+                        if (selectedTask !== null) {
+                          return;
+                        }
+
                         const isControlPressed = e.ctrlKey || e.metaKey;
 
                         const targetElement = e.currentTarget;
@@ -1635,12 +1645,14 @@ fontSize: 16
                         };
                       
                         const startY = initialY - rect.top + (index * (scrollNumber + 1));
-                        const exactHoursFromStart = startY / (scrollNumber + 1);  // Remove Math.floor
+                        const hourStart = Math.floor(startY / (scrollNumber + 1));
                         const startTime = new Date(selectedEvent.startTime);
-                        let dragStartTime = isControlPressed ?
-                          new Date(startTime.getTime() + (Math.floor(exactHoursFromStart) * 60 * 60 * 1000)) :
-                          roundToNearestFiveMinutes(new Date(startTime.getTime() + (exactHoursFromStart * 60 * 60 * 1000)));
-                        let dragEndTime = dragStartTime;
+                        
+                        // For initial click, always snap to hour boundaries
+                        let dragStartTime = new Date(startTime.getTime() + (hourStart * 60 * 60 * 1000));
+                        dragStartTime.setUTCMinutes(0, 0, 0);
+                        let dragEndTime = new Date(dragStartTime.getTime() + (60 * 60 * 1000));
+                        dragEndTime.setUTCMinutes(0, 0, 0);
                       
                         // Create preview element function
                         const createPreviewElement = () => {
@@ -1891,6 +1903,11 @@ fontSize: 16
                       key={index} 
                       className="task-cell"
                       onMouseDown={(e) => {
+                        // Add check for selected task at the start
+                        if (selectedTask !== null) {
+                          return;
+                        }
+
                         const isControlPressed = e.ctrlKey || e.metaKey;
 
                         const targetElement = e.currentTarget;
@@ -1922,12 +1939,14 @@ fontSize: 16
                         };
                       
                         const startY = initialY - rect.top + (index * (scrollNumber + 1));
-                        const exactHoursFromStart = startY / (scrollNumber + 1);  // Remove Math.floor
+                        const hourStart = Math.floor(startY / (scrollNumber + 1));
                         const startTime = new Date(selectedEvent.startTime);
-                        let dragStartTime = isControlPressed ?
-                          new Date(startTime.getTime() + (Math.floor(exactHoursFromStart) * 60 * 60 * 1000)) :
-                          roundToNearestFiveMinutes(new Date(startTime.getTime() + (exactHoursFromStart * 60 * 60 * 1000)));
-                        let dragEndTime = dragStartTime;
+                        
+                        // For initial click, always snap to hour boundaries
+                        let dragStartTime = new Date(startTime.getTime() + (hourStart * 60 * 60 * 1000));
+                        dragStartTime.setUTCMinutes(0, 0, 0);
+                        let dragEndTime = new Date(dragStartTime.getTime() + (60 * 60 * 1000));
+                        dragEndTime.setUTCMinutes(0, 0, 0);
                       
                         // Create preview element function
                         const createPreviewElement = () => {
