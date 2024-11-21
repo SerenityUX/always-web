@@ -14,9 +14,50 @@ const EVENT_WIDTH = 140; // Base width of an event
 const EVENT_OVERLAP_OFFSET = 20; // Horizontal offset for overlapping events
 
 // Add this helper function at the top of the RunOfShow component, with other constants
-const roundToNearestFiveMinutes = (date) => {
-  const ms = 1000 * 60 * 5; // 5 minutes in milliseconds
-  return new Date(Math.round(date.getTime() / ms) * ms);
+const roundToTimeIncrement = (date, scrollNumber) => {
+  const snapInterval = getSnapIntervalForZoom(scrollNumber);
+  const ms = date.getTime();
+  return new Date(Math.round(ms / snapInterval) * snapInterval);
+};
+
+// Add this helper function near the top with other constants
+const SNAP_THRESHOLD = 12; // Base snap threshold in pixels
+
+// Add zoom-based snap interval calculation
+const getSnapIntervalForZoom = (scrollNumber) => {
+  // scrollNumber ranges from 75 (most zoomed out) to 310 (most zoomed in)
+  if (scrollNumber <= 150) { // More zoomed out
+    return 15 * 60 * 1000; // 15 minutes when zoomed out
+  } else if (scrollNumber <= 250) { // Medium zoom
+    return 10 * 60 * 1000; // 10 minutes at medium zoom
+  } else { // More zoomed in
+    return 5 * 60 * 1000; // 5 minutes when zoomed in for fine control
+  }
+};
+
+// Update the getClosest15MinTime function to be more generic
+const getClosestTimeIncrement = (date, scrollNumber) => {
+  const snapInterval = getSnapIntervalForZoom(scrollNumber);
+  const ms = date.getTime();
+  const roundedMs = Math.round(ms / snapInterval) * snapInterval;
+  return new Date(roundedMs);
+};
+
+// Update calculateSnapEffect to use dynamic intervals
+const calculateSnapEffect = (exactTime, scrollNumber) => {
+  const nearestIncrement = getClosestTimeIncrement(exactTime, scrollNumber);
+  const timeDiff = Math.abs(exactTime - nearestIncrement);
+  const snapInterval = getSnapIntervalForZoom(scrollNumber);
+  
+  // Scale threshold based on zoom level and interval
+  const scaledThreshold = SNAP_THRESHOLD * (scrollNumber / 100) * (snapInterval / (15 * 60 * 1000));
+  
+  // If within threshold, apply magnetic pull
+  if (timeDiff < scaledThreshold) {
+    return nearestIncrement;
+  }
+  
+  return exactTime;
 };
 
 export const RunOfShow = ({
@@ -295,7 +336,7 @@ export const RunOfShow = ({
     // Set initial dragStartTime based on whether Control/CMD is pressed
     let dragStartTime = isControlPressed ?
       new Date(startTime.getTime() + (Math.floor(exactHoursFromStart) * 60 * 60 * 1000)) :
-      roundToNearestFiveMinutes(new Date(startTime.getTime() + (exactHoursFromStart * 60 * 60 * 1000)));
+      getClosestTimeIncrement(new Date(startTime.getTime() + (exactHoursFromStart * 60 * 60 * 1000)), scrollNumber);
     
     let dragEndTime = dragStartTime;
 
@@ -305,8 +346,7 @@ export const RunOfShow = ({
         Math.pow(moveEvent.clientY - initialMousePos.y, 2)
       );
 
-      // Start drag immediately if mouse moves at all
-      if (!dragStarted) {
+      if (!dragStarted && distance > 5) {
         dragStarted = true;
         previewElement = createPreviewElement();
       }
@@ -323,30 +363,25 @@ export const RunOfShow = ({
           // Use rounded calculations when CMD/Control is pressed
           const endHours = Math.ceil((moveEvent.clientY - rect.top + (index * (scrollNumber + 1))) / (scrollNumber + 1));
           dragEndTime = new Date(startTime.getTime() + (endHours * 60 * 60 * 1000));
-          
-          console.log('Snapped to grid:', dragEndTime.toISOString());
         } else {
-          // Use 5-minute rounded calculations when no modifier key is pressed
-          const exactY = moveEvent.clientY - rect.top + (index * (scrollNumber + 1));
-          const exactHoursFromStart = exactY / (scrollNumber + 1);
-          dragEndTime = roundToNearestFiveMinutes(new Date(startTime.getTime() + (exactHoursFromStart * 60 * 60 * 1000)));
+          // Use zoom-based increments
+          const snapInterval = getSnapIntervalForZoom(scrollNumber);
+          const exactTime = new Date(startTime.getTime() + (exactHoursFromStart * 60 * 60 * 1000));
+          const ms = exactTime.getTime();
+          dragEndTime = new Date(Math.round(ms / snapInterval) * snapInterval);
           
-          console.log('Free-form position:', dragEndTime.toISOString());
+          console.log('Snap interval:', snapInterval / (60 * 1000), 'minutes'); // Add this to debug
+          console.log('ScrollNumber:', scrollNumber); // Add this to debug
         }
 
         // Ensure minimum duration
         if (dragEndTime <= dragStartTime) {
-          dragEndTime = new Date(dragStartTime.getTime() + (15 * 60 * 1000)); // 15 minutes minimum
+          dragEndTime = new Date(dragStartTime.getTime() + (15 * 60 * 1000));
         }
-        
-        // Calculate preview position
-        const startPos = isSnapToGrid ? 
-          (Math.floor((dragStartTime - startTime) / (1000 * 60 * 60)) * (scrollNumber + 1)) :
-          ((dragStartTime - startTime) / (1000 * 60 * 60) * (scrollNumber + 1));
-          
-        const endPos = isSnapToGrid ?
-          (Math.ceil((dragEndTime - startTime) / (1000 * 60 * 60)) * (scrollNumber + 1)) :
-          ((dragEndTime - startTime) / (1000 * 60 * 60) * (scrollNumber + 1));
+
+        // Update preview element position
+        const startPos = ((dragStartTime - startTime) / (1000 * 60 * 60)) * (scrollNumber + 1);
+        const endPos = ((dragEndTime - startTime) / (1000 * 60 * 60)) * (scrollNumber + 1);
         
         const gridStartY = startPos - (index * (scrollNumber + 1)) + rect.top;
         const gridEndY = endPos - (index * (scrollNumber + 1)) + rect.top;
@@ -558,7 +593,7 @@ export const RunOfShow = ({
               style={{
                 display: "flex", 
                 overflowY: "scroll",
-                width: (selectedCalendarEvent != null) ? ("640px") : ("218px"),
+                width: (selectedCalendarEvent != null) ? ("638px") : ("218px"),
                 height: "100%",
                 flexDirection: "column", 
                 flexShrink: 0,
@@ -610,7 +645,7 @@ export const RunOfShow = ({
                     // Set initial time based on whether Control/CMD is pressed
                     let clickDateTime = isControlPressed ?
                       new Date(startTime.getTime() + (Math.floor(exactHoursFromStart) * 60 * 60 * 1000)) :
-                      roundToNearestFiveMinutes(new Date(startTime.getTime() + (exactHoursFromStart * 60 * 60 * 1000)));
+                      roundToTimeIncrement(new Date(startTime.getTime() + (exactHoursFromStart * 60 * 60 * 1000)), scrollNumber);
 
                     // Check if any existing event overlaps with the click time
                     const hasOverlappingEvent = selectedEvent?.calendar_events?.some(event => {
@@ -636,7 +671,7 @@ export const RunOfShow = ({
                     const clickExactHoursFromStart = startY / (scrollNumber + 1);  // Renamed from exactHoursFromStart
                     let dragStartTime = isControlPressed ?
                       new Date(startTime.getTime() + (Math.floor(clickExactHoursFromStart) * 60 * 60 * 1000)) :
-                      roundToNearestFiveMinutes(new Date(startTime.getTime() + (clickExactHoursFromStart * 60 * 60 * 1000)));
+                      roundToTimeIncrement(new Date(startTime.getTime() + (clickExactHoursFromStart * 60 * 60 * 1000)), scrollNumber);
                     let dragEndTime = new Date(dragStartTime.getTime() + (60 * 60 * 1000)); // Default 1 hour duration
 
                     // Create preview element
@@ -710,7 +745,6 @@ export const RunOfShow = ({
 
                       if (isDragging) {
                         const isSnapToGrid = moveEvent.metaKey || moveEvent.ctrlKey;
-                        // Remove the index calculation since we're not in the grid
                         const exactY = moveEvent.clientY - rect.top;
                         const exactHoursFromStart = exactY / (scrollNumber + 1);
                         
@@ -718,10 +752,15 @@ export const RunOfShow = ({
                           // Snap to hour grid when Control/CMD is pressed
                           dragEndTime = new Date(startTime.getTime() + (Math.ceil(exactHoursFromStart) * 60 * 60 * 1000));
                         } else {
-                          // Use exact position with 5-minute snapping
-                          dragEndTime = roundToNearestFiveMinutes(
-                            new Date(startTime.getTime() + (exactHoursFromStart * 60 * 60 * 1000))
-                          );
+                          // Replace this with corrected zoom-based snapping
+                          const snapInterval = scrollNumber >= 250 ? (5 * 60 * 1000) : // 5 minutes when zoomed in (high scrollNumber)
+                                              scrollNumber >= 150 ? (10 * 60 * 1000) : // 10 minutes at medium zoom
+                                              (15 * 60 * 1000); // 15 minutes when zoomed out (low scrollNumber)
+                          
+                          const exactTime = new Date(startTime.getTime() + (exactHoursFromStart * 60 * 60 * 1000));
+                          dragEndTime = new Date(Math.round(exactTime.getTime() / snapInterval) * snapInterval);
+                          
+                          console.log('Using snap interval:', snapInterval / (60 * 1000), 'minutes at zoom level:', scrollNumber);
                         }
 
                         // Ensure minimum duration
@@ -1713,10 +1752,11 @@ fontSize: 16
                               
                               console.log('Snapped to grid:', dragEndTime.toISOString());
                             } else {
-                              // Use 5-minute rounded calculations when no modifier key is pressed
-                              const exactY = moveEvent.clientY - rect.top + (index * (scrollNumber + 1));
-                              const exactHoursFromStart = exactY / (scrollNumber + 1);
-                              dragEndTime = roundToNearestFiveMinutes(new Date(startTime.getTime() + (exactHoursFromStart * 60 * 60 * 1000)));
+                              // Use zoom-based increments
+                              const snapInterval = getSnapIntervalForZoom(scrollNumber);
+                              const exactTime = new Date(startTime.getTime() + (exactHoursFromStart * 60 * 60 * 1000));
+                              const ms = exactTime.getTime();
+                              dragEndTime = new Date(Math.round(ms / snapInterval) * snapInterval);
                               
                               console.log('Free-form position:', dragEndTime.toISOString());
                             }
@@ -2007,10 +2047,11 @@ fontSize: 16
                               
                               console.log('Snapped to grid:', dragEndTime.toISOString());
                             } else {
-                              // Use 5-minute rounded calculations when no modifier key is pressed
-                              const exactY = moveEvent.clientY - rect.top + (index * (scrollNumber + 1));
-                              const exactHoursFromStart = exactY / (scrollNumber + 1);
-                              dragEndTime = roundToNearestFiveMinutes(new Date(startTime.getTime() + (exactHoursFromStart * 60 * 60 * 1000)));
+                              // Use zoom-based increments
+                              const snapInterval = getSnapIntervalForZoom(scrollNumber);
+                              const exactTime = new Date(startTime.getTime() + (exactHoursFromStart * 60 * 60 * 1000));
+                              const ms = exactTime.getTime();
+                              dragEndTime = new Date(Math.round(ms / snapInterval) * snapInterval);
                               
                               console.log('Free-form position:', dragEndTime.toISOString());
                             }
