@@ -282,9 +282,8 @@ const ViewSchedule = () => {
             const duration = (eventEnd - eventStart) / (1000 * 60 * 60);
             const isShortEvent = duration < 1;
 
-            const PADDING = isShortEvent ? 16 : 32;
             const rawHeight = (duration * 76);
-            const height = Math.max(8, rawHeight - PADDING);
+            const height = Math.max(8, rawHeight - (isShortEvent ? 8 : 24));
 
             return (
               <div 
@@ -306,7 +305,7 @@ const ViewSchedule = () => {
                     gap: isShortEvent ? 8 : 0,
                     justifyContent: "space-between",
                     height: "100%",
-                    padding: isShortEvent ? 8 : 16,
+                    padding: isShortEvent ? "4px 16px" : "12px 16px",
                     width: "calc(100% - 90px)",
                     marginLeft: "40px",
                     userSelect: "none"

@@ -7,6 +7,7 @@ import { ScheduleView } from '../components/ScheduleView';
 import { RunOfShow } from '../components/RunOfShow';
 import { AnnouncementView } from "@/components/AnnouncementView";
 import { TeamView } from "@/components/TeamView";
+import { WelcomeView } from '../components/WelcomeView';
 
 
 
@@ -803,6 +804,9 @@ useEffect(() => {
     endTime: '17:00',
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
   });
+
+
+  
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [createEventError, setCreateEventError] = useState('');
 
@@ -1416,274 +1420,14 @@ useEffect(() => {
           
           />
         }
-        {(selectedEvent == null)&& 
-
-        <div style={{
-          flex: 1,
-          height: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: "24px",
-          color: "#59636E", 
-          textAlign: "center", gap: 16,
-          flexDirection: "column"
-        }}>
-        <img style={{height: 128, marginTop: 24, width: 128}} src="./outline.gif"/>
-        <p style={{margin: 0}}>welcome to <span style={{fontWeight: 700, color: "#000"}}>always</span>, let's get started<br/></p>
-        {/* <p
-        onClick={() => setShowCreateEventModal(true)}
-        style={{color: "#0293D4", cursor: "pointer", textDecoration: "underline"}}>create your first event</p>
-         */}
-         <div style={{width: 500, textAlign: "left", display: "flex", flexDirection: "column", padding: 32, marginTop: 24, borderRadius: 8, border: "1px solid #EBEBEB", backgroundColor: "#fff"}}>
-          
-          {createEventError && (
-            <div style={{
-              color: 'red',
-              marginBottom: '16px',
-              padding: '8px',
-              backgroundColor: '#ffebee',
-              borderRadius: '4px'
-            }}>
-              {createEventError}
-            </div>
-          )}
-
-          <form onSubmit={handleCreateFirstEvent} style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '16px'
-          }}>
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              flex: '1'
-            }}>
-              <label style={{
-                marginBottom: '8px', 
-                fontSize: '14px'
-              }}>
-                Event Name
-              </label>
-              <input
-                type="text"
-                value={createEventForm.title}
-                onChange={(e) => setCreateEventForm(prev => ({...prev, title: e.target.value}))}
-                required
-                style={{
-                  flex: '1',
-                  padding: '8px',
-                  fontSize: '16px',
-                  borderRadius: '4px',
-                  border: '1px solid #EBEBEB'
-                }}
-              />
-            </div>
-            {(createEventForm.title != "" && createEventForm.title != null) &&   
-            <div 
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                flex: '1',
-                animation: 'fadeIn 0.3s ease-in-out'
-              }}
-            >
-              <style jsx>{`
-                @keyframes fadeIn {
-                  from {
-                    opacity: 0;
-                    transform: translateY(-10px);
-                  }
-                  to {
-                    opacity: 1;
-                    transform: translateY(0);
-                  }
-                }
-              `}</style>
-              <label style={{
-                marginBottom: '8px', 
-                fontSize: '14px'
-              }}>
-                Timezone
-              </label>
-              <select
-                value={createEventForm.timezone}
-                onChange={(e) => setCreateEventForm(prev => ({...prev, timezone: e.target.value}))}
-                required
-                style={{
-                  flex: '1',
-                  padding: '8px',
-                  fontSize: '16px',
-                  borderRadius: '4px',
-                  border: '1px solid #EBEBEB',
-                  backgroundColor: '#fff'
-                }}
-              >
-                <optgroup label="Common Timezones">
-                  {Object.entries(commonTimezones).map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </optgroup>
-                <optgroup label="All Timezones">
-                  {Intl.supportedValuesOf('timeZone').map(tz => (
-                    <option key={tz} value={tz}>
-                      {tz.replace(/_/g, ' ')}
-                    </option>
-                  ))}
-                </optgroup>
-              </select>
-            </div>}
-            {(createEventForm.title != "" && createEventForm.title != null) &&   
-
-            <div 
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '16px',
-                animation: 'fadeIn 0.3s ease-in-out',
-                animationDelay: '0.1s', // Slight delay for staggered effect
-                opacity: 0, // Start hidden
-                animationFillMode: 'forwards' // Keep final state
-              }}
-            >
-              <div style={{
-                display: 'flex',
-                gap: '16px'
-              }}>
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  flex: '1'
-                }}>
-                  <label style={{
-                    marginBottom: '8px', 
-                    fontSize: '14px'
-                  }}>
-                    Start Date
-                  </label>
-                  <input
-                    type="date"
-                    value={createEventForm.startDate}
-                    onChange={(e) => setCreateEventForm(prev => ({...prev, startDate: e.target.value}))}
-                    required
-                    style={{
-                      flex: '1',
-                      padding: '8px',
-                      fontSize: '16px',
-                      borderRadius: '4px',
-                      border: '1px solid #EBEBEB'
-                    }}
-                  />
-                </div>
-
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  flex: '1'
-                }}>
-                  <label style={{
-                    marginBottom: '8px', 
-                    fontSize: '14px'
-                  }}>
-                    Start Time
-                  </label>
-                  <input
-                    type="time"
-                    value={createEventForm.startTime}
-                    onChange={(e) => setCreateEventForm(prev => ({...prev, startTime: e.target.value}))}
-                    required
-                    style={{
-                      flex: '1',
-                      padding: '8px',
-                      fontSize: '16px',
-                      borderRadius: '4px',
-                      border: '1px solid #EBEBEB'
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div style={{
-                display: 'flex',
-                gap: '16px'
-              }}>
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  flex: '1'
-                }}>
-                  <label style={{
-                    marginBottom: '8px', 
-                    fontSize: '14px'
-                  }}>
-                    End Date
-                  </label>
-                  <input
-                    type="date"
-                    value={createEventForm.endDate}
-                    onChange={(e) => setCreateEventForm(prev => ({...prev, endDate: e.target.value}))}
-                    required
-                    style={{
-                      flex: '1',
-                      padding: '8px',
-                      fontSize: '16px',
-                      borderRadius: '4px',
-                      border: '1px solid #EBEBEB'
-                    }}
-                  />
-                </div>
-
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  flex: '1'
-                }}>
-                  <label style={{
-                    marginBottom: '8px', 
-                    fontSize: '14px'
-                  }}>
-                    End Time
-                  </label>
-                  <input
-                    type="time"
-                    value={createEventForm.endTime}
-                    onChange={(e) => setCreateEventForm(prev => ({...prev, endTime: e.target.value}))}
-                    required
-                    style={{
-                      flex: '1',
-                      padding: '8px',
-                      fontSize: '16px',
-                      borderRadius: '4px',
-                      border: '1px solid #EBEBEB'
-                    }}
-                  />
-                </div>
-              </div>
-            </div>}
-
-            <button
-              type="submit"
-              disabled={(createEventForm.title == "" || createEventForm.title == null) || isSubmitting}
-              style={{
-                padding: '12px',
-                fontSize: '16px',
-                backgroundColor: '#007AFF',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: (createEventForm.title == "" || createEventForm.title == null) || isSubmitting ? 'not-allowed' : 'pointer',
-                opacity: (createEventForm.title == "" || createEventForm.title == null) || isSubmitting ? 0.7 : 1,
-                marginTop: '8px',
-                animation: "* 0.3 ease-in"
-              }}
-            >
-              {isSubmitting ? 'Creating...' : 'Create First Event'}
-            </button>
-          </form>
-          </div>
-        </div>
+        {(selectedEvent == null) && 
+          <WelcomeView
+            createEventForm={createEventForm}
+            setCreateEventForm={setCreateEventForm}
+            handleCreateFirstEvent={handleCreateFirstEvent}
+            createEventError={createEventError}
+            isSubmitting={isSubmitting}
+          />
         }
         </div>
       </div>}
