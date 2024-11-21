@@ -558,7 +558,7 @@ export const RunOfShow = ({
               style={{
                 display: "flex", 
                 overflowY: "scroll",
-                width: (selectedCalendarEvent != null) ? ("640px") : ("220px"),
+                width: (selectedCalendarEvent != null) ? ("640px") : ("218px"),
                 height: "100%",
                 flexDirection: "column", 
                 flexShrink: 0,
