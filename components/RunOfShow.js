@@ -157,10 +157,10 @@ export const RunOfShow = ({
           newEndTime = new Date(newEndTime.getTime() + 24 * 60 * 60 * 1000);
         }
         
-        if (!isWithinEventBounds(newStartTime, newEndTime, mainEventStart, mainEventEnd)) {
-          alert('Event must be within the main event time bounds');
-          return false;
-        }
+        // if (!isWithinEventBounds(newStartTime, newEndTime, mainEventStart, mainEventEnd)) {
+        //   alert('Event must be within the main event time bounds');
+        //   return false;
+        // }
     
         try {
           const response = await fetch('https://serenidad.click/hacktime/updateCalendarEvent', {
