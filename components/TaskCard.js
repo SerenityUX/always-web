@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 
 const getInitials = (name) => {
     return name
@@ -158,45 +158,37 @@ export const TaskCard = ({
     const isOneHourTask = ((duration === 1 && scrollNumber < 120)) && !(scrollNumber >= 300)
   
     let isSelected = selectedTask?.id === task.id && selectedTaskColumn === columnId
-    const renderProfilePictures = (people, limit) => {
-      // Sort people: put column person first, then sort by profile pictures
-      const sortedPeople = [...people].sort((a, b) => {
-        // First check if either person matches the column
+  
+    // Move sortedPeople memo outside of the callback
+    const sortedPeople = useMemo(() => {
+      if (!task.assignedTo) return [];
+      
+      return [...task.assignedTo].sort((a, b) => {
         const aIsColumnPerson = columnId === 'You' ? 
           a.email === user.email : 
           a.name === columnId;
         const bIsColumnPerson = columnId === 'You' ? 
           b.email === user.email : 
           b.name === columnId;
-  
-        // Column person should always come first
+
         if (aIsColumnPerson) return -1;
         if (bIsColumnPerson) return 1;
-  
-        // If neither person matches the column, sort by profile pictures
+
         if (a.profilePicture && !b.profilePicture) return -1;
         if (!a.profilePicture && b.profilePicture) return 1;
         return 0;
       });
+    }, [task.assignedTo, columnId, user.email]);
   
+    const renderProfilePictures = useCallback((people, limit) => {
       if (isShortTask || isOneHourTask) {
-        // Debug logs
-        console.log('Column ID:', columnId);
-        console.log('People:', sortedPeople);
-        console.log('User:', user);
-        console.log('Selected Event:', selectedEvent);
-
         // Find the person matching the column ID
         let columnPerson;
         if (columnId === 'You') {
-          // For the "You" column, find the current user
           columnPerson = sortedPeople.find(person => person.email === user.email);
         } else {
-          // For team member columns, find the person by name since columnId is their name
           columnPerson = sortedPeople.find(person => person.name === columnId);
         }
-
-        console.log('Found Column Person:', columnPerson);
 
         if (!columnPerson) return null;
         
@@ -227,14 +219,13 @@ export const TaskCard = ({
         const remainingCount = people.length - 4;
         let displayCount = Math.min(people.length, 4);
         
-        // If there's only one more person beyond the limit, increase display count
         if (remainingCount === 1) {
           displayCount = Math.min(people.length, 5);
         }
         
         const displayPeople = sortedPeople.slice(0, displayCount);
         const overflow = people.length > 5;
-  
+
         return (
           <>
             {displayPeople.map((person, personIndex) => (
@@ -280,21 +271,21 @@ export const TaskCard = ({
           </>
         );
       }
-    };
+    }, [sortedPeople, columnId, user.email, isShortTask, isOneHourTask]);
   
     const dropdownTriggerRef = useRef(null);
   
     return (
       <div 
         onClick={() => {
-          console.log(task)
+          // console.log(task)
           setSelectedTask(task);
           setSelectedTaskColumn(columnId);
           setEditingTaskTitle(task.title);
           setEditingTaskDescription(task.description || '');
           setLocalTitle(task.title);
           setLocalDescription(task.description || '');
-          console.log(columnId, selectedTaskColumn, columnId == selectedTaskColumn)
+          // console.log(columnId, selectedTaskColumn, columnId == selectedTaskColumn)
         }}
         style={{
           position: "absolute",
@@ -536,7 +527,7 @@ export const TaskCard = ({
             }),
           });
   
-          console.log(task.id, person.email)
+          // console.log(task.id, person.email)
           if (!response.ok) {
             throw new Error('Failed to unassign user');
           }

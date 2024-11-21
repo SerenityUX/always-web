@@ -57,7 +57,7 @@ export const AnnouncementView = ({
             if (!response.ok) {
                 throw new Error(data.error || 'Failed to create announcement');
             }
-            console.log(data)
+            // console.log(data)
             // Add the new announcement to the UI
             const updatedEvent = {
                 ...selectedEvent,
