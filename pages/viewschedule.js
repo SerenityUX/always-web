@@ -113,6 +113,53 @@ const ViewSchedule = () => {
     fetchSchedule();
   }, []);
 
+  const processOverlappingEvents = (events) => {
+    const processedEvents = events.map(event => ({
+      ...event,
+      startTime: new Date(event.time.start),
+      endTime: new Date(event.time.end),
+      column: 0,
+      width: 1
+    }));
+
+    // Sort events by start time and duration
+    processedEvents.sort((a, b) => {
+      const timeCompare = a.startTime - b.startTime;
+      if (timeCompare === 0) {
+        return (b.endTime - b.startTime) - (a.endTime - a.startTime);
+      }
+      return timeCompare;
+    });
+
+    // Find overlapping events and assign columns
+    for (let i = 0; i < processedEvents.length; i++) {
+      const currentEvent = processedEvents[i];
+      const overlappingEvents = processedEvents.filter(event => 
+        event !== currentEvent &&
+        event.startTime < currentEvent.endTime &&
+        event.endTime > currentEvent.startTime
+      );
+
+      if (overlappingEvents.length > 0) {
+        const totalEvents = overlappingEvents.length + 1;
+        const usedColumns = new Set(overlappingEvents.map(e => e.column));
+        
+        // Find first available column
+        let column = 0;
+        while (usedColumns.has(column)) column++;
+        
+        currentEvent.column = column;
+        
+        // Update widths for all overlapping events
+        [currentEvent, ...overlappingEvents].forEach(event => {
+          event.width = 1 / totalEvents;
+        });
+      }
+    }
+
+    return processedEvents;
+  };
+
   if (error) {
     return (
       <div style={{ 
@@ -172,7 +219,8 @@ const ViewSchedule = () => {
             flexDirection: "column",
             marginTop: 24,
             borderTop: "1px solid #EBEBEB",
-            position: "relative"
+            position: "relative",
+            overflowX: "auto"
           }}
         >
           {/* Add current time indicator */}
@@ -274,7 +322,7 @@ const ViewSchedule = () => {
           })()}
 
           {/* Calendar Events */}
-          {scheduleData.schedule.map((event, index) => {
+          {processOverlappingEvents(scheduleData.schedule).map((event, index) => {
             const eventStart = new Date(event.time.start);
             const eventEnd = new Date(event.time.end);
             
@@ -284,6 +332,10 @@ const ViewSchedule = () => {
 
             const rawHeight = (duration * 76);
             const height = Math.max(8, rawHeight - (isShortEvent ? 8 : 24));
+
+            const baseWidth = `calc(100% - 90px)`;
+            const eventWidth = `calc(${baseWidth} * ${event.width})`;
+            const eventOffset = `calc(40px + (${baseWidth} * ${event.column * event.width}))`;
 
             return (
               <div 
@@ -306,9 +358,11 @@ const ViewSchedule = () => {
                     justifyContent: "space-between",
                     height: "100%",
                     padding: isShortEvent ? "4px 16px" : "12px 16px",
-                    width: "calc(100% - 90px)",
-                    marginLeft: "40px",
-                    userSelect: "none"
+                    width: eventWidth,
+                    marginLeft: eventOffset,
+                    border: "1px solid #fff",
+                    userSelect: "none",
+                    // boxSizing: "border-box"
                   }}>
                     <div style={{ 
                       fontSize: isShortEvent ? 14 : 16,
