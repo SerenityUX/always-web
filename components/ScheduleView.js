@@ -677,6 +677,7 @@ export const ScheduleView = ({
                               height: "100%",
                               padding: isShortEvent ? 8 : 16,
                               width: adjustedWidth,
+                              border: "1px solid #fff",
                               marginLeft: leftOffset,
                               userSelect: "none",
                               cursor: "pointer",
