@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 
-const CustomDateTimeSelect = ({ value, onChange, type = "date", isStartTime = true }) => {
+ const CustomDateTimeSelect = ({ value, onChange, type = "date" }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [inputValue, setInputValue] = useState('');
   const inputRef = useRef(null);
   const timeListRef = useRef(null);
   const selectedTimeRef = useRef(null);
@@ -42,7 +43,7 @@ const CustomDateTimeSelect = ({ value, onChange, type = "date", isStartTime = tr
           existingDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
         }
       } else {
-        existingDate.setHours(isStartTime ? 9 : 17, 0, 0, 0);
+        existingDate.setHours(9, 0, 0, 0);
       }
       return existingDate;
     }
@@ -58,38 +59,28 @@ const CustomDateTimeSelect = ({ value, onChange, type = "date", isStartTime = tr
       return new Intl.DateTimeFormat('en-US', {
         weekday: 'short',
         month: 'short',
-        day: 'numeric'
+        day: 'numeric',
+        timeZone: 'UTC'
       }).format(date);
     }
     return new Intl.DateTimeFormat('en-US', {
       hour: 'numeric',
-      minute: 'numeric',
-      hour12: true
+      minute: '2-digit',
+      hour12: true,
+      timeZone: 'UTC'
     }).format(date);
   };
 
   const generateTimeOptions = () => {
     const options = [];
-    const baseDate = new Date();
-    
-    for (let set = 0; set < 3; set++) {
-      for (let hour = 6; hour < 24; hour++) {
-        for (let minute = 0; minute < 60; minute += 30) {
-          const date = new Date(baseDate);
-          date.setHours(hour, minute, 0, 0);
-          options.push(date);
-        }
-      }
-      
-      for (let hour = 0; hour <= 5; hour++) {
-        for (let minute = 0; minute < 60; minute += 30) {
-          const date = new Date(baseDate);
-          date.setHours(hour, minute, 0, 0);
-          options.push(date);
-        }
+    for (let hour = 0; hour < 24; hour++) {
+      for (let minute = 0; minute < 60; minute += 15) {
+        const period = hour >= 12 ? 'PM' : 'AM';
+        const displayHour = hour % 12 || 12;
+        const timeString = `${displayHour}:${minute.toString().padStart(2, '0')} ${period}`;
+        options.push({ displayTime: timeString, hour, minute });
       }
     }
-    
     return options;
   };
 
@@ -124,7 +115,7 @@ const CustomDateTimeSelect = ({ value, onChange, type = "date", isStartTime = tr
             padding: '6px 8px',
             fontSize: '14px',
             backgroundColor: '#fff',
-            minWidth: '120px',
+            // minWidth: '120px',
             cursor: 'pointer',
             position: 'relative'
           }}
@@ -156,19 +147,95 @@ const CustomDateTimeSelect = ({ value, onChange, type = "date", isStartTime = tr
           />
         </div>
       ) : (
-        <div
-          onClick={() => setIsOpen(!isOpen)}
-          style={{
-            border: '1px solid #EBEBEB',
-            borderRadius: '4px',
-            padding: '6px 8px',
-            fontSize: '14px',
-            cursor: 'pointer',
-            backgroundColor: '#fff',
-            minWidth: '80px'
-          }}
-        >
-          {formatDate(safeDate)}
+        <div style={{ position: 'relative' }}>
+          <input
+            type="text"
+            value={inputValue || formatDate(safeDate)}
+            onChange={(e) => {
+              setInputValue(e.target.value);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.target.blur();
+              }
+            }}
+            onBlur={(e) => {
+              const input = e.target.value.toUpperCase();
+              // Remove extra spaces and normalize input
+              const normalizedInput = input.replace(/\s+/g, '');
+              
+              // Try different patterns
+              const patterns = [
+                /^(\d{1,2})(?::(\d{2}))?\s*(AM|PM|A|P)?$/i,  // 11:30PM or 11PM or 11 or 11:30
+                /^(\d{1,2})(AM|PM|A|P)$/i,                    // 11AM or 11A
+              ];
+
+              let match = null;
+              let hours = 0;
+              let minutes = 0;
+              let period = '';
+
+              for (const pattern of patterns) {
+                match = normalizedInput.match(pattern);
+                if (match) {
+                  // Remove the first element (full match) and get the remaining groups
+                  const [fullMatch, ...groups] = match;
+                  
+                  if (groups.length === 3) {
+                    // Format: 11:30PM
+                    [hours, minutes, period] = groups;
+                    minutes = parseInt(minutes);
+                  } else if (groups.length === 2) {
+                    // Format: 11AM
+                    [hours, period] = groups;
+                    minutes = 0;
+                  } else {
+                    // Format: 11:30 or 11
+                    [hours, minutes = '0'] = groups;
+                    minutes = parseInt(minutes);
+                  }
+                  break;
+                }
+              }
+
+              if (match) {
+                hours = parseInt(hours);
+                
+                // Normalize period (AM/PM)
+                if (period) {
+                  period = period.charAt(0) === 'P' ? 'PM' : 'AM';
+                } else {
+                  // If no period specified, use AM for hours <= 11, PM for hours >= 12
+                  period = hours >= 12 ? 'PM' : 'AM';
+                }
+
+                // Validate hours and minutes
+                if (hours >= 1 && hours <= 12 && minutes >= 0 && minutes < 60) {
+                  if (period === 'PM' && hours !== 12) hours += 12;
+                  if (period === 'AM' && hours === 12) hours = 0;
+                  
+                  const newDate = new Date(safeDate);
+                  newDate.setUTCHours(hours, minutes, 0, 0);
+                  onChange(newDate);
+                  setInputValue(''); // Clear input value to show formatted time
+                } else {
+                  setInputValue(formatDate(safeDate));
+                }
+              } else {
+                setInputValue(formatDate(safeDate));
+              }
+            }}
+            onClick={() => setIsOpen(true)}
+            style={{
+              border: '1px solid #EBEBEB',
+              borderRadius: '4px',
+              padding: '6px 8px',
+              fontSize: '14px',
+              backgroundColor: '#fff',
+              minWidth: '90px',
+              cursor: 'pointer'
+            }}
+          />
         </div>
       )}
 
@@ -205,15 +272,20 @@ const CustomDateTimeSelect = ({ value, onChange, type = "date", isStartTime = tr
             }
           }}
         >
-          {generateTimeOptions().map((time, index) => {
-            const isSelected = time.getHours() === safeDate.getHours() && 
-                             time.getMinutes() === safeDate.getMinutes();
+          {generateTimeOptions().map(({ displayTime, hour, minute }, index) => {
+            const isSelected = hour === safeDate.getUTCHours() && 
+                             minute === safeDate.getUTCMinutes();
             return (
               <div
                 key={index}
                 ref={isSelected ? selectedTimeRef : null}
                 data-selected={isSelected}
-                onClick={() => handleTimeSelect(time)}
+                onClick={() => {
+                  const newDate = new Date(safeDate);
+                  newDate.setUTCHours(hour, minute, 0, 0);
+                  onChange(newDate);
+                  setIsOpen(false);
+                }}
                 style={{
                   padding: '8px 16px',
                   cursor: 'pointer',
@@ -226,7 +298,7 @@ const CustomDateTimeSelect = ({ value, onChange, type = "date", isStartTime = tr
                   }
                 }}
               >
-                {formatDate(time)}
+                {displayTime}
               </div>
             );
           })}

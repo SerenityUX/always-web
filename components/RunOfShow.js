@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { TaskCard } from './TaskCard';
-
+import { editCalendar } from './EditCalendarEvent'
 const COLORS = [
     "2,147,212",
     "218,128,0",
@@ -1140,342 +1140,7 @@ export const RunOfShow = ({
                         const previewDuration = (new Date(selectedCalendarEvent.endTime) - new Date(selectedCalendarEvent.startTime)) / (1000 * 60 * 60);
                         return (
                           <div style={{marginLeft: 24, position: "relative", marginTop: 0, padding: 8, height: previewDuration * (scrollNumber + 1) - 48}}>
-                            <div style={{position: "absolute", cursor: "auto", left: 200, borderRadius: 8, width: 400, backgroundColor: "#fff"}}>
-                              <div style={{width: "calc(100% - 24px)", borderRadius: "16px 16px 0px 0px", paddingTop: 8, paddingBottom: 8, justifyContent: "space-between", paddingLeft: 16, paddingRight: 8, alignItems: "center", display: "flex", backgroundColor: "#F6F8FA"}}>
-                              <p 
-                              onClick={() => console.log(new Date(selectedCalendarEvent.endTime))}
-                              style={{margin: 0, fontSize: 14}}>Edit Calendar Event</p>
-                              <img 
-                                onClick={() => handleDeleteConfirmation(selectedCalendarEvent.id)}
-                                style={{width: 24, height: 24, cursor: "pointer"}} 
-                                src="/icons/trash.svg"
-                              />
-                              </div> 
-                              <div style={{display: "flex", gap: 16, padding: 16, flexDirection: "column"}}>
-                                <p 
-                                  ref={el => {
-                                    // Only auto focus when modal first opens
-                                    if (el && selectedCalendarEvent.title === '') {
-                                      el.focus();
-                                      const range = document.createRange();
-                                      range.selectNodeContents(el);
-                                      const selection = window.getSelection();
-                                      selection.removeAllRanges();
-                                      selection.addRange(range);
-                                    }
-                                  }}
-                                  contentEditable
-                                  suppressContentEditableWarning
-                                  onBlur={(e) => {
-                                    const newTitle = e.target.innerText.trim();
-                                    if (newTitle !== selectedCalendarEvent.title) {
-                                      // Update both states immediately for a smoother UI experience
-                                      setSelectedCalendarEvent(prev => ({
-                                        ...prev,
-                                        title: newTitle
-                                      }));
-                                      setSelectedEvent(prev => ({
-                                        ...prev,
-                                        calendar_events: prev.calendar_events.map(evt => 
-                                          evt.id === selectedCalendarEvent.id ? { ...evt, title: newTitle } : evt
-                                        )
-                                      }));
-                                      handleEventTitleUpdate(selectedCalendarEvent.id, newTitle);
-                                    }
-                                  }}
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                      e.preventDefault();
-                                      e.target.blur(); // This will trigger the onBlur event
-                                    }
-                                  }}
-                                  style={{
-                                    margin: 0, 
-                                    fontSize: 24, 
-                                    cursor: "text", 
-                                    color: "#000",
-                                    outline: "none",
-                                    padding: "2px 4px",
-                                    borderRadius: "4px",
-                                    transition: "background-color 0.2s",
-                                    "&:hover": {
-                                      backgroundColor: "rgba(0, 0, 0, 0.05)"
-                                    }
-                                  }}
-                                >
-                                  {selectedCalendarEvent.title}
-                                </p>
-                                <div style={{display: "flex", alignItems: "center", gap: 8}}>
-                                  <img src="./icons/clock.svg" style={{width: 24, height: 24}}/>
-                                  <div style={{position: "relative"}}>
-                                    <p 
-                                      onClick={(e) => {
-                                        const timeInput = e.currentTarget.nextElementSibling;
-                                        timeInput.showPicker();
-                                      }}
-                                      style={{
-                                        margin: 0, 
-                                        cursor: "pointer",
-                                        padding: 4, 
-                                        backgroundColor: "#F3F2F8", 
-                                        borderRadius: 4,
-                                        minWidth: 70,
-                                        textAlign: "center",
-                                        fontSize: 16
-                                      }}
-                                    >
-                                      {formatTime(new Date(selectedCalendarEvent.startTime))}
-                                    </p>
-                                    <input 
-                                      type="time"
-                                      value={`${new Date(selectedCalendarEvent.startTime).getUTCHours().toString().padStart(2, '0')}:${new Date(selectedCalendarEvent.startTime).getUTCMinutes().toString().padStart(2, '0')}`}
-                                      onChange={async (e) => {
-                                        const newStartTime = timeStringToDate(e.target.value, new Date(selectedCalendarEvent.startTime));
-                                        const duration = new Date(selectedCalendarEvent.endTime) - new Date(selectedCalendarEvent.startTime);
-                                        const newEndTime = new Date(newStartTime.getTime() + duration);
-                                        
-                                        await handleTimeUpdate(selectedCalendarEvent.id, newStartTime, newEndTime);
-                                      }}
-                                      style={{
-                                        position: "absolute",
-                                        opacity: 0,
-                                        pointerEvents: "none"
-                                      }}
-                                    />
-                                  </div>
-                                  <p style={{margin: 0}}>-</p>
-                                  <div style={{position: "relative"}}>
-                                    <p 
-                                      onClick={(e) => {
-                                        const timeInput = e.currentTarget.nextElementSibling;
-                                        timeInput.showPicker();
-                                      }}
-                                      style={{
-                                        margin: 0, 
-                                        cursor: "pointer",
-                                        padding: 4, 
-                                        backgroundColor: "#F3F2F8", 
-                                        borderRadius: 4,
-                                        minWidth: 70,
-                                        textAlign: "center",
-                                        fontSize: 16
-                                      }}
-                                    >
-                                      {formatTime(new Date(selectedCalendarEvent.endTime))}
-                                    </p>
-                                    <input 
-                                      type="time"
-                                      value={`${new Date(selectedCalendarEvent.endTime).getUTCHours().toString().padStart(2, '0')}:${new Date(selectedCalendarEvent.endTime).getUTCMinutes().toString().padStart(2, '0')}`}
-                                      onChange={async (e) => {
-                                        const startTime = new Date(selectedCalendarEvent.startTime);
-                                        let newEndTime = timeStringToDate(e.target.value, new Date(selectedCalendarEvent.endTime));
-                                        
-                                        // If end time is before start time, check if moving to next day would be within max duration
-                                        if (newEndTime < startTime) {
-                                          const nextDayEndTime = new Date(newEndTime.getTime() + 24 * 60 * 60 * 1000);
-                                          const duration = nextDayEndTime - startTime;
-                                          
-                                          if (duration <= MAX_DURATION) {
-                                            newEndTime = nextDayEndTime;
-                                          } else {
-                                            return; // Don't allow the change if it would exceed max duration
-                                          }
-                                        }
-                                        
-                                        await handleTimeUpdate(selectedCalendarEvent.id, startTime, newEndTime);
-                                      }}
-                                      style={{
-                                        position: "absolute",
-                                        opacity: 0,
-                                        pointerEvents: "none"
-                                      }}
-                                    />
-                                  </div>
-                                </div>
-
-                                <div style={{display: "flex", alignItems: "center", gap: 8}}>
-  <img src="./icons/label.svg" style={{width: 24, height: 24}}/>
-  <select 
-    value={selectedCalendarEvent.tag || "Untagged"}
-    onChange={async (e) => {
-      const selectedValue = e.target.value;
-      
-      if (selectedValue === "New Tag") {
-        const newTag = prompt("Enter new tag name:");
-        
-        if (newTag && newTag.trim()) {
-          try {
-            // Create the new tag
-            const createResponse = await fetch('https://serenidad.click/hacktime/createAvailableTag', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                token: localStorage.getItem('token'),
-                eventId: selectedEventId,
-                tag: newTag.trim()
-              }),
-            });
-
-            if (!createResponse.ok) {
-              const error = await createResponse.json();
-              throw new Error(error.error || 'Failed to create tag');
-            }
-
-            // Update local state to include the new tag
-            setSelectedEvent(prev => ({
-              ...prev,
-              availableTags: [...(prev.availableTags || []), newTag.trim()]
-            }));
-
-            // Set the new tag as the selected tag for the calendar event
-            const updateResponse = await fetch('https://serenidad.click/hacktime/updateCalendarEvent', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                token: localStorage.getItem('token'),
-                calendarEventId: selectedCalendarEvent.id,
-                startTime: selectedCalendarEvent.startTime,
-                endTime: selectedCalendarEvent.endTime,
-                title: selectedCalendarEvent.title,
-                color: selectedCalendarEvent.color,
-                tag: newTag.trim()
-              }),
-            });
-
-            if (!updateResponse.ok) {
-              throw new Error('Failed to update calendar event');
-            }
-
-            // Update selected calendar event state
-            setSelectedCalendarEvent(prev => ({
-              ...prev,
-              tag: newTag.trim()
-            }));
-          } catch (error) {
-            console.error('Failed to create/update tag:', error);
-            alert(error.message);
-          }
-        }
-      } else {
-        // Handle regular tag selection (existing code)
-        const newLabel = selectedValue === "Untagged" ? null : selectedValue;
-        
-        try {
-          const response = await fetch('https://serenidad.click/hacktime/updateCalendarEvent', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              token: localStorage.getItem('token'),
-              calendarEventId: selectedCalendarEvent.id,
-              startTime: selectedCalendarEvent.startTime,
-              endTime: selectedCalendarEvent.endTime,
-              title: selectedCalendarEvent.title,
-              color: selectedCalendarEvent.color,
-              tag: newLabel
-            }),
-          });
-
-          const data = await response.json();
-          
-          if (!response.ok) {
-            throw new Error(data.error || 'Failed to update label');
-          }
-
-          // Update local state
-          setSelectedCalendarEvent(prev => ({
-            ...prev,
-            tag: newLabel
-          }));
-
-          setSelectedEvent(prev => ({
-            ...prev,
-            calendar_events: prev.calendar_events.map(evt => 
-              evt.id === selectedCalendarEvent.id 
-                ? { ...evt, tag: newLabel } 
-                : evt
-            )
-          }));
-
-        } catch (error) {
-          console.error('Failed to update tag:', error);
-          alert(error.message);
-        }
-      }
-    }}
-    style={{
-      margin: 0,
-      padding: "4px 8px",
-      backgroundColor: "#F3F2F8",
-      borderRadius: 4,
-      minWidth: 120,
-      fontSize: 16,
-      border: "none",
-      cursor: "pointer",
-      appearance: "none",
-      backgroundImage: "url('./icons/chevron-down.svg')",
-      backgroundRepeat: "no-repeat",
-      backgroundPosition: "right 8px center",
-      backgroundSize: "16px",
-      paddingRight: "28px"
-    }}
-  >
-    <option value="Untagged">Untagged</option>
-    {selectedEvent?.availableTags?.map((tag, index) => (
-      <option key={index} value={tag}>
-        {tag}
-      </option>
-    ))}
-    <option value="New Tag">+ New Tag</option>
-  </select>
-</div>
-
-                                <div style={{display: "flex", alignItems: "center", gap: 8}}>
-                                  <img src="./icons/calendar.svg" style={{width: 24, height: 24}}/>
-                                  <p style={{margin: 0,
-
-fontSize: 16
-
-
-                                  }}>
-
-                                                                        {new Date(selectedCalendarEvent.startTime).toLocaleDateString('en-US', {
-                                      weekday: 'long',
-                                      month: 'long',
-                                      day: 'numeric',
-                                      year: 'numeric',
-                                      timeZone: 'UTC'
-                                    })}
-                                  </p>
-                                </div>
-                                <div style={{display: "flex", alignItems: "center", gap: 8}}>
-                                  <img src="./icons/paint.svg" style={{width: 24, height: 24}}/>
-                                  <p style={{margin: 0}}>Calendar Color</p>
-                                </div>
-                                <div style={{display: "flex", height: 36, alignItems: "center", flexDirection: "row", gap: 12}}>
-                                  {COLORS.map((colorString, index) => (
-                                    <div 
-                                      key={index}
-                                      onClick={() => handleColorUpdate(selectedCalendarEvent.id, colorString)}
-                                      style={{
-                                        backgroundColor: `rgb(${colorString})`,
-                                        cursor: "pointer",
-                                        borderRadius: "100%",
-                                        height: selectedCalendarEvent.color === colorString || animatingColor === colorString ? 36 : 32,
-                                        width: selectedCalendarEvent.color === colorString || animatingColor === colorString ? 36 : 32,
-                                        opacity: selectedCalendarEvent.color === colorString || animatingColor === colorString ? 1 : 0.5,
-                                        transition: "all 0.2s ease"
-                                      }}
-                                    />
-                                  ))}
-                                </div>
-                              </div>
-                            </div>
+                            {editCalendar(selectedCalendarEvent, handleDeleteConfirmation, setSelectedCalendarEvent, setSelectedEvent, handleEventTitleUpdate, formatTime, timeStringToDate, handleTimeUpdate, MAX_DURATION, selectedEventId, selectedEvent, handleColorUpdate, animatingColor)}
                             <div 
                               onClick={(e) => {
                                 // Don't deselect if clicking on the contentEditable field
@@ -2030,7 +1695,9 @@ fontSize: 16
                         const previewDuration = (new Date(selectedCalendarEvent.endTime) - new Date(selectedCalendarEvent.startTime)) / (1000 * 60 * 60);
                         return (
                           <div style={{marginLeft: -4, position: "relative", marginTop: 0, padding: 8, height: previewDuration * (scrollNumber + 1) - 48}}>
-                            <div style={{position: "absolute", cursor: "auto", left: 200, borderRadius: 8, width: 400, backgroundColor: "#fff"}}>
+                                                        {editCalendar(selectedCalendarEvent, handleDeleteConfirmation, setSelectedCalendarEvent, setSelectedEvent, handleEventTitleUpdate, formatTime, timeStringToDate, handleTimeUpdate, MAX_DURATION, selectedEventId, selectedEvent, handleColorUpdate, animatingColor)}
+
+                            {/* <div style={{position: "absolute", cursor: "auto", left: 200, borderRadius: 8, width: 400, backgroundColor: "#fff"}}>
                               <div style={{width: "calc(100% - 24px)", borderRadius: "16px 16px 0px 0px", paddingTop: 8, paddingBottom: 8, justifyContent: "space-between", paddingLeft: 16, paddingRight: 8, alignItems: "center", display: "flex", backgroundColor: "#F6F8FA"}}>
                               <p 
                               onClick={() => console.log(new Date(selectedCalendarEvent.endTime))}
@@ -2365,7 +2032,7 @@ fontSize: 16
                                   ))}
                                 </div>
                               </div>
-                            </div>
+                            </div> */}
                             <div 
                               onClick={(e) => {
                                 // Don't deselect if clicking on the contentEditable field
@@ -3206,3 +2873,5 @@ fontSize: 16
         })()}
       </div>       
   )}
+
+
