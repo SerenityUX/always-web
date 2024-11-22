@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 
- const CustomDateTimeSelect = ({ value, onChange, type = "date" }) => {
+ const CustomDateTimeSelect = ({ value, onChange, type = "date", width = 90 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const inputRef = useRef(null);
@@ -232,7 +232,7 @@ import { useState, useRef, useEffect } from 'react';
               padding: '6px 8px',
               fontSize: '14px',
               backgroundColor: '#fff',
-              minWidth: '90px',
+              width: width,
               cursor: 'pointer'
             }}
           />
