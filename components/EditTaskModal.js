@@ -1,5 +1,14 @@
 import CustomDateTimeSelect from './CustomDateTimeSelect';
 
+const getInitials = (name) => {
+    return name
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+  
 export const editTaskModal = (user, handleDeleteTask, task, titleInputRef, localTitle, setLocalTitle, setSelectedTask, setEditingTaskTitle, handleTaskUpdate, formattedStartTime, taskStart, taskEnd, formattedEndTime, setSelectedEvent, dropdownTriggerRef, selectedEvent, localDescription, setLocalDescription, setEditingTaskDescription) => {
     return <div style={{ position: "absolute", fontSize: "16", cursor: "auto", top: 16, left: 228, borderRadius: 8, width: 300, backgroundColor: "#fff" }}>
       <div style={{ width: "calc(100% - 24px)", borderRadius: "16px 16px 0px 0px", paddingTop: 8, paddingBottom: 8, justifyContent: "space-between", paddingLeft: 16, paddingRight: 8, alignItems: "center", display: "flex", backgroundColor: "#F6F8FA" }}>
