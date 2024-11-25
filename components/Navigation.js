@@ -626,6 +626,7 @@ export default function Navigation({
                 borderRadius: 8,
                 width: 200,
                 zIndex: 1000,
+                maxHeight: 400, overflowY: "scroll",
                 padding: 8
               }}>
                 {eventsList.map((eventObj, index, array) => (
