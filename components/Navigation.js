@@ -119,14 +119,31 @@ export default function Navigation({
   ];
 
   const handleTabClick = (item) => {
-    router.push(`/event?event=${selectedEvent?.id}&tab=${encodeURIComponent(item)}`, undefined, { shallow: true });
+    console.log('Tab clicked:', {
+      item,
+      selectedEventId
+    });
+
+    if (selectedEventId) {
+      router.push(`/event?eventId=${selectedEventId}&tab=${encodeURIComponent(item)}`, undefined, { shallow: true });
+    }
   };
 
   const handleEventSelect = (eventObj) => {
+    console.log('Event selected:', {
+      newId: eventObj.id,
+      currentId: selectedEventId,
+      tab
+    });
+
     onEventSelect(eventObj.id);
     setShowEventDropdown(false);
     localStorage.setItem('lastVisited', eventObj.id);
-    router.push(`/event?eventId=${eventObj.id}${tab ? `&tab=${tab}` : ''}`, undefined, { shallow: true });
+    
+    if (selectedEventId !== eventObj.id) {
+      console.log('Updating URL for new event');
+      router.push(`/event?eventId=${eventObj.id}${tab ? `&tab=${tab}` : ''}`, undefined, { shallow: true });
+    }
   };
 
   const handleLogout = () => {

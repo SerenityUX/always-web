@@ -230,10 +230,16 @@ useEffect(() => {
     }
   }, [isInvitingNewUser]);
 
+  // Add this at the top of the Event component
+  const isRouterReady = router.isReady;
+
+  // Update the authentication useEffect
   useEffect(() => {
     async function authenticate() {
-      const token = localStorage.getItem('token');
+      console.log('Starting authentication, router ready:', isRouterReady);
+      if (!isRouterReady) return; // Don't proceed until router is ready
       
+      const token = localStorage.getItem('token');
       if (!token) {
         router.push('/signup');
         return;
@@ -249,64 +255,64 @@ useEffect(() => {
         });
 
         const userData = await response.json();
-         // If organizationEvents exists, process and merge with events
-         if (userData.organizationEvents) {
-          // Create a map of event IDs that the user owns/is member of
-          const userEventIds = new Set(Object.keys(userData.events || {}));
-          
-          // Process organization events
-          const processedOrgEvents = Object.entries(userData.organizationEvents).reduce((acc, [id, event]) => {
-            // Round the times for each event
-            const processedEvent = processEventWithRoundedTimes(event);
-            acc[id] = {
-              ...processedEvent,
-              // Add notMemberOrOwner flag if the event isn't in user's events
-              notMemberOrOwner: !userEventIds.has(id)
-            };
-            return acc;
-          }, {});
-          
-          // Replace events with processed organization events
-          userData.events = processedOrgEvents;
-        } else if (userData.events) {
-          // Process regular events if no organization events
+        console.log('Auth response received:', {
+          hasOrgEvents: !!userData.organizationEvents,
+          eventCount: Object.keys(userData.events || {}).length,
+          currentUrl: router.asPath // Log current URL
+        });
+
+        if (userData.organizationEvents) {
+          userData.events = userData.organizationEvents;
+        }
+
+        // Process events
+        if (userData.events) {
           userData.events = Object.entries(userData.events).reduce((acc, [id, event]) => {
             acc[id] = processEventWithRoundedTimes(event);
             return acc;
           }, {});
         }
 
-        const eventIds = Object.keys(userData.events);
-
         setUser(userData);
-        setLoading(false);
 
-        if (!router.query.eventId && eventIds.length > 0) {
+        // Handle event selection
+        const currentEventId = router.query.eventId;
+        console.log('Checking event selection:', {
+          currentEventId,
+          eventExists: currentEventId && userData.events[currentEventId],
+          availableEvents: Object.keys(userData.events || {})
+        });
+
+        if (currentEventId && userData.events[currentEventId]) {
+          console.log('Setting to requested event:', currentEventId);
+          setSelectedEventId(currentEventId);
+          setSelectedEvent(userData.events[currentEventId]);
+        } else if (!currentEventId && Object.keys(userData.events).length > 0) {
+          console.log('No event ID in URL, redirecting to default');
           const lastVisited = localStorage.getItem('lastVisited');
-          const targetEventId = lastVisited && eventIds.includes(lastVisited) 
+          const targetEventId = lastVisited && userData.events[lastVisited] 
             ? lastVisited 
-            : eventIds[0];
-            
-          const urlParams = new URLSearchParams(window.location.search);
-          const tabParam = urlParams.get('tab') ? `&tab=${urlParams.get('tab')}` : '&tab=Run of Show';
-          await router.push(`/event?eventId=${targetEventId}${tabParam}`);
-          setSelectedEventId(targetEventId);
-          setSelectedEvent(userData.events[targetEventId]);
-          localStorage.setItem('lastVisited', targetEventId);
-        } else if (router.query.eventId && eventIds.includes(router.query.eventId)) {
-          setSelectedEventId(router.query.eventId);
-          setSelectedEvent(userData.events[router.query.eventId]);
-          localStorage.setItem('lastVisited', router.query.eventId);
+            : Object.keys(userData.events)[0];
+          router.push(`/event?eventId=${targetEventId}&tab=Run of Show`);
         }
+
+        setLoading(false);
       } catch (error) {
+        console.error('Authentication error:', error);
         router.push('/signup');
       }
     }
 
     authenticate();
-  }, []);
+  }, [isRouterReady]); // Add isRouterReady to dependencies
 
   useEffect(() => {
+    console.log('Event selection effect triggered:', {
+      hasUser: !!user,
+      eventId,
+      eventExists: user?.events?.[eventId]
+    });
+
     if (user && eventId && user.events[eventId]) {
       const processedEvent = processEventWithRoundedTimes(user.events[eventId]);
       setSelectedEventId(eventId);
