@@ -332,8 +332,9 @@ useEffect(() => {
   const handleInviteChange = async (e) => {
     const { name, value } = e.target;
     setInviteForm(prev => ({ ...prev, [name]: value }));
-    setInviteError('');
-    setInvalidEmail(false);
+    setInviteError(''); // Clear error when user starts typing
+    setInvalidEmail(false); // Clear invalid email state
+    setInviteLoading(false); // Reset any loading state when user is typing
 
     // Check if user exists when email is entered
     if (name === 'email' && value) {
@@ -364,6 +365,11 @@ useEffect(() => {
       return;
     }
 
+    // Don't proceed if there's already an error
+    if (invalidEmail || inviteError) {
+      return;
+    }
+
     setInviteLoading(true);
     try {
       const response = await fetch('https://serenidad.click/hacktime/inviteToEvent', {
@@ -390,7 +396,7 @@ useEffect(() => {
       setSelectedEvent(prev => ({
         ...prev,
         teamMembers: [...(prev.teamMembers || []), {
-          id: data.user.email, // Using email as ID
+          id: data.user.email,
           name: data.user.name,
           email: data.user.email,
           roleDescription: data.user.roleDescription,
@@ -398,13 +404,31 @@ useEffect(() => {
         }]
       }));
 
-      // Close the invite modal
-      setIsInvitingNewUser(false);
+      // Clear the form
+      setInviteForm({ email: '', name: '', roleDescription: '' });
+      setInviteError('');
+      setInvalidEmail(false);
+      
+      // Set button to "Invite Sent" temporarily
+      setInviteLoading('sent');
+      setTimeout(() => {
+        setInviteLoading(false);
+        // Focus back on email input
+        if (emailInputRef.current) {
+          emailInputRef.current.focus();
+        }
+      }, 2000);
+
     } catch (error) {
       setInviteError(error.message);
-    } finally {
-      setInviteLoading(false);
+      setInviteLoading(false); // Reset loading state on error
     }
+  };
+
+  // Add form submit handler
+  const handleFormSubmit = (e) => {
+    e.preventDefault(); // Prevent default form submission
+    handleInviteSubmit();
   };
 
   useEffect(() => {
@@ -1188,12 +1212,11 @@ useEffect(() => {
               {isInvitingNewUser && (
           <div 
             onClick={(e) => {
-              // Only close if clicking the background (not the modal itself)
               if (e.target === e.currentTarget) {
                 setIsInvitingNewUser(false);
-                setInviteForm({ email: '', name: '', roleDescription: '' }); // Reset form
-                setInviteError(''); // Clear any errors
-                setInvalidEmail(false); // Reset invalid email state
+                setInviteForm({ email: '', name: '', roleDescription: '' });
+                setInviteError('');
+                setInvalidEmail(false);
               }
             }}
             style={{
@@ -1207,8 +1230,8 @@ useEffect(() => {
               backgroundColor: "rgba(0, 0, 0, 0.5)"
             }}
           >
-            <div style={{maxWidth: 500, width: "100%", padding: 32, backgroundColor: "#fff", borderRadius: "8px"}}>
-              <p style={{margin: 0, fontWeight: "bold", fontSize: "24px", marginBottom: "16px"}}>Invite to Event</p>
+            <form onSubmit={handleFormSubmit} style={{maxWidth: 500, width: "100%", padding: 32, backgroundColor: "#fff", borderRadius: "8px"}}>
+              <p style={{margin: 0, fontWeight: "bold", fontSize: "24px", marginBottom: "16px"}}>Invite to Run of Show</p>
               
               {inviteError && (
                 <div style={{
@@ -1230,7 +1253,7 @@ useEffect(() => {
                     name="email"
                     value={inviteForm.email}
                     onChange={handleInviteChange}
-                    placeholder="Enter email address"
+                    placeholder="marsha@mellow.co"
                     style={{
                       padding: "8px",
                       border: `1px solid ${invalidEmail ? '#ff0000' : '#D0D7DE'}`,
@@ -1242,14 +1265,13 @@ useEffect(() => {
                   />
                 </div>
 
-                
                 <div style={{display: "flex", flexDirection: "column", width: "100%"}}>
                   <label style={{color: "gray", marginBottom: "8px", display: "block"}}>Name</label>
                   <input
                     name="name"
                     value={inviteForm.name}
                     onChange={handleInviteChange}
-                    placeholder="Enter full name"
+                    placeholder="Marsha Mellow"
                     style={{
                       padding: "8px",
                       border: "1px solid #D0D7DE",
@@ -1266,7 +1288,7 @@ useEffect(() => {
                   name="roleDescription"
                   value={inviteForm.roleDescription}
                   onChange={handleInviteChange}
-                  placeholder="Enter team member's role"
+                  placeholder="operations lead"
                   style={{
                     padding: "8px",
                     border: "1px solid #D0D7DE",
@@ -1277,23 +1299,27 @@ useEffect(() => {
               </div>
 
               <button 
-                onClick={handleInviteSubmit}
-                disabled={inviteLoading || !inviteForm.email || !inviteForm.name}
+                type="submit"
+                disabled={inviteLoading === true || (!inviteForm.email || !inviteForm.name)}
                 style={{
                   width: "100%",
-                  background: inviteLoading || !inviteForm.email || !inviteForm.name ? '#666' : 'black',
+                  background: inviteLoading === 'sent' ? '#4CAF50' : // Green when sent
+                             inviteLoading === true || (!inviteForm.email && !inviteForm.name) ? '#666' : 
+                             'black',
                   color: "white",
                   padding: "12px",
                   borderRadius: "8px",
                   border: "none",
-                  cursor: inviteLoading || !inviteForm.email || !inviteForm.name ? 'default' : 'pointer',
-                  marginBottom: "16px"
+                  cursor: inviteLoading === true || (!inviteForm.email && !inviteForm.name) ? 'default' : 'pointer',
+                  marginBottom: "16px",
+                  transition: 'background-color 0.3s ease' // Smooth transition for color change
                 }}
               >
-                {inviteLoading ? "Sending..." : "Send Invitation"}
+                {inviteLoading === true ? "Sending..." : 
+                 inviteLoading === 'sent' ? "Invite Sent!" : 
+                 "Send Invitation"}
               </button>
-
-            </div>
+            </form>
           </div>
         )}
  
