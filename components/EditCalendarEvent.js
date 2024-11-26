@@ -18,15 +18,30 @@ const isWithinEventBounds = (newTime, eventStart, eventEnd) => {
   return newDate >= startDate && newDate <= endDate;
 };
   
-export const editCalendar = (selectedCalendarEvent, handleDeleteConfirmation, setSelectedCalendarEvent, setSelectedEvent, handleEventTitleUpdate, formatTime, timeStringToDateok, handleTimeUpdate, MAX_DURATION, selectedEventId, selectedEvent, handleColorUpdate, animatingColor) => {
-    const timeStringToDate = (timeString, baseDate) => {
-        const [hours, minutes] = timeString.split(':');
-        const newDate = new Date(baseDate);
-        newDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-        return newDate;
-      }; 
+export const EditCalendarEvent = ({ 
+  selectedCalendarEvent, 
+  handleDeleteConfirmation, 
+  setSelectedCalendarEvent, 
+  setSelectedEvent, 
+  handleEventTitleUpdate, 
+  formatTime, 
+  timeStringToDateok, 
+  handleTimeUpdate, 
+  MAX_DURATION, 
+  selectedEventId, 
+  selectedEvent, 
+  handleColorUpdate, 
+  animatingColor 
+}) => {
+  const [tagPulseActive, setTagPulseActive] = useState(false);
   
-  // Add this function inside editCalendar component with access to props
+  const timeStringToDate = (timeString, baseDate) => {
+    const [hours, minutes] = timeString.split(':');
+    const newDate = new Date(baseDate);
+    newDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+    return newDate;
+  }; 
+  
   const tryAutoTag = async (title) => {
     try {
       const response = await fetch('https://serenidad.click/hacktime/autotag', {
@@ -71,6 +86,9 @@ export const editCalendar = (selectedCalendarEvent, handleDeleteConfirmation, se
               evt.id === selectedCalendarEvent.id ? { ...evt, tag: data.tag } : evt
             )
           }));
+
+          setTagPulseActive(true);
+          setTimeout(() => setTagPulseActive(false), 750);
         }
       }
     } catch (error) {
@@ -385,7 +403,7 @@ export const editCalendar = (selectedCalendarEvent, handleDeleteConfirmation, se
               style={{
                 padding: "4px 8px",
                 backgroundColor: "#fff",
-                outline: "1px solid rgb(235, 235, 235)",
+                outline: tagPulseActive ? "1px solid rgba(142, 8, 164, 0.6)" : "1px solid rgb(235, 235, 235)",
                 borderRadius: 4,
                 fontSize: 16,
                 border: "none",
@@ -396,7 +414,8 @@ export const editCalendar = (selectedCalendarEvent, handleDeleteConfirmation, se
                 backgroundPosition: "right 8px center",
                 backgroundSize: "16px",
                 paddingRight: "28px",
-                flex: "1"
+                flex: "1",
+                transition: "outline 0.25s ease"
               }}
             >
               <option value="Untagged">Select Tag</option>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { TaskCard } from './TaskCard';
-import { editCalendar } from './EditCalendarEvent'
+import { EditCalendarEvent } from './EditCalendarEvent'
 const COLORS = [
     "2,147,212",
     "218,128,0",
@@ -1140,7 +1140,21 @@ export const RunOfShow = ({
                         const previewDuration = (new Date(selectedCalendarEvent.endTime) - new Date(selectedCalendarEvent.startTime)) / (1000 * 60 * 60);
                         return (
                           <div style={{marginLeft: 24, position: "relative", marginTop: 0, padding: 8, height: previewDuration * (scrollNumber + 1) - 48}}>
-                            {editCalendar(selectedCalendarEvent, handleDeleteConfirmation, setSelectedCalendarEvent, setSelectedEvent, handleEventTitleUpdate, formatTime, timeStringToDate, handleTimeUpdate, MAX_DURATION, selectedEventId, selectedEvent, handleColorUpdate, animatingColor)}
+                            <EditCalendarEvent
+                              selectedCalendarEvent={selectedCalendarEvent}
+                              handleDeleteConfirmation={handleDeleteConfirmation}
+                              setSelectedCalendarEvent={setSelectedCalendarEvent}
+                              setSelectedEvent={setSelectedEvent}
+                              handleEventTitleUpdate={handleEventTitleUpdate}
+                              formatTime={formatTime}
+                              timeStringToDateok={timeStringToDate}
+                              handleTimeUpdate={handleTimeUpdate}
+                              MAX_DURATION={MAX_DURATION}
+                              selectedEventId={selectedEventId}
+                              selectedEvent={selectedEvent}
+                              handleColorUpdate={handleColorUpdate}
+                              animatingColor={animatingColor}
+                            />
                             <div 
                               onClick={(e) => {
                                 // Don't deselect if clicking on the contentEditable field
@@ -1695,7 +1709,21 @@ export const RunOfShow = ({
                         const previewDuration = (new Date(selectedCalendarEvent.endTime) - new Date(selectedCalendarEvent.startTime)) / (1000 * 60 * 60);
                         return (
                           <div style={{marginLeft: -4, position: "relative", marginTop: 0, padding: 8, height: previewDuration * (scrollNumber + 1) - 48}}>
-                                                        {editCalendar(selectedCalendarEvent, handleDeleteConfirmation, setSelectedCalendarEvent, setSelectedEvent, handleEventTitleUpdate, formatTime, timeStringToDate, handleTimeUpdate, MAX_DURATION, selectedEventId, selectedEvent, handleColorUpdate, animatingColor)}
+                            <EditCalendarEvent
+                              selectedCalendarEvent={selectedCalendarEvent}
+                              handleDeleteConfirmation={handleDeleteConfirmation}
+                              setSelectedCalendarEvent={setSelectedCalendarEvent}
+                              setSelectedEvent={setSelectedEvent}
+                              handleEventTitleUpdate={handleEventTitleUpdate}
+                              formatTime={formatTime}
+                              timeStringToDateok={timeStringToDate}
+                              handleTimeUpdate={handleTimeUpdate}
+                              MAX_DURATION={MAX_DURATION}
+                              selectedEventId={selectedEventId}
+                              selectedEvent={selectedEvent}
+                              handleColorUpdate={handleColorUpdate}
+                              animatingColor={animatingColor}
+                            />
 
                             {/* <div style={{position: "absolute", cursor: "auto", left: 200, borderRadius: 8, width: 400, backgroundColor: "#fff"}}>
                               <div style={{width: "calc(100% - 24px)", borderRadius: "16px 16px 0px 0px", paddingTop: 8, paddingBottom: 8, justifyContent: "space-between", paddingLeft: 16, paddingRight: 8, alignItems: "center", display: "flex", backgroundColor: "#F6F8FA"}}>
