@@ -455,7 +455,8 @@ useEffect(() => {
       if (
         e.key === '+' && 
         document.activeElement.tagName !== 'INPUT' && 
-        document.activeElement.tagName !== 'TEXTAREA'
+        document.activeElement.tagName !== 'TEXTAREA' &&
+        !document.activeElement.hasAttribute('contenteditable')
       ) {
         e.preventDefault(); // Prevent the '+' from being typed
         setIsInvitingNewUser(true);

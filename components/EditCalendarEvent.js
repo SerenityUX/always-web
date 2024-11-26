@@ -25,6 +25,59 @@ export const editCalendar = (selectedCalendarEvent, handleDeleteConfirmation, se
         newDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
         return newDate;
       }; 
+  
+  // Add this function inside editCalendar component with access to props
+  const tryAutoTag = async (title) => {
+    try {
+      const response = await fetch('https://serenidad.click/hacktime/autotag', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title,
+          availableTags: selectedEvent?.availableTags || []  // Now selectedEvent is in scope
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.tag) {
+        const updateResponse = await fetch('https://serenidad.click/hacktime/updateCalendarEvent', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            token: localStorage.getItem('token'),
+            calendarEventId: selectedCalendarEvent.id,
+            startTime: selectedCalendarEvent.startTime,
+            endTime: selectedCalendarEvent.endTime,
+            title: selectedCalendarEvent.title,
+            color: selectedCalendarEvent.color,
+            tag: data.tag
+          }),
+        });
+
+        if (updateResponse.ok) {
+          setSelectedCalendarEvent(prev => ({
+            ...prev,
+            tag: data.tag
+          }));
+          
+          setSelectedEvent(prev => ({
+            ...prev,
+            calendar_events: prev.calendar_events.map(evt => 
+              evt.id === selectedCalendarEvent.id ? { ...evt, tag: data.tag } : evt
+            )
+          }));
+        }
+      }
+    } catch (error) {
+      console.error('Auto-tag error:', error);
+    }
+  };
+  
     return <div style={{ position: "absolute", cursor: "auto", left: 200, borderRadius: 8, width: 400, backgroundColor: "#fff" }}>
       <div style={{ width: "calc(100% - 24px)", borderRadius: "16px 16px 0px 0px", paddingTop: 8, paddingBottom: 8, justifyContent: "space-between", paddingLeft: 16, paddingRight: 8, alignItems: "center", display: "flex", backgroundColor: "#F6F8FA" }}>
         <p
@@ -64,6 +117,11 @@ export const editCalendar = (selectedCalendarEvent, handleDeleteConfirmation, se
                 )
               }));
               handleEventTitleUpdate(selectedCalendarEvent.id, newTitle);
+              
+              // Try to auto-tag if no tag is currently set
+              if (!selectedCalendarEvent.tag) {
+                tryAutoTag(newTitle);
+              }
             }
           } }
           onKeyDown={(e) => {
