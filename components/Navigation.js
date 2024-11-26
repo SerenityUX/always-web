@@ -112,10 +112,10 @@ export default function Navigation({
   }, []);
 
   const navItems = [
-    "Run of Show",
-    "Schedule",
-    "Announcements",
-    "Team"
+    { name: "Run of Show", icon: "/runOfShow.svg" },
+    { name: "Schedule", icon: "/Schedule.svg" },
+    { name: "Announcements", icon: "/Announcements.svg" },
+    { name: "Team", icon: "/Team.svg" }
   ];
 
   const handleTabClick = (item) => {
@@ -910,27 +910,39 @@ export default function Navigation({
         <div style={{display: "flex", gap: 24, paddingLeft: 32, paddingTop: 12, paddingRight: 32}}>
           {navItems.map((item) => (
             <div 
-              key={item}
+              key={item.name}
               style={{
                 paddingBottom: 8,
-                borderBottom: selectedTab === item ? "2px solid #59636E" : "none"
+                borderBottom: selectedTab === item.name ? "2px solid #59636E" : "none"
               }}
-              onClick={() => handleTabClick(item)}
+              onClick={() => handleTabClick(item.name)}
             >
-              <h2 
+              <div 
                 className="nav-item" 
                 style={{
                   margin: 0, 
                   padding: "4px 6px",
                   borderRadius: 6,
-                  color: selectedTab === item ? "rgba(0, 0, 0, 0.9)" : "rgba(0, 0, 0, 0.5)", 
+                  color: selectedTab === item.name ? "rgba(0, 0, 0, 0.7)" : "rgba(0, 0, 0, 0.4)", 
                   fontSize: 16, 
-                  fontWeight: 500,
-                  cursor: "pointer"
+                  fontWeight: selectedTab === item.name ? 600 : 500,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px"
                 }}
               >
-                {item}
-              </h2>
+                <img 
+                  src={item.icon}
+                  alt={`${item.name} icon`}
+                  style={{
+                    width: "14px",
+                    height: "14px",
+                    opacity: selectedTab === item.name ? 0.7 : 0.4
+                  }}
+                />
+                {item.name}
+              </div>
             </div>
           ))}
         </div>}
