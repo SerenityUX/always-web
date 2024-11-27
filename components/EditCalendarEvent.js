@@ -10,6 +10,17 @@ const COLORS = [
     "89,89,89"
   ];
   
+// Add this mapping for tag-to-color
+const TAG_COLORS = {
+    "Activity": "8,164,42",    // Green
+    "Deadline": "190,58,44",   // Red
+    "Meal": "218,128,0",       // Orange
+    "Workshop": "142,8,164",   // Purple
+    // Add more mappings as needed
+};
+
+const DEFAULT_COLOR = "2,147,212"; // Blue
+  
 // Add this helper function at the top
 const isWithinEventBounds = (newTime, eventStart, eventEnd) => {
   const newDate = new Date(newTime);
@@ -51,13 +62,15 @@ export const EditCalendarEvent = ({
         },
         body: JSON.stringify({
           title,
-          availableTags: selectedEvent?.availableTags || []  // Now selectedEvent is in scope
+          availableTags: selectedEvent?.availableTags || []
         }),
       });
 
       const data = await response.json();
       
       if (data.tag) {
+        const autoColor = TAG_COLORS[data.tag] || DEFAULT_COLOR;
+        
         const updateResponse = await fetch('https://serenidad.click/hacktime/updateCalendarEvent', {
           method: 'POST',
           headers: {
@@ -68,8 +81,8 @@ export const EditCalendarEvent = ({
             calendarEventId: selectedCalendarEvent.id,
             startTime: selectedCalendarEvent.startTime,
             endTime: selectedCalendarEvent.endTime,
-            title: selectedCalendarEvent.title,
-            color: selectedCalendarEvent.color,
+            title: title,
+            color: autoColor,
             tag: data.tag
           }),
         });
@@ -77,13 +90,17 @@ export const EditCalendarEvent = ({
         if (updateResponse.ok) {
           setSelectedCalendarEvent(prev => ({
             ...prev,
-            tag: data.tag
+            title: title,
+            tag: data.tag,
+            color: autoColor
           }));
           
           setSelectedEvent(prev => ({
             ...prev,
             calendar_events: prev.calendar_events.map(evt => 
-              evt.id === selectedCalendarEvent.id ? { ...evt, tag: data.tag } : evt
+              evt.id === selectedCalendarEvent.id 
+                ? { ...evt, title: title, tag: data.tag, color: autoColor }
+                : evt
             )
           }));
 
@@ -121,7 +138,7 @@ export const EditCalendarEvent = ({
           } }
           contentEditable
           suppressContentEditableWarning
-          onBlur={(e) => {
+          onBlur={async (e) => {
             const newTitle = e.target.innerText.trim();
             if (newTitle !== selectedCalendarEvent.title) {
               // Update both states immediately for a smoother UI experience
@@ -131,15 +148,19 @@ export const EditCalendarEvent = ({
               }));
               setSelectedEvent(prev => ({
                 ...prev,
-                calendar_events: prev.calendar_events.map(evt => evt.id === selectedCalendarEvent.id ? { ...evt, title: newTitle } : evt
+                calendar_events: prev.calendar_events.map(evt => 
+                  evt.id === selectedCalendarEvent.id 
+                    ? { ...evt, title: newTitle } 
+                    : evt
                 )
               }));
-              handleEventTitleUpdate(selectedCalendarEvent.id, newTitle);
-              
-              // Try to auto-tag if no tag is currently set
-              if (!selectedCalendarEvent.tag) {
-                tryAutoTag(newTitle);
-              }
+
+              // Make both calls in parallel
+              await Promise.all([
+                handleEventTitleUpdate(selectedCalendarEvent.id, newTitle),
+                // Try to auto-tag if no tag is currently set
+                !selectedCalendarEvent.tag ? tryAutoTag(newTitle) : Promise.resolve()
+              ]);
             }
           } }
           onKeyDown={(e) => {
