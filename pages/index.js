@@ -138,7 +138,10 @@ export default function Landing() {
               <div style={{ whiteSpace: "nowrap" }}>Run of Show</div>
               <div style={{ whiteSpace: "nowrap" }}><i>always</i> in your</div>
               <div style={{ whiteSpace: "nowrap" }}>team's hands</div>
-              <div 
+              <div style={{display: 'flex', 
+                                flexDirection: isMobile ? "column" : "row"
+                , marginTop: 32, gap: 16}}>
+                              <div 
                 onClick={() => window.location.href = 'https://cal.com/always-run-of-show/demo'}
                 style={{
                   fontSize: 32, 
@@ -148,7 +151,6 @@ export default function Landing() {
                   cursor: "pointer",
                   fontFamily: "GT-Flaire-Variable, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
                   fontVariationSettings: "'wght' 500, 'FLAR' 30, 'slnt' 0",
-                  marginTop: 32, 
                   backgroundColor: "#492802", 
                   width: 250, 
                   paddingTop: 16, 
@@ -159,6 +161,29 @@ export default function Landing() {
               >
                 Book a Demo
               </div>
+
+              <div 
+                onClick={() => window.location.href = '/signup'}
+                style={{
+                  fontSize: 32, 
+                  justifyContent: "center", 
+                  alignItems: "center", 
+                  display: "flex", 
+                  cursor: "pointer",
+                  fontFamily: "GT-Flaire-Variable, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+                  fontVariationSettings: "'wght' 500, 'FLAR' 30, 'slnt' 0",
+                  border: "2px solid #492802", 
+                  width: 250, 
+                  paddingTop: 16, 
+                  paddingBottom: 16, 
+                  color: "#492802", 
+                  borderRadius: 16,
+                }}
+              >
+                Signup
+              </div>
+              </div>
+
             </div>
           </div>
           <img 
