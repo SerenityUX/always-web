@@ -552,7 +552,7 @@ export const editTaskModal = (user, handleDeleteTask, task, titleInputRef, local
               }}
               placeholder="Add a note..."
               style={{
-                padding: isNoteFocused ? "24px" : "8px",
+                padding: isNoteFocused ? "8px" : "8px",
                 border: "none",
                 outline: "none",
                 fontFamily: "inherit",
