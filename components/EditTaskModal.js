@@ -1,4 +1,5 @@
 import CustomDateTimeSelect from './CustomDateTimeSelect';
+import { useState } from 'react';
 
 const getInitials = (name) => {
     return name
@@ -9,7 +10,7 @@ const getInitials = (name) => {
       .slice(0, 2);
   };
   
-export const editTaskModal = (user, handleDeleteTask, task, titleInputRef, localTitle, setLocalTitle, setSelectedTask, setEditingTaskTitle, handleTaskUpdate, formattedStartTime, taskStart, taskEnd, formattedEndTime, setSelectedEvent, dropdownTriggerRef, selectedEvent, localDescription, setLocalDescription, setEditingTaskDescription) => {
+export const editTaskModal = (user, handleDeleteTask, task, titleInputRef, localTitle, setLocalTitle, setSelectedTask, setEditingTaskTitle, handleTaskUpdate, formattedStartTime, taskStart, taskEnd, formattedEndTime, setSelectedEvent, dropdownTriggerRef, selectedEvent, localDescription, setLocalDescription, setEditingTaskDescription, isNoteFocused, setIsNoteFocused) => {
     return <div style={{ position: "absolute", fontSize: "16", cursor: "auto", top: 16, left: 228, borderRadius: 8, width: 300, backgroundColor: "#fff" }}>
       <div style={{ width: "calc(100% - 24px)", borderRadius: "16px 16px 0px 0px", paddingTop: 8, paddingBottom: 8, justifyContent: "space-between", paddingLeft: 16, paddingRight: 8, alignItems: "center", display: "flex", backgroundColor: "#F6F8FA" }}>
         <p onClick={() => console.log(user)} style={{ margin: 0, fontSize: 14 }}>Edit Task</p>
@@ -171,224 +172,30 @@ export const editTaskModal = (user, handleDeleteTask, task, titleInputRef, local
             </div>
           </div>
         </div>
-        {selectedEvent?.buildings?.length > 0 && selectedEvent.buildings.some(b => b.rooms.length > 0) && (
-          <div style={{
-            padding: 8, 
-            gap: 8, 
-            border: "1px solid #EBEBEB", 
-            borderRadius: 4, 
-            backgroundColor: "rgba(0, 0, 0, 0.00)", 
-            display: "flex", 
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between"
-          }}>
-            <select
-              value={task.location || ""}
-              onChange={async (e) => {
-                const locationId = e.target.value || null;
-                
-                try {
-                  const response = await handleTaskUpdate(task.id, {
-                    location: locationId
-                  });
-
-                  // Update local state
-                  setSelectedTask(prev => ({
-                    ...prev,
-                    location: locationId
-                  }));
-
-                  setSelectedEvent(prev => ({
-                    ...prev,
-                    tasks: prev.tasks.map(t => 
-                      t.id === task.id 
-                        ? { ...t, location: locationId }
-                        : t
-                    )
-                  }));
-
-                } catch (error) {
-                  console.error('Failed to update location:', error);
-                  alert(error.message);
-                }
-              }}
-              style={{
-                padding: "4px 8px",
-                backgroundColor: "#fff",
-                outline: "1px solid rgb(235, 235, 235)",
-                borderRadius: 4,
-                fontSize: 16,
-                border: "none",
-                cursor: "pointer",
-                appearance: "none",
-                backgroundImage: "url('./icons/chevron-down.svg')",
-                backgroundRepeat: "no-repeat",
-                backgroundPosition: "right 8px center",
-                backgroundSize: "16px",
-                paddingRight: "28px",
-                flex: "1"
-              }}
-            >
-              <option value="">Select Location</option>
-              {selectedEvent.buildings.map((building) => (
-                <optgroup key={building.buildingId} label={building.buildingName}>
-                  {building.rooms.map((room) => (
-                    <option key={room.roomId} value={room.roomId}>
-                      {room.roomName}
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
-          </div>
-        )}
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <p style={{ margin: 0, fontSize: 14, color: "#666" }}>Assigned To</p>
-  
-          {/* List current assignments */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {task.assignedTo.map((person, index) => (
-              <div key={index} style={{
-                display: "flex",
-                alignItems: "center",
-                padding: "8px",
-                backgroundColor: "#F6F8FA",
-                borderRadius: "8px",
-                gap: "8px"
-              }}>
-                <div style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 16,
-                  backgroundColor: person.profilePicture ? "transparent" : "#666",
-                  backgroundImage: person.profilePicture ? `url(${person.profilePicture})` : "none",
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "#EBEBEB",
-                  fontSize: "12px",
-                  fontWeight: 500,
-                  flexShrink: 0
-                }}>
-                  {!person.profilePicture && getInitials(person.name)}
-                </div>
-                <div style={{
-                  flex: 1,
-                  minWidth: 0
-                }}>
-                  <p style={{
-                    margin: 0,
-                    fontSize: 14,
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis"
-                  }}>{person.name}</p>
-                  <p style={{
-                    margin: 0,
-                    fontSize: 12,
-                    color: "#666",
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis"
-                  }}>{person.email}</p>
-                </div>
-                <img
-                  onClick={async (e) => {
-                    e.stopPropagation();
-                    if (window.confirm(`Remove ${person.name} from this task?`)) {
-                      try {
-                        const response = await fetch('https://serenidad.click/hacktime/unassignEventTask', {
-                          method: 'POST',
-                          headers: {
-                            'Content-Type': 'application/json',
-                          },
-                          body: JSON.stringify({
-                            token: localStorage.getItem('token'),
-                            taskId: task.id,
-                            userEmailToRemove: person.email
-                          }),
-                        });
-  
-                        // console.log(task.id, person.email)
-                        if (!response.ok) {
-                          throw new Error('Failed to unassign user');
-                        }
-  
-                        const updatedTask = await response.json();
-  
-                        // Update local state
-                        setSelectedTask(prev => ({
-                          ...prev,
-                          assignedTo: updatedTask.assignedTo
-                        }));
-  
-                        // Update the event's tasks array
-                        setSelectedEvent(prev => ({
-                          ...prev,
-                          tasks: prev.tasks.map(t => t.id === task.id ? { ...t, assignedTo: updatedTask.assignedTo } : t
-                          )
-                        }));
-                      } catch (error) {
-                        console.error('Failed to unassign user:', error);
-                        alert('Failed to unassign user');
-                      }
-                    }
-                  } }
-                  src="/icons/trash.svg"
-                  style={{
-                    width: 20,
-                    height: 20,
-                    cursor: "pointer",
-                    opacity: 0.5,
-                    transition: "opacity 0.2s",
-                    flexShrink: 0
-                  }}
-                  onMouseOver={e => e.target.style.opacity = 1}
-                  onMouseOut={e => e.target.style.opacity = 0.5} />
-              </div>
-            ))}
-          </div>
-  
-          {/* Add new assignment */}
-          <div
-            ref={dropdownTriggerRef}
-            style={{
-              padding: "8px",
-              border: "1px dashed #666",
-              borderRadius: "8px",
-              cursor: "pointer",
-              transition: "background-color 0.2s",
-              position: "relative"
-            }}
+        <div style={{ display: "flex", fontSize: 14, justifyContent: "space-between", gap: 8, flexDirection: "row" }}>
+          <div style={{width: "100%", display: "flex", flexDirection: "column", gap: 8}}>
+          <div style={{padding: 6, cursor: "pointer", border: "1px solid #EBEBEB", borderRadius: 8, gap: 8, display: "flex", gap: 12, flexDirection: "column"}}
             onClick={(event) => {
               event.stopPropagation();
-  
-              // Get trigger element position
-              const triggerElement = event.currentTarget;
-              const triggerRect = triggerElement.getBoundingClientRect();
-  
-              // Show dropdown of available team members
-              const availableMembers = selectedEvent.teamMembers
-                .filter(member => !task?.assignedTo?.some(assigned => assigned.email === member.email));
-  
-              // Always add current user if not already assigned
-              if (user && !task?.assignedTo?.some(assigned => assigned.email === user.email)) {
-                // Add user at the beginning of the list
-                availableMembers.unshift({
+
+              // Get all team members and add current user if not already in list
+              let allMembers = [...selectedEvent.teamMembers];
+              if (user && !allMembers.some(member => member.email === user.email)) {
+                allMembers.unshift({
                   email: user.email,
                   name: user.name,
                   profilePicture: user.profile_picture_url
                 });
               }
-  
-              if (availableMembers.length === 0) {
-                alert('All team members are already assigned to this task');
-                return;
-              }
-  
+
+              // Split into assigned and unassigned members
+              const assignedMembers = allMembers.filter(member => 
+                task?.assignedTo?.some(assigned => assigned.email === member.email)
+              );
+              const unassignedMembers = allMembers.filter(member => 
+                !task?.assignedTo?.some(assigned => assigned.email === member.email)
+              );
+
               // Create and show dropdown
               const dropdown = document.createElement('div');
               dropdown.style.position = 'absolute';
@@ -396,20 +203,23 @@ export const editTaskModal = (user, handleDeleteTask, task, titleInputRef, local
               dropdown.style.border = '1px solid #D0D7DE';
               dropdown.style.borderRadius = '8px';
               dropdown.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
-              dropdown.style.maxHeight = '200px';
+              dropdown.style.maxHeight = '300px';
               dropdown.style.overflowY = 'auto';
               dropdown.style.width = '268px';
               dropdown.style.zIndex = '1000';
-  
-              availableMembers.forEach(member => {
+
+              // Helper function to create member option
+              const createMemberOption = (member, isAssigned) => {
                 const option = document.createElement('div');
                 option.style.padding = '8px';
                 option.style.display = 'flex';
                 option.style.alignItems = 'center';
                 option.style.gap = '8px';
                 option.style.cursor = 'pointer';
-                option.style.transition = 'background-color 0.2s';
-  
+                option.style.transition = 'all 0.2s';
+                option.style.backgroundColor = isAssigned ? '#F6F8FA' : 'transparent';
+                option.style.borderLeft = `4px solid ${isAssigned ? '#D73A49' : 'transparent'}`;
+
                 const avatar = document.createElement('div');
                 avatar.style.width = '32px';
                 avatar.style.height = '32px';
@@ -421,139 +231,360 @@ export const editTaskModal = (user, handleDeleteTask, task, titleInputRef, local
                 avatar.style.display = 'flex';
                 avatar.style.alignItems = 'center';
                 avatar.style.justifyContent = 'center';
-                avatar.style.color = '#EBEBEB';
+                avatar.style.color = '#fff';
                 avatar.style.fontSize = '12px';
                 avatar.style.fontWeight = '500';
-  
+
                 if (!member.profilePicture) {
                   avatar.textContent = getInitials(member.name);
                 }
-  
+
                 const info = document.createElement('div');
+                info.style.flex = '1';
                 info.innerHTML = `
-                                                                  <p style="margin: 0; font-size: 14px">${member.name}</p>
-                                                                  <p style="margin: 0; font-size: 12px; color: #666">${member.email}</p>
-                                                                `;
-  
+                  <p style="margin: 0; font-size: 14px">${member.name}</p>
+                  <p style="margin: 0; font-size: 12px; color: #666">${member.email}</p>
+                `;
+
                 option.appendChild(avatar);
                 option.appendChild(info);
-  
+
                 option.onmouseover = () => {
                   option.style.backgroundColor = '#F6F8FA';
                 };
                 option.onmouseout = () => {
                   option.style.backgroundColor = 'transparent';
                 };
-  
+
                 option.onclick = async () => {
                   try {
-                    const response = await fetch('https://serenidad.click/hacktime/assignEventTask', {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json',
-                      },
-                      body: JSON.stringify({
-                        token: localStorage.getItem('token'),
-                        eventId: selectedEvent.id, // Add the eventId
-                        taskId: task.id,
-                        assigneeEmail: member.email
-                      }),
-                    });
-  
-                    const data = await response.json();
-  
-                    if (!response.ok) {
-                      throw new Error(data.error || 'Failed to assign user');
+                    if (isAssigned) {
+                      // Unassign user
+                      const response = await fetch('https://serenidad.click/hacktime/unassignEventTask', {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                          token: localStorage.getItem('token'),
+                          taskId: task.id,
+                          userEmailToRemove: member.email
+                        }),
+                      });
+
+                      const data = await response.json();
+                      
+                      if (!response.ok) {
+                        throw new Error(data.error || 'Failed to unassign user');
+                      }
+
+                      // Update local state to remove the user
+                      setSelectedTask(prev => ({
+                        ...prev,
+                        assignedTo: prev.assignedTo.filter(a => a.email !== member.email)
+                      }));
+
+                      setSelectedEvent(prev => ({
+                        ...prev,
+                        tasks: prev.tasks.map(t => 
+                          t.id === task.id 
+                            ? { ...t, assignedTo: t.assignedTo.filter(a => a.email !== member.email) }
+                            : t
+                        )
+                      }));
+
+                    } else {
+                      // Assign user
+                      const response = await fetch('https://serenidad.click/hacktime/assignEventTask', {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                          token: localStorage.getItem('token'),
+                          eventId: selectedEvent.id,
+                          taskId: task.id,
+                          assigneeEmail: member.email
+                        }),
+                      });
+
+                      const data = await response.json();
+
+                      if (!response.ok) {
+                        throw new Error(data.error || 'Failed to assign user');
+                      }
+
+                      // Update local state to add the user
+                      setSelectedTask(prev => ({
+                        ...prev,
+                        assignedTo: [...prev.assignedTo, member]
+                      }));
+
+                      setSelectedEvent(prev => ({
+                        ...prev,
+                        tasks: prev.tasks.map(t => 
+                          t.id === task.id 
+                            ? { ...t, assignedTo: [...t.assignedTo, member] }
+                            : t
+                        )
+                      }));
                     }
-  
-                    // Update local state with the response data
-                    setSelectedTask(prev => ({
-                      ...prev,
-                      assignedTo: [...prev.assignedTo, member]
-                    }));
-  
-                    // Update the event's tasks array
-                    setSelectedEvent(prev => ({
-                      ...prev,
-                      tasks: prev.tasks.map(t => t.id === task.id
-                        ? { ...t, assignedTo: [...t.assignedTo, member] }
-                        : t
-                      )
-                    }));
-  
+
+                    // Just remove the dropdown without trying to reopen it
                     dropdown.remove();
+                    
                   } catch (error) {
-                    console.error('Failed to assign user:', error);
+                    console.error('Failed to update assignment:', error);
                     alert(error.message);
                   }
                 };
-  
+
                 dropdown.appendChild(option);
-              });
-  
-              // Position dropdown below the "Add" button
-              const rect = event.target.getBoundingClientRect();
+              };
+
+              // Add assigned members
+              assignedMembers.forEach(member => createMemberOption(member, true));
+
+              // Add unassigned members
+              unassignedMembers.forEach(member => createMemberOption(member, false));
+
+              // Position dropdown below the assignees section
+              const rect = event.currentTarget.getBoundingClientRect();
               dropdown.style.top = `${rect.bottom + window.scrollY + 4}px`;
               dropdown.style.left = `${rect.left + window.scrollX}px`;
-  
+
               // Add click outside handler
               const handleClickOutside = (e) => {
-                if (!dropdown.contains(e.target) && e.target !== event.target) {
+                if (!dropdown.contains(e.target) && e.target !== event.currentTarget) {
                   dropdown.remove();
                   document.removeEventListener('click', handleClickOutside);
                 }
               };
-  
+
               document.addEventListener('click', handleClickOutside);
               document.body.appendChild(dropdown);
-            } }
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "center" }}>
-              <img src="/icons/plus.svg" style={{ width: 20, height: 20, opacity: 0.5 }} />
-              <p style={{ margin: 0, fontSize: 14, color: "#666" }}>Add team member</p>
-            </div>
+            }}>
+            <div style={{display: "flex", alignItems: "center", justifyContent: "space-between"}}>
+              <div style={{ display: "flex", alignItems: "center" }}>
+                {task.assignedTo.slice(0, 4).map((person, index) => (
+                  <div key={index} style={{
+                    marginLeft: index === 0 ? 0 : "-8px",
+                    display: "flex",
+                    alignItems: "center",
+                  }}>
+                    <div style={{
+                      backgroundColor: "#666",
+                      backgroundImage: person.profilePicture ? `url(${person.profilePicture})` : "none",
+                      backgroundSize: "cover",
+                      backgroundPosition: "center",
+                      height: 24,
+                      width: 24,
+                      borderRadius: 12,
+                      border: "1px solid #fff",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "#fff",
+                      fontSize: "12px",
+                      fontWeight: "500",
+                      zIndex: task.assignedTo.length - index
+                    }}>
+                      {!person.profilePicture && getInitials(person.name)}
+                    </div>
+                  </div>
+                ))}
+                {task.assignedTo.length > 4 && (
+                  <div style={{
+                    marginLeft: "-8px",
+                    backgroundColor: "#666",
+                    height: 24,
+                    width: 24,
+                    borderRadius: 12,
+                    border: "1px solid #fff",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#fff",
+                    fontSize: "12px",
+                    fontWeight: "500",
+                    zIndex: 0
+                  }}>
+                    +{task.assignedTo.length - 4}
+                  </div>
+                )}
+              </div>
+              <p style={{margin: 0, fontSize: 10}}>({task.assignedTo.length})</p>
+            </div>           
+            <p style={{margin: 0}}>Assignees</p>
           </div>
-        </div>
-        <textarea
-          value={localDescription}
-          onChange={(e) => {
-            const newDescription = e.target.value;
-            setLocalDescription(newDescription);
-            setSelectedTask(prev => ({
-              ...prev,
-              description: newDescription
-            }));
-            setEditingTaskDescription(newDescription);
-          } }
-          onKeyDown={async (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              e.target.blur();
-            }
-          } }
-          onBlur={async () => {
-            if (localDescription !== task.description) {
-              try {
-                await handleTaskUpdate(task.id, { description: localDescription });
-              } catch (error) {
-                setLocalDescription(task.description || '');
-                setEditingTaskDescription(task.description || '');
+          <div style={{
+            padding: "8px", 
+            cursor: "pointer", 
+            border: "1px solid #EBEBEB", 
+            borderRadius: 8,
+            fontSize: 14 // Smaller font size
+          }}>
+            {selectedEvent?.buildings?.length > 0 && selectedEvent.buildings.some(b => b.rooms.length > 0) ? (
+              <select
+                value={task.location || ""}
+                onChange={async (e) => {
+                  const locationId = e.target.value || null;
+                  
+                  try {
+                    await handleTaskUpdate(task.id, {
+                      location: locationId
+                    });
+
+                    setSelectedTask(prev => ({
+                      ...prev,
+                      location: locationId
+                    }));
+
+                    setSelectedEvent(prev => ({
+                      ...prev,
+                      tasks: prev.tasks.map(t => 
+                        t.id === task.id 
+                          ? { ...t, location: locationId }
+                          : t
+                      )
+                    }));
+
+                  } catch (error) {
+                    console.error('Failed to update location:', error);
+                    alert(error.message);
+                  }
+                }}
+                style={{
+                  width: "100%",
+                  backgroundColor: "transparent",
+                  fontSize: 12,
+                  border: "none",
+                  outline: "none",
+                  cursor: "pointer",
+                  appearance: "none",
+                  backgroundImage: "url('./icons/chevron-down.svg')",
+                  backgroundRepeat: "no-repeat",
+                  backgroundPosition: "right 4px center",
+                  backgroundSize: "12px",
+                  paddingRight: "20px"
+                }}
+              >
+                <option value="">Select Location</option>
+                {selectedEvent.buildings.map((building) => (
+                  <optgroup key={building.buildingId} label={building.buildingName}>
+                    {building.rooms.map((room) => (
+                      <option key={room.roomId} value={room.roomId}>
+                        {room.roomName}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+            ) : (
+              <p style={{margin: 0, fontSize: 12}}>Select Location</p>
+            )}
+          </div>
+          </div>
+          <div style={{
+            width: "100%", 
+            display: 'flex', 
+            flexDirection: "column", 
+            borderRadius: isNoteFocused ? 8 : 4, 
+            overflow: "hidden", 
+            padding: 0, 
+            border: "1px solid #EBEBEB",
+            transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+            position: isNoteFocused ? "absolute" : "relative",
+            top: isNoteFocused ? "0" : "auto",
+            left: isNoteFocused ? "0" : "auto",
+            right: isNoteFocused ? "0" : "auto",
+            bottom: isNoteFocused ? "0" : "auto",
+            zIndex: isNoteFocused ? "1000" : "1",
+            backgroundColor: "#fff",
+            height: isNoteFocused ? "100%" : "auto",
+            transform: isNoteFocused ? "none" : "scale(1)",
+            opacity: 1,
+          }}>
+            <div style={{
+              backgroundColor: "#FFFADD", 
+              borderBottom: "1px solid #EBEBEB", 
+              padding: isNoteFocused ? "8px" : "4px 8px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
+            }}>
+              <p style={{
+                margin: 0, 
+                color: "#5D3C0A",
+                fontSize: isNoteFocused ? "18px" : "14px",
+                fontWeight: isNoteFocused ? "500" : "normal",
+                transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
+              }}>Note Pad</p>
+              <img style={{
+                height: isNoteFocused ? "16px" : "12px",
+                transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
+              }} src="./NotepadIcons.svg"/>
+            </div>
+            <textarea
+              value={localDescription}
+              onChange={(e) => {
+                const newDescription = e.target.value;
+                setLocalDescription(newDescription);
                 setSelectedTask(prev => ({
                   ...prev,
-                  description: task.description || ''
+                  description: newDescription
                 }));
-              }
-            }
-          } }
-          placeholder="Add a note..."
-          style={{
-            padding: "8px",
-            border: "1px solid #D0D7DE",
-            borderRadius: "8px",
-            fontWeight: "400",
-            minHeight: "80px",
-            resize: "vertical"
-          }} />
+              }}
+              onFocus={() => setIsNoteFocused(true)}
+              onBlur={async () => {
+                setIsNoteFocused(false);
+                try {
+                  await handleTaskUpdate(task.id, { description: localDescription });
+                } catch (error) {
+                  // Revert to original description if save fails
+                  setLocalDescription(task.description || '');
+                  setSelectedTask(prev => ({
+                    ...prev,
+                    description: task.description || ''
+                  }));
+                }
+              }}
+              placeholder="Add a note..."
+              style={{
+                padding: isNoteFocused ? "24px" : "8px",
+                border: "none",
+                outline: "none",
+                fontFamily: "inherit",
+                fontSize: isNoteFocused ? "16px" : "14px",
+                lineHeight: "1.5",
+                resize: "none",
+                flex: 1,
+                minHeight: isNoteFocused ? "calc(100% - 60px)" : "60px",
+                backgroundColor: "#fff",
+                transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
+              }}
+            />
+          </div>
+          {isNoteFocused && (
+            <div 
+              style={{
+                position: "fixed",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: "rgba(0, 0, 0, 0.0)",
+                zIndex: 999,
+                opacity: 1,
+                transition: "opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
+              }}
+              onClick={() => {
+                document.activeElement.blur();
+              }}
+            />
+          )}
+        </div>
       </div>
     </div>;
   }

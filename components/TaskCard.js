@@ -60,6 +60,7 @@ export const TaskCard = ({
     // Add local state for immediate updates
     const [localTitle, setLocalTitle] = useState(task.title);
     const [localDescription, setLocalDescription] = useState(task.description || '');
+    const [isNoteFocused, setIsNoteFocused] = useState(false);
   
     // Update local state when task changes
     useEffect(() => {
@@ -302,7 +303,7 @@ export const TaskCard = ({
           zIndex: (isSelected) ? 103 : 'auto'
         }}>
           {isSelected &&           
-          editTaskModal(user, handleDeleteTask, task, titleInputRef, localTitle, setLocalTitle, setSelectedTask, setEditingTaskTitle, handleTaskUpdate, formattedStartTime, taskStart, taskEnd, formattedEndTime, setSelectedEvent, dropdownTriggerRef, selectedEvent, localDescription, setLocalDescription, setEditingTaskDescription)
+          editTaskModal(user, handleDeleteTask, task, titleInputRef, localTitle, setLocalTitle, setSelectedTask, setEditingTaskTitle, handleTaskUpdate, formattedStartTime, taskStart, taskEnd, formattedEndTime, setSelectedEvent, dropdownTriggerRef, selectedEvent, localDescription, setLocalDescription, setEditingTaskDescription, isNoteFocused, setIsNoteFocused)
   
          }
         <div style={{
