@@ -8,6 +8,7 @@ import { RunOfShow } from '../components/RunOfShow';
 import { AnnouncementView } from "@/components/AnnouncementView";
 import { TeamView } from "@/components/TeamView";
 import { WelcomeView } from '../components/WelcomeView';
+import VenueView from '../components/VenueView';
 
 
 
@@ -89,7 +90,7 @@ const MAX_DURATION = 23.99 * 60 * 60 * 1000; // Just under 24 hours in milliseco
 // First create the TaskCard component (at the top of the file or in a separate component file)
 
 // Add this constant at the top of the file with other constants
-const TABS = ["Run of Show", "Schedule", "Announcements", "Team"];
+const TABS = ["Run of Show", "Schedule", "Announcements", "Venue", "Team"];
 
 // Add this constant at the top with other constants
 const commonTimezones = {
@@ -1427,7 +1428,14 @@ useEffect(() => {
           />
         }
 
-      {(selectedEvent != null && currentTab == "Team") && 
+      {(selectedEvent != null && currentTab == "Venue") && 
+          <VenueView
+            selectedEvent={selectedEvent}
+            selectedEventId={selectedEventId}
+            setSelectedEvent={setSelectedEvent}
+          />
+        }
+        {(selectedEvent != null && currentTab == "Team") && 
           <TeamView
           setIsInvitingNewUser={setIsInvitingNewUser} // Add this prop
 

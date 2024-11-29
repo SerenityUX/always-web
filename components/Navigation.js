@@ -115,6 +115,7 @@ export default function Navigation({
     { name: "Run of Show", icon: "/runOfShow.svg" },
     { name: "Schedule", icon: "/Schedule.svg" },
     { name: "Announcements", icon: "/Announcements.svg" },
+    { name: "Venue", icon: "/venue.svg" },
     { name: "Team", icon: "/Team.svg" }
   ];
 
