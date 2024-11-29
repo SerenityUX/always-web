@@ -29,6 +29,20 @@ const isWithinEventBounds = (newTime, eventStart, eventEnd) => {
   return newDate >= startDate && newDate <= endDate;
 };
   
+// Add this after the existing TAG_COLORS constant
+const formatLocationName = (buildings, locationId) => {
+  if (!locationId) return '';
+  
+  for (const building of buildings) {
+    for (const room of building.rooms) {
+      if (room.roomId === locationId) {
+        return `${building.buildingName} - ${room.roomName}`;
+      }
+    }
+  }
+  return '';
+};
+  
 export const EditCalendarEvent = ({ 
   selectedCalendarEvent, 
   handleDeleteConfirmation, 
@@ -474,6 +488,97 @@ export const EditCalendarEvent = ({
             </div>
           </div>
         </div>
+  
+        {/* Add the location selector after the color selection */}
+        {selectedEvent?.buildings?.length > 0 && (
+          <div style={{
+            padding: 8, 
+            gap: 8, 
+            border: "1px solid #EBEBEB", 
+            borderRadius: 4, 
+            backgroundColor: "rgba(0, 0, 0, 0.00)", 
+            display: "flex", 
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between"
+          }}>
+            <select
+              value={selectedCalendarEvent.location || ""}
+              onChange={async (e) => {
+                const locationId = e.target.value || null;
+                
+                try {
+                  const response = await fetch('https://serenidad.click/hacktime/updateCalendarEvent', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                      token: localStorage.getItem('token'),
+                      calendarEventId: selectedCalendarEvent.id,
+                      startTime: selectedCalendarEvent.startTime,
+                      endTime: selectedCalendarEvent.endTime,
+                      title: selectedCalendarEvent.title,
+                      color: selectedCalendarEvent.color,
+                      tag: selectedCalendarEvent.tag,
+                      location: locationId
+                    }),
+                  });
+
+                  if (!response.ok) {
+                    throw new Error('Failed to update location');
+                  }
+
+                  // Update local state
+                  setSelectedCalendarEvent(prev => ({
+                    ...prev,
+                    location: locationId
+                  }));
+
+                  setSelectedEvent(prev => ({
+                    ...prev,
+                    calendar_events: prev.calendar_events.map(evt => 
+                      evt.id === selectedCalendarEvent.id 
+                        ? { ...evt, location: locationId }
+                        : evt
+                    )
+                  }));
+
+                } catch (error) {
+                  console.error('Failed to update location:', error);
+                  alert(error.message);
+                }
+              }}
+              style={{
+                padding: "4px 8px",
+                backgroundColor: "#fff",
+                outline: "1px solid rgb(235, 235, 235)",
+                borderRadius: 4,
+                fontSize: 16,
+                border: "none",
+                cursor: "pointer",
+                appearance: "none",
+                backgroundImage: "url('./icons/chevron-down.svg')",
+                backgroundRepeat: "no-repeat",
+                backgroundPosition: "right 8px center",
+                backgroundSize: "16px",
+                paddingRight: "28px",
+                flex: "1"
+              }}
+            >
+              <option value="">Select Location</option>
+              {selectedEvent.buildings.map((building) => (
+                <optgroup key={building.buildingId} label={building.buildingName}>
+                  {building.rooms.map((room) => (
+                    <option key={room.roomId} value={room.roomId}>
+                      {room.roomName}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+          </div>
+        )}
   
         {/* <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <img src="./icons/calendar.svg" style={{ width: 24, height: 24 }} />

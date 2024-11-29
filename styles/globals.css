@@ -126,3 +126,11 @@ textarea {
 .calendar-cell:hover {
   background-color: rgba(0, 0, 0, 0.02);
 }
+
+tr:hover .trash-icon {
+  opacity: 1 !important;
+}
+
+.trash-icon:hover {
+  opacity: 1 !important;
+}
