@@ -171,80 +171,78 @@ export const editTaskModal = (user, handleDeleteTask, task, titleInputRef, local
             </div>
           </div>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {selectedEvent?.buildings?.length > 0 && (
-            <div style={{
-              padding: 8, 
-              gap: 8, 
-              border: "1px solid #EBEBEB", 
-              borderRadius: 4, 
-              backgroundColor: "rgba(0, 0, 0, 0.00)", 
-              display: "flex", 
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between"
-            }}>
-              <select
-                value={task.location || ""}
-                onChange={async (e) => {
-                  const locationId = e.target.value || null;
-                  
-                  try {
-                    const response = await handleTaskUpdate(task.id, {
-                      location: locationId
-                    });
+        {selectedEvent?.buildings?.length > 0 && selectedEvent.buildings.some(b => b.rooms.length > 0) && (
+          <div style={{
+            padding: 8, 
+            gap: 8, 
+            border: "1px solid #EBEBEB", 
+            borderRadius: 4, 
+            backgroundColor: "rgba(0, 0, 0, 0.00)", 
+            display: "flex", 
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between"
+          }}>
+            <select
+              value={task.location || ""}
+              onChange={async (e) => {
+                const locationId = e.target.value || null;
+                
+                try {
+                  const response = await handleTaskUpdate(task.id, {
+                    location: locationId
+                  });
 
-                    // Update local state
-                    setSelectedTask(prev => ({
-                      ...prev,
-                      location: locationId
-                    }));
+                  // Update local state
+                  setSelectedTask(prev => ({
+                    ...prev,
+                    location: locationId
+                  }));
 
-                    setSelectedEvent(prev => ({
-                      ...prev,
-                      tasks: prev.tasks.map(t => 
-                        t.id === task.id 
-                          ? { ...t, location: locationId }
-                          : t
-                      )
-                    }));
+                  setSelectedEvent(prev => ({
+                    ...prev,
+                    tasks: prev.tasks.map(t => 
+                      t.id === task.id 
+                        ? { ...t, location: locationId }
+                        : t
+                    )
+                  }));
 
-                  } catch (error) {
-                    console.error('Failed to update location:', error);
-                    alert(error.message);
-                  }
-                }}
-                style={{
-                  padding: "4px 8px",
-                  backgroundColor: "#fff",
-                  outline: "1px solid rgb(235, 235, 235)",
-                  borderRadius: 4,
-                  fontSize: 16,
-                  border: "none",
-                  cursor: "pointer",
-                  appearance: "none",
-                  backgroundImage: "url('./icons/chevron-down.svg')",
-                  backgroundRepeat: "no-repeat",
-                  backgroundPosition: "right 8px center",
-                  backgroundSize: "16px",
-                  paddingRight: "28px",
-                  flex: "1"
-                }}
-              >
-                <option value="">Select Location</option>
-                {selectedEvent.buildings.map((building) => (
-                  <optgroup key={building.buildingId} label={building.buildingName}>
-                    {building.rooms.map((room) => (
-                      <option key={room.roomId} value={room.roomId}>
-                        {room.roomName}
-                      </option>
-                    ))}
-                  </optgroup>
-                ))}
-              </select>
-            </div>
-          )}
-        </div>
+                } catch (error) {
+                  console.error('Failed to update location:', error);
+                  alert(error.message);
+                }
+              }}
+              style={{
+                padding: "4px 8px",
+                backgroundColor: "#fff",
+                outline: "1px solid rgb(235, 235, 235)",
+                borderRadius: 4,
+                fontSize: 16,
+                border: "none",
+                cursor: "pointer",
+                appearance: "none",
+                backgroundImage: "url('./icons/chevron-down.svg')",
+                backgroundRepeat: "no-repeat",
+                backgroundPosition: "right 8px center",
+                backgroundSize: "16px",
+                paddingRight: "28px",
+                flex: "1"
+              }}
+            >
+              <option value="">Select Location</option>
+              {selectedEvent.buildings.map((building) => (
+                <optgroup key={building.buildingId} label={building.buildingName}>
+                  {building.rooms.map((room) => (
+                    <option key={room.roomId} value={room.roomId}>
+                      {room.roomName}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+          </div>
+        )}
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <p style={{ margin: 0, fontSize: 14, color: "#666" }}>Assigned To</p>
   
