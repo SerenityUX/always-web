@@ -72,14 +72,20 @@ export default function Login() {
         border: '1px solid #D0D7DE',
         width: '500px'
       }}>
-        <h1 style={{
-          fontSize: '24px',
-          fontWeight: 'bold',
-          marginTop: 0,
-          marginBottom: '16px'
+        <div style={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center',
+          marginBottom: '24px'
         }}>
-          Login
-        </h1>
+          <img src="/appIcon.svg" alt="Always Logo" style={{ width: '64px', height: '64px', marginBottom: '8px' }} />
+          <h2 style={{ 
+            fontSize: '24px',
+            fontWeight: '500',
+            color: '#492802',
+            margin: 0
+          }}>Always A Pleasure</h2>
+        </div>
 
         {error && (
           <div style={{

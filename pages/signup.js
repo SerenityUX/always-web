@@ -37,6 +37,9 @@ export default function Signup() {
   const [isEmailValid, setIsEmailValid] = useState(true);
   const [isCheckingEmail, setIsCheckingEmail] = useState(false);
 
+  // Add new state to track if password field has input
+  const [showConfirmField, setShowConfirmField] = useState(false);
+
   // Add email validation function
   const checkEmailExists = async (email) => {
     setIsCheckingEmail(true);
@@ -62,6 +65,11 @@ export default function Signup() {
       [name]: value
     }));
     setError('');
+
+    // Show confirm password field when password has input
+    if (name === 'password') {
+      setShowConfirmField(value.length > 0);
+    }
 
     // Check email after user stops typing
     if (name === 'email') {
@@ -161,14 +169,20 @@ export default function Signup() {
         border: '1px solid #D0D7DE',
         width: '500px'
       }}>
-        <h1 style={{
-          fontSize: '24px',
-          fontWeight: 'bold',
-          marginTop: 0,
-          marginBottom: '16px'
+        <div style={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center',
+          marginBottom: '24px'
         }}>
-          Create Account
-        </h1>
+          <img src="/appIcon.svg" alt="Always Logo" style={{ width: '64px', height: '64px', marginBottom: '8px' }} />
+          <h2 style={{ 
+            fontSize: '24px',
+            fontWeight: '500',
+            color: '#492802',
+            margin: 0
+          }}>Welcome to Always</h2>
+        </div>
 
         {error && (
           <div style={{
@@ -281,10 +295,17 @@ export default function Signup() {
             </p>
           </div>
 
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column'
-          }}>
+          <div 
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              opacity: showConfirmField ? 1 : 0,
+              maxHeight: showConfirmField ? '200px' : '0',
+              overflow: 'hidden',
+              transition: 'all 0.8s ease-in-out',
+              marginTop: showConfirmField ? '0' : '-16px'
+            }}
+          >
             <label style={{
               color: 'gray',
               marginBottom: '8px'
