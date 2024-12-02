@@ -53,6 +53,7 @@ export const EditCalendarEvent = ({
   timeStringToDateok, 
   handleTimeUpdate, 
   MAX_DURATION, 
+  setLowerNav,
   selectedEventId, 
   selectedEvent, 
   handleColorUpdate, 
@@ -108,7 +109,7 @@ export const EditCalendarEvent = ({
             tag: data.tag,
             color: autoColor
           }));
-          
+          setLowerNav(true)
           setSelectedEvent(prev => ({
             ...prev,
             calendar_events: prev.calendar_events.map(evt => 

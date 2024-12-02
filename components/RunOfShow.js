@@ -86,6 +86,8 @@ export const RunOfShow = ({
   handleColorUpdate,
   selectedTaskColumn,
   setSelectedTaskColumn,
+  setLowerNav,
+  lowerNav,
   editingTaskTitle,
   setEditingTaskTitle,
   editingTaskDescription,
@@ -1187,6 +1189,7 @@ export const RunOfShow = ({
                                   return;
                                 }
                                 setSelectedCalendarEvent(null);
+                                setLowerNav(false)
                                 setSelectedTask(null)
                               }}
                               style={{
@@ -1544,7 +1547,8 @@ export const RunOfShow = ({
                           startTime: newEvent.start_time,
                           endTime: newEvent.end_time
                         });
-
+                        setLowerNav(true)
+                        console.log("set true")
                       } catch (error) {
                         console.error('Failed to create calendar event:', error);
                       }
@@ -1612,6 +1616,9 @@ export const RunOfShow = ({
                           <div 
                             onClick={() => {
                               setSelectedCalendarEvent(event);
+                              setLowerNav(true)
+                              console.log("lower nav true")
+
                               //console.log("Selected Calendar Event:", event);
                             }}
                             style={{
@@ -1707,6 +1714,8 @@ export const RunOfShow = ({
     if (e.target === e.currentTarget) {
       setSelectedCalendarEvent(null);
       setSelectedTask(null)
+      setLowerNav(false)
+
     }
   }}
   style={{
@@ -1737,6 +1746,7 @@ export const RunOfShow = ({
                             <EditCalendarEvent
                               selectedCalendarEvent={selectedCalendarEvent}
                               handleDeleteConfirmation={handleDeleteConfirmation}
+                              setLowerNav={setLowerNav}
                               setSelectedCalendarEvent={setSelectedCalendarEvent}
                               setSelectedEvent={setSelectedEvent}
                               handleEventTitleUpdate={handleEventTitleUpdate}

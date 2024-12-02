@@ -133,6 +133,7 @@ export default function Event() {
   const [creatingEvent, setShowEventDropdown] = useState(false);
   const [showCreateEventModal, setShowCreateEventModal] = useState(false);
 
+  const [lowerNav, setLowerNav] = useState(false);
 
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -1108,6 +1109,11 @@ useEffect(() => {
     }
   };
 
+  useEffect(() => {
+    // Set lowerNav to true if either selectedCalendarEvent or selectedTask exists
+    setLowerNav(!!selectedCalendarEvent || !!selectedTask);
+  }, [selectedCalendarEvent, selectedTask]);
+
   if (loading) {
     return <div></div>;
   }
@@ -1327,6 +1333,7 @@ useEffect(() => {
  
         <Navigation 
           user={user}
+          lowerNav={lowerNav}
           setShowEventDropdown={setShowEventDropdown}
           onUserUpdate={setUser}
           selectedEventId={selectedEventId}
@@ -1350,6 +1357,8 @@ useEffect(() => {
         {(selectedEvent != null && currentTab == "Run of Show") && 
                <RunOfShow
                handleColorUpdate={handleColorUpdate}
+               lowerNav={lowerNav}
+               setLowerNav={setLowerNav}
                selectedCalendarEvent={selectedCalendarEvent}
                handleDeleteCalendarEvent={handleDeleteCalendarEvent}
                handleDeleteConfirmation={handleDeleteConfirmation}

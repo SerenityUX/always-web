@@ -83,6 +83,7 @@ export default function Navigation({
   setShowCreateEventModal, 
   showEventDropdown, 
   setShowEventDropdown, 
+  lowerNav,
   onEventSelect,
   showEditEventModal,
   setShowEditEventModal,
@@ -770,7 +771,7 @@ export default function Navigation({
         overflow: "visible", 
         borderBottom: '1px solid #EBEBEB',
         position: "relative",
-        zIndex: 29999
+        zIndex: lowerNav ? 1 : 29999
       }}>
         <div style={{
           display: "flex",
