@@ -514,13 +514,29 @@ export const editTaskModal = (user, handleDeleteTask, task, titleInputRef, local
               justifyContent: "space-between",
               transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
             }}>
-              <p style={{
-                margin: 0, 
-                color: "#5D3C0A",
-                fontSize: isNoteFocused ? "18px" : "14px",
-                fontWeight: isNoteFocused ? "500" : "normal",
-                transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
-              }}>Note Pad</p>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                {isNoteFocused && (
+                  <img 
+                    src="/minimize.svg" 
+                    style={{
+                      height: "20px",
+                      width: "20px",
+                      cursor: "pointer"
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      document.activeElement.blur();
+                    }}
+                  />
+                )}
+                <p style={{
+                  margin: 0, 
+                  color: "#5D3C0A",
+                  fontSize: isNoteFocused ? "18px" : "14px",
+                  fontWeight: isNoteFocused ? "500" : "normal",
+                  transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
+                }}>Note Pad</p>
+              </div>
               <img style={{
                 height: isNoteFocused ? "16px" : "12px",
                 transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
