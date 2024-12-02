@@ -173,8 +173,22 @@ export const editTaskModal = (user, handleDeleteTask, task, titleInputRef, local
           </div>
         </div>
         <div style={{ display: "flex", fontSize: 14, justifyContent: "space-between", gap: 8, flexDirection: "row" }}>
-          <div style={{width: "100%", display: "flex", flexDirection: "column", gap: 8}}>
-          <div style={{padding: 6, cursor: "pointer", border: "1px solid #EBEBEB", borderRadius: 8, gap: 8, display: "flex", gap: 12, flexDirection: "column"}}
+          <div style={{
+            width: "100%", 
+            display: "flex", 
+            flexDirection: "column", 
+            gap: 8
+          }}>
+            <div style={{
+              padding: 6, 
+              cursor: "pointer", 
+              border: "1px solid #EBEBEB", 
+              borderRadius: 8, 
+              display: "flex", 
+              flexDirection: "column",
+              justifyContent: "space-between",
+              height: selectedEvent?.buildings?.length > 0 && selectedEvent.buildings.some(b => b.rooms.length > 0) ? 'auto' : '100%'
+            }}
             onClick={(event) => {
               event.stopPropagation();
 
@@ -364,22 +378,42 @@ export const editTaskModal = (user, handleDeleteTask, task, titleInputRef, local
               document.addEventListener('click', handleClickOutside);
               document.body.appendChild(dropdown);
             }}>
-            <div style={{display: "flex", alignItems: "center", justifyContent: "space-between"}}>
-              <div style={{ display: "flex", alignItems: "center" }}>
-                {task.assignedTo.slice(0, 4).map((person, index) => (
-                  <div key={index} style={{
-                    marginLeft: index === 0 ? 0 : "-8px",
-                    display: "flex",
-                    alignItems: "center",
-                  }}>
+              <div style={{display: "flex", alignItems: "center", justifyContent: "space-between"}}>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  {task.assignedTo.slice(0, 4).map((person, index) => (
+                    <div key={index} style={{
+                      marginLeft: index === 0 ? 0 : "-8px",
+                      display: "flex",
+                      alignItems: "center",
+                    }}>
+                      <div style={{
+                        backgroundColor: "#666",
+                        backgroundImage: person.profilePicture ? `url(${person.profilePicture})` : "none",
+                        backgroundSize: "cover",
+                        backgroundPosition: "center",
+                        height: 24,
+                        width: 24,
+                        borderRadius: "50%",
+                        border: "1px solid #fff",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#fff",
+                        fontSize: "12px",
+                        fontWeight: "500",
+                        zIndex: task.assignedTo.length - index
+                      }}>
+                        {!person.profilePicture && getInitials(person.name)}
+                      </div>
+                    </div>
+                  ))}
+                  {task.assignedTo.length > 4 && (
                     <div style={{
+                      marginLeft: "-8px",
                       backgroundColor: "#666",
-                      backgroundImage: person.profilePicture ? `url(${person.profilePicture})` : "none",
-                      backgroundSize: "cover",
-                      backgroundPosition: "center",
                       height: 24,
                       width: 24,
-                      borderRadius: 12,
+                      borderRadius: "50%",
                       border: "1px solid #fff",
                       display: "flex",
                       alignItems: "center",
@@ -387,103 +421,81 @@ export const editTaskModal = (user, handleDeleteTask, task, titleInputRef, local
                       color: "#fff",
                       fontSize: "12px",
                       fontWeight: "500",
-                      zIndex: task.assignedTo.length - index
+                      zIndex: 0
                     }}>
-                      {!person.profilePicture && getInitials(person.name)}
+                      +{task.assignedTo.length - 4}
                     </div>
-                  </div>
-                ))}
-                {task.assignedTo.length > 4 && (
-                  <div style={{
-                    marginLeft: "-8px",
-                    backgroundColor: "#666",
-                    height: 24,
-                    width: 24,
-                    borderRadius: 12,
-                    border: "1px solid #fff",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "#fff",
-                    fontSize: "12px",
-                    fontWeight: "500",
-                    zIndex: 0
-                  }}>
-                    +{task.assignedTo.length - 4}
-                  </div>
-                )}
+                  )}
+                </div>
+                <p style={{margin: 0, fontSize: 10}}>({task.assignedTo.length})</p>
+              </div>           
+              <p style={{margin: 0}}>Assignees</p>
+            </div>
+            {selectedEvent?.buildings?.length > 0 && selectedEvent.buildings.some(b => b.rooms.length > 0) && (
+              <div style={{
+                padding: "8px", 
+                cursor: "pointer", 
+                border: "1px solid #EBEBEB", 
+                borderRadius: 8,
+                fontSize: 14
+              }}>
+                <select
+                  value={task.location || ""}
+                  onChange={async (e) => {
+                    const locationId = e.target.value || null;
+                    
+                    try {
+                      await handleTaskUpdate(task.id, {
+                        location: locationId
+                      });
+
+                      setSelectedTask(prev => ({
+                        ...prev,
+                        location: locationId
+                      }));
+
+                      setSelectedEvent(prev => ({
+                        ...prev,
+                        tasks: prev.tasks.map(t => 
+                          t.id === task.id 
+                            ? { ...t, location: locationId }
+                            : t
+                        )
+                      }));
+
+                    } catch (error) {
+                      console.error('Failed to update location:', error);
+                      alert(error.message);
+                    }
+                  }}
+                  style={{
+                    width: "100%",
+                    backgroundColor: "transparent",
+                    fontSize: 12,
+                    border: "none",
+                    outline: "none",
+                    cursor: "pointer",
+                    appearance: "none",
+                    backgroundImage: "url('./icons/chevron-down.svg')",
+                    backgroundRepeat: "no-repeat",
+                    backgroundPosition: "right 4px center",
+                    backgroundSize: "12px",
+                    paddingRight: "20px"
+                  }}
+                >
+                  <option value="">Select Location</option>
+                  {selectedEvent.buildings.map((building) => (
+                    <optgroup key={building.buildingId} label={building.buildingName}>
+                      {building.rooms.map((room) => (
+                        <option key={room.roomId} value={room.roomId}>
+                          {room.roomName}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
               </div>
-              <p style={{margin: 0, fontSize: 10}}>({task.assignedTo.length})</p>
-            </div>           
-            <p style={{margin: 0}}>Assignees</p>
-          </div>
-          <div style={{
-            padding: "8px", 
-            cursor: "pointer", 
-            border: "1px solid #EBEBEB", 
-            borderRadius: 8,
-            fontSize: 14 // Smaller font size
-          }}>
-            {selectedEvent?.buildings?.length > 0 && selectedEvent.buildings.some(b => b.rooms.length > 0) ? (
-              <select
-                value={task.location || ""}
-                onChange={async (e) => {
-                  const locationId = e.target.value || null;
-                  
-                  try {
-                    await handleTaskUpdate(task.id, {
-                      location: locationId
-                    });
-
-                    setSelectedTask(prev => ({
-                      ...prev,
-                      location: locationId
-                    }));
-
-                    setSelectedEvent(prev => ({
-                      ...prev,
-                      tasks: prev.tasks.map(t => 
-                        t.id === task.id 
-                          ? { ...t, location: locationId }
-                          : t
-                      )
-                    }));
-
-                  } catch (error) {
-                    console.error('Failed to update location:', error);
-                    alert(error.message);
-                  }
-                }}
-                style={{
-                  width: "100%",
-                  backgroundColor: "transparent",
-                  fontSize: 12,
-                  border: "none",
-                  outline: "none",
-                  cursor: "pointer",
-                  appearance: "none",
-                  backgroundImage: "url('./icons/chevron-down.svg')",
-                  backgroundRepeat: "no-repeat",
-                  backgroundPosition: "right 4px center",
-                  backgroundSize: "12px",
-                  paddingRight: "20px"
-                }}
-              >
-                <option value="">Select Location</option>
-                {selectedEvent.buildings.map((building) => (
-                  <optgroup key={building.buildingId} label={building.buildingName}>
-                    {building.rooms.map((room) => (
-                      <option key={room.roomId} value={room.roomId}>
-                        {room.roomName}
-                      </option>
-                    ))}
-                  </optgroup>
-                ))}
-              </select>
-            ) : (
-              <p style={{margin: 0, fontSize: 12}}>Select Location</p>
             )}
-          </div>
           </div>
           <div style={{
             width: "100%", 
