@@ -31,16 +31,31 @@ const navItems = [
   { name: "Team", icon: "/Team.svg" }
 ];
 
-// Add this right after the imports and before the component definition
-const getKeyStyle = (isPressed) => ({
+// Update the COLORS array to exclude grey
+const COLORS = [
+  "2,147,212",  // blue
+  "218,128,0",  // orange
+  "8,164,42",   // green
+  "142,8,164",  // purple
+  "190,58,44"   // red
+];
+
+// Update the getRandomColor function to return a new color each time
+const getRandomColor = () => {
+  const index = Math.floor(Math.random() * COLORS.length);
+  return COLORS[index];
+};
+
+// Update the getKeyStyle function
+const getKeyStyle = (isPressed, keyColor) => ({
   padding: '1px 2px',
   borderRadius: '2px',
-  backgroundColor: isPressed ? 'rgba(0, 145, 255, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+  backgroundColor: isPressed ? `rgba(${keyColor}, 0.95)` : 'rgba(255, 255, 255, 0.95)',
   color: isPressed ? '#fff' : '#000',
   fontSize: '7px',
   minWidth: '10px',
   textAlign: 'center',
-  border: `1px solid ${isPressed ? 'rgba(0, 145, 255, 0.3)' : 'rgba(255, 255, 255, 0.2)'}`,
+  border: `1px solid ${isPressed ? `rgba(${keyColor}, 0.3)` : 'rgba(255, 255, 255, 0.2)'}`,
   boxShadow: isPressed ? 
     'inset 0 1px 2px rgba(0, 0, 0, 0.2)' :
     `
@@ -51,7 +66,7 @@ const getKeyStyle = (isPressed) => ({
   textShadow: isPressed ? 'none' : '0 1px 0 rgba(255, 255, 255, 0.4)',
   fontWeight: '600',
   background: isPressed ? 
-    'linear-gradient(to bottom, rgba(0, 145, 255, 0.9) 0%, rgba(0, 145, 255, 1) 100%)' :
+    `linear-gradient(to bottom, rgba(${keyColor}, 0.9) 0%, rgba(${keyColor}, 1) 100%)` :
     'linear-gradient(to bottom, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0.85) 100%)',
   transition: 'all 0.1s cubic-bezier(0.4, 0, 0.2, 1)',
   transform: isPressed ? 'translateY(0.5px)' : 'none'
@@ -261,6 +276,7 @@ export default function Navigation({
         }}
         style={{
           position: "fixed",
+
           top: 0,
           left: 0,
           right: 0,
@@ -268,7 +284,7 @@ export default function Navigation({
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          zIndex: 101,
+          zIndex: 131023012031092301,
           marginTop: -97,
           backgroundColor: "rgba(0, 0, 0, 0.5)"
         }}
@@ -626,7 +642,7 @@ export default function Navigation({
     return () => clearInterval(interval);
   }, []);
 
-  // Update the key handling useEffect
+  // Update the key handling useEffect to generate new colors on each press
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (((e.metaKey || e.ctrlKey) || e.key === 'Meta' || e.key === 'Control') && 
@@ -645,13 +661,17 @@ export default function Navigation({
         }
       }
 
+      // Generate new random colors for each key press
       setPressedKeys(prev => ({
         ...prev,
         cmd: e.metaKey || e.ctrlKey || e.key === 'Meta' || e.key === 'Control' || prev.cmd,
         shift: e.shiftKey || e.key === 'Shift' || prev.shift,
         arrow: e.key === 'ArrowLeft' ? 'left' : 
                e.key === 'ArrowRight' ? 'right' : 
-               prev.arrow
+               prev.arrow,
+        cmdColor: getRandomColor(),
+        shiftColor: getRandomColor(),
+        arrowColor: getRandomColor()
       }));
     };
 
@@ -750,7 +770,7 @@ export default function Navigation({
         overflow: "visible", 
         borderBottom: '1px solid #EBEBEB',
         position: "relative",
-        zIndex: 9439249239935925929592592
+        zIndex: 29999
       }}>
         <div style={{
           display: "flex",
@@ -763,155 +783,162 @@ export default function Navigation({
           position: "relative",
           zIndex: 9439249239935925929592593
         }}>
-          <div style={{display: "flex", alignItems: "center", justifyContent: "center", gap: 16}}>
-          <h1 style={{margin: 0, fontSize: 24, height: 24, fontWeight: 600, opacity: 0.9}}>Always</h1>
-          {Object.keys(user.events).length != 0 &&
-          <div ref={eventDropdownRef} style={{ position: "relative" }}>
-            <div 
-              onClick={() => setShowEventDropdown(!showEventDropdown)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                flexDirection: "row",
-                gap: 4,
-                paddingTop: 2,
-                paddingBottom: 2,
-                paddingLeft: 6,
-                paddingRight: 6,
-                borderRadius: 4,
-                border: "1px solid #EBEBEB",
-                cursor: "pointer",
-                width: 200
-              }}
-            >
-              <p style={{
-                margin: 0, 
-                fontSize: 16, 
-                overflow: "hidden", 
-                textOverflow: "ellipsis", 
-                whiteSpace: "nowrap"
-              }}>
-                {currentEvent?.title || 'Select Event'}
-              </p>
-              <img 
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 16,
+            position: "relative",
+            zIndex: 9439249239935925929592594
+          }}>
+            <h1 style={{margin: 0, fontSize: 24, height: 24, fontWeight: 600, opacity: 0.9}}>Always</h1>
+            {Object.keys(user.events).length != 0 &&
+            <div ref={eventDropdownRef} style={{ position: "relative" }}>
+              <div 
+                onClick={() => setShowEventDropdown(!showEventDropdown)}
                 style={{
-                  height: 16,
-                  width: 16,
-                  flexShrink: 0
-                }} 
-                src="./icons/unfold.svg"
-              />
-            </div>
-            {showEventDropdown && (
-              <div style={{
-                position: "absolute",
-                top: "100%",
-                left: 0,
-                marginTop: 4,
-                backgroundColor: "#fff",
-                border: "1px solid #EBEBEB",
-                borderRadius: 8,
-                width: 200,
-                zIndex: 1000,
-                maxHeight: 400, overflowY: "scroll",
-                padding: 8
-              }}>
-                {eventsList.map((eventObj, index, array) => (
-                  <div
-                    key={eventObj.id}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      padding: "8px",
-                      cursor: "pointer",
-                      backgroundColor: selectedEventId === eventObj.id ? "#F6F8FA" : "transparent",
-                      borderRadius: "4px",
-                      gap: "8px",
-                      position: "relative",
-                      transition: "background-color 0.2s"
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = "#F6F8FA";
-                      e.currentTarget.querySelector('.action-icons').style.opacity = "0.6";
-                    }}
-                    onMouseLeave={(e) => {
-                      if (selectedEventId !== eventObj.id) {
-                        e.currentTarget.style.backgroundColor = "transparent";
-                      }
-                      e.currentTarget.querySelector('.action-icons').style.opacity = "0";
-                    }}
-                  >
-                    <div 
-                      onClick={() => handleEventSelect(eventObj)}
-                      style={{
-                        flex: 1,
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap"
-                      }}
-                    >
-                      {eventObj.title}
-                    </div>
-                    <div 
-                      className="action-icons"
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  flexDirection: "row",
+                  gap: 4,
+                  paddingTop: 2,
+                  paddingBottom: 2,
+                  paddingLeft: 6,
+                  paddingRight: 6,
+                  borderRadius: 4,
+                  border: "1px solid #EBEBEB",
+                  cursor: "pointer",
+                  width: 200
+                }}
+              >
+                <p style={{
+                  margin: 0, 
+                  fontSize: 16, 
+                  overflow: "hidden", 
+                  textOverflow: "ellipsis", 
+                  whiteSpace: "nowrap"
+                }}>
+                  {currentEvent?.title || 'Select Event'}
+                </p>
+                <img 
+                  style={{
+                    height: 16,
+                    width: 16,
+                    flexShrink: 0
+                  }} 
+                  src="./icons/unfold.svg"
+                />
+              </div>
+              {showEventDropdown && (
+                <div style={{
+                  position: "absolute",
+                  top: "100%",
+                  left: 0,
+                  marginTop: 4,
+                  backgroundColor: "#fff",
+                  border: "1px solid #EBEBEB",
+                  borderRadius: 8,
+                  width: 200,
+                  zIndex: 1000,
+                  maxHeight: 400, overflowY: "scroll",
+                  padding: 8
+                }}>
+                  {eventsList.map((eventObj, index, array) => (
+                    <div
+                      key={eventObj.id}
                       style={{
                         display: "flex",
-                        gap: "4px",
-                        opacity: "0",
                         alignItems: "center",
-                        transition: "opacity 0.2s"
+                        justifyContent: "space-between",
+                        padding: "8px",
+                        cursor: "pointer",
+                        backgroundColor: selectedEventId === eventObj.id ? "#F6F8FA" : "transparent",
+                        borderRadius: "4px",
+                        gap: "8px",
+                        position: "relative",
+                        transition: "background-color 0.2s"
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = "#F6F8FA";
+                        e.currentTarget.querySelector('.action-icons').style.opacity = "0.6";
+                      }}
+                      onMouseLeave={(e) => {
+                        if (selectedEventId !== eventObj.id) {
+                          e.currentTarget.style.backgroundColor = "transparent";
+                        }
+                        e.currentTarget.querySelector('.action-icons').style.opacity = "0";
                       }}
                     >
-                      <img 
-                        src="/icons/settings.svg"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShowEditEventModal(true);
-                          setShowEventDropdown(false);
-                          setSelectedEventToEdit(eventObj);
-                        }}
+                      <div 
+                        onClick={() => handleEventSelect(eventObj)}
                         style={{
-                          width: "18x",
-                          height: "18px",
-                          cursor: "pointer"
+                          flex: 1,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap"
                         }}
-                        alt="Edit event"
-                      />
-                      <img 
-                        src="/icons/trash.svg"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteEvent(eventObj.id);
-                        }}
+                      >
+                        {eventObj.title}
+                      </div>
+                      <div 
+                        className="action-icons"
                         style={{
-                          width: "24px",
-                          height: "24px",
-                          cursor: "pointer"
+                          display: "flex",
+                          gap: "4px",
+                          opacity: "0",
+                          alignItems: "center",
+                          transition: "opacity 0.2s"
                         }}
-                        alt="Delete event"
-                      />
+                      >
+                        <img 
+                          src="/icons/settings.svg"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowEditEventModal(true);
+                            setShowEventDropdown(false);
+                            setSelectedEventToEdit(eventObj);
+                          }}
+                          style={{
+                            width: "18x",
+                            height: "18px",
+                            cursor: "pointer"
+                          }}
+                          alt="Edit event"
+                        />
+                        <img 
+                          src="/icons/trash.svg"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteEvent(eventObj.id);
+                          }}
+                          style={{
+                            width: "24px",
+                            height: "24px",
+                            cursor: "pointer"
+                          }}
+                          alt="Delete event"
+                        />
+                      </div>
                     </div>
-                  </div>
-                ))}
-                <div
-                  onClick={() => {
-                    setShowCreateEventModal(true);
-                    setShowEventDropdown(false);
-                  }}
-                  className="nav-item create-event-button"
-                  style={{
-                    padding: "6px 2px",
-                    cursor: "pointer",
-                    color: "#0969DA",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 4,
-                    marginTop: "8px"
-                  }}
-                >
-                                  <img 
+                  ))}
+                  <div
+                    onClick={() => {
+                      setShowCreateEventModal(true);
+                      setShowEventDropdown(false);
+                    }}
+                    className="nav-item create-event-button"
+                    style={{
+                      padding: "6px 2px",
+                      cursor: "pointer",
+                      color: "#0969DA",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                      marginTop: "8px"
+                    }}
+                  >
+                                    <img 
                     style={{
                       height: 16,
                       width: 16,
@@ -928,9 +955,10 @@ export default function Navigation({
                     Create Event
                   </p>
                 </div>
-              </div>
-            )}
-          </div>}
+                </div>
+              )}
+            </div>
+            }
           </div>
           <div onClick={() => console.log(Object.keys(user.events).length === 0 ? "user.events is empty" : "user.events is not empty")} ref={profileRef} style={{height: 32, overflow: "visible", width: 32, position: "relative"}}>
             <div onClick={() => setShowProfile(!showProfile)} style={{cursor: "pointer"}}>
@@ -1094,6 +1122,7 @@ export default function Navigation({
               className="nav-item-container"
               style={{
                 paddingBottom: 8,
+                
                 borderBottom: selectedTab === item.name ? "2px solid #59636E" : "none",
                 position: "relative",
                 zIndex: 2
@@ -1149,7 +1178,7 @@ export default function Navigation({
                         gap: '2px',
                         justifyContent: 'center'
                       }}>
-                        <div style={getKeyStyle(pressedKeys.shift)}>
+                        <div style={getKeyStyle(pressedKeys.shift, pressedKeys.shiftColor || getRandomColor())}>
                           shift
                         </div>
                         <span style={{ 
@@ -1158,7 +1187,7 @@ export default function Navigation({
                           color: '#fff',
                           transform: 'translateY(-0.5px)'
                         }}>+</span>
-                        <div style={getKeyStyle(pressedKeys.cmd)}>
+                        <div style={getKeyStyle(pressedKeys.cmd, pressedKeys.cmdColor || getRandomColor())}>
                           {isMac ? "⌘" : "ctrl"}
                         </div>
                         <span style={{ 
@@ -1168,7 +1197,8 @@ export default function Navigation({
                           transform: 'translateY(-0.5px)'
                         }}>+</span>
                         <div style={getKeyStyle(
-                          pressedKeys.arrow === (isPrevTab ? 'left' : 'right')
+                          pressedKeys.arrow === (isPrevTab ? 'left' : 'right'),
+                          pressedKeys.arrowColor || getRandomColor()
                         )}>
                           {isPrevTab ? "←" : "→"}
                         </div>
