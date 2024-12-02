@@ -22,6 +22,44 @@ const REDIRECT_URI = process.env.NODE_ENV === 'development'
   : 'https://always.sh/auth/google/callback'; // No @ symbol needed
 const SCOPES = 'https://www.googleapis.com/auth/calendar.events';
 
+// Move this to the top of the Navigation component, after the state declarations
+const navItems = [
+  { name: "Run of Show", icon: "/runOfShow.svg" },
+  { name: "Schedule", icon: "/Schedule.svg" },
+  { name: "Announcements", icon: "/Announcements.svg" },
+  { name: "Venue", icon: "/venue.svg" },
+  { name: "Team", icon: "/Team.svg" }
+];
+
+// Add this right after the imports and before the component definition
+const getKeyStyle = (isPressed) => ({
+  padding: '1px 2px',
+  borderRadius: '2px',
+  backgroundColor: isPressed ? 'rgba(0, 145, 255, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+  color: isPressed ? '#fff' : '#000',
+  fontSize: '7px',
+  minWidth: '10px',
+  textAlign: 'center',
+  border: `1px solid ${isPressed ? 'rgba(0, 145, 255, 0.3)' : 'rgba(255, 255, 255, 0.2)'}`,
+  boxShadow: isPressed ? 
+    'inset 0 1px 2px rgba(0, 0, 0, 0.2)' :
+    `
+      0 0.5px 0 0.3px rgba(0, 0, 0, 0.2),
+      0 1.5px 1px rgba(0, 0, 0, 0.25),
+      inset 0 0.5px 0 rgba(255, 255, 255, 1)
+    `,
+  textShadow: isPressed ? 'none' : '0 1px 0 rgba(255, 255, 255, 0.4)',
+  fontWeight: '600',
+  background: isPressed ? 
+    'linear-gradient(to bottom, rgba(0, 145, 255, 0.9) 0%, rgba(0, 145, 255, 1) 100%)' :
+    'linear-gradient(to bottom, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0.85) 100%)',
+  transition: 'all 0.1s cubic-bezier(0.4, 0, 0.2, 1)',
+  transform: isPressed ? 'translateY(0.5px)' : 'none'
+});
+
+// Add this helper function at the top
+const isMac = typeof window !== 'undefined' && navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+
 export default function Navigation({ 
   user, 
   onUserUpdate, 
@@ -47,6 +85,11 @@ export default function Navigation({
   const eventDropdownRef = useRef(null);
   // const [showCreateEventModal, setShowCreateEventModal] = useState(false);
   const [selectedEventToEdit, setSelectedEventToEdit] = useState(null);
+  const [pressedKeys, setPressedKeys] = useState({
+    cmd: false,
+    shift: false,
+    arrow: false
+  });
 
   // Transform events object into array and sort by title
   const eventsList = user?.events ? 
@@ -110,14 +153,6 @@ export default function Navigation({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
-
-  const navItems = [
-    { name: "Run of Show", icon: "/runOfShow.svg" },
-    { name: "Schedule", icon: "/Schedule.svg" },
-    { name: "Announcements", icon: "/Announcements.svg" },
-    { name: "Venue", icon: "/venue.svg" },
-    { name: "Team", icon: "/Team.svg" }
-  ];
 
   const handleTabClick = (item) => {
     console.log('Tab clicked:', {
@@ -573,26 +608,161 @@ export default function Navigation({
     }
   }, [showEditEventModal, selectedEventToEdit, setEditEventForm]);
 
+  // Update the continuous check useEffect
+  useEffect(() => {
+    const checkArrowState = () => {
+      setPressedKeys(prev => {
+        // Only reset if neither meta nor shift are pressed
+        if (prev.arrow && !(prev.cmd && prev.shift)) {
+          return { ...prev, arrow: false };
+        }
+        return prev;
+      });
+    };
+
+    // Increase interval slightly to prevent flickering
+    const interval = setInterval(checkArrowState, 200);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Update the key handling useEffect
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (((e.metaKey || e.ctrlKey) || e.key === 'Meta' || e.key === 'Control') && 
+          (e.shiftKey || e.key === 'Shift') && 
+          (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+        e.preventDefault();
+        
+        // Get current tab index
+        const currentTabIndex = navItems.findIndex(i => i.name === selectedTab);
+        
+        // Handle navigation
+        if (e.key === 'ArrowLeft' && currentTabIndex > 0) {
+          handleTabClick(navItems[currentTabIndex - 1].name);
+        } else if (e.key === 'ArrowRight' && currentTabIndex < navItems.length - 1) {
+          handleTabClick(navItems[currentTabIndex + 1].name);
+        }
+      }
+
+      setPressedKeys(prev => ({
+        ...prev,
+        cmd: e.metaKey || e.ctrlKey || e.key === 'Meta' || e.key === 'Control' || prev.cmd,
+        shift: e.shiftKey || e.key === 'Shift' || prev.shift,
+        arrow: e.key === 'ArrowLeft' ? 'left' : 
+               e.key === 'ArrowRight' ? 'right' : 
+               prev.arrow
+      }));
+    };
+
+    const handleKeyUp = (e) => {
+      setPressedKeys(prev => ({
+        ...prev,
+        cmd: !(e.key === 'Meta' || e.key === 'Control') && (e.metaKey || e.ctrlKey),
+        shift: !(e.key === 'Shift') && e.shiftKey,
+        arrow: (e.key === 'ArrowLeft' && prev.arrow === 'left') || 
+               (e.key === 'ArrowRight' && prev.arrow === 'right') ? 
+               false : prev.arrow
+      }));
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [selectedTab, navItems, handleTabClick]);
+
+  // Add this at the top of the component with other refs
+  const navItemRefs = useRef({});
+
   return (
     <>
-      <style>{`
-        @keyframes pulse {
-          0% {
-            box-shadow: 0 0 0 0 rgba(190, 58, 44, 0.4);
-          }
-          70% {
-            box-shadow: 0 0 0 10px rgba(190, 58, 44, 0);
-          }
-          100% {
-            box-shadow: 0 0 0 0 rgba(190, 58, 44, 0);
-          }
+      <style jsx global>{`
+        .nav-tooltip {
+          position: fixed;
+          background: linear-gradient(
+            180deg, 
+            rgba(40, 40, 40, 0.95) 0%,
+            rgba(32, 32, 32, 0.95) 100%
+          );
+          backdrop-filter: blur(8px);
+          color: #fff;
+          padding: 2px 2px;
+          border-radius: 4px;
+          font-size: 7px;
+          pointer-events: none;
+          white-space: nowrap;
+          opacity: 0;
+          transition: all 0.15s cubic-bezier(0.4, 0.0, 0.2, 1);
+          bottom: -18px;
+          transform: translateX(-50%) translateY(-4px);
+          left: 50%;
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          box-shadow: 
+            0 2px 6px rgba(0, 0, 0, 0.15),
+            inset 0 0.5px 0 0 rgba(255, 255, 255, 0.08),
+            inset 0 -0.5px 0 0 rgba(0, 0, 0, 0.25);
+          z-index: 9439249239935933232323232312312312312312325929592592;
+          height: fit-content;
+          width: fit-content;
+        }
+
+        .nav-tooltip::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: linear-gradient(
+            90deg,
+            rgba(255, 255, 255, 0.03) 0%,
+            rgba(255, 255, 255, 0.06) 50%,
+            rgba(255, 255, 255, 0.03) 100%
+          );
+          border-radius: 4px;
+          pointer-events: none;
+        }
+
+        .nav-item-container {
+          position: relative;
+          z-index: 9439249239935925929592592;
+        }
+
+        .nav-item-container:hover .nav-tooltip {
+          opacity: 1;
+          transform: translateX(-50%) translateY(0);
+          transition: all 0.2s cubic-bezier(0.0, 0.0, 0.2, 1);
+        }
+
+        .nav-item-container:not(:hover) .nav-tooltip {
+          opacity: 0;
+          transform: translateX(-50%) translateY(-4px);
+          transition: all 0.1s cubic-bezier(0.4, 0.0, 1, 1);
         }
       `}</style>
       
-      <div style={{backgroundColor: "#F6F8FA", overflow: "visible", borderBottom: '1px solid #EBEBEB'}}>
-        <div style={{display: "flex",
+      <div style={{
+        backgroundColor: "#F6F8FA", 
+        overflow: "visible", 
+        borderBottom: '1px solid #EBEBEB',
+        position: "relative",
+        zIndex: 9439249239935925929592592
+      }}>
+        <div style={{
+          display: "flex",
           marginBottom: Object.keys(user.events).length == 0 ? 16 : 0,
-          alignItems: "center", justifyContent: "space-between", paddingLeft: 32, paddingTop: 16, paddingRight: 32}}>
+          alignItems: "center", 
+          justifyContent: "space-between", 
+          paddingLeft: 32, 
+          paddingTop: 16, 
+          paddingRight: 32,
+          position: "relative",
+          zIndex: 9439249239935925929592593
+        }}>
           <div style={{display: "flex", alignItems: "center", justifyContent: "center", gap: 16}}>
           <h1 style={{margin: 0, fontSize: 24, height: 24, fontWeight: 600, opacity: 0.9}}>Always</h1>
           {Object.keys(user.events).length != 0 &&
@@ -908,13 +1078,25 @@ export default function Navigation({
           </div>
         </div>
         { selectedEvent != null &&
-        <div style={{display: "flex", gap: 24, paddingLeft: 32, paddingTop: 12, paddingRight: 32}}>
-          {navItems.map((item) => (
+        <div style={{
+          display: "flex",
+          gap: 24,
+          paddingLeft: 32,
+          paddingTop: 12,
+          paddingRight: 32,
+          position: "relative",
+          zIndex: 9439249239935925929592594
+        }}>
+          {navItems.map((item, index) => (
             <div 
               key={item.name}
+              ref={el => navItemRefs.current[item.name] = el}
+              className="nav-item-container"
               style={{
                 paddingBottom: 8,
-                borderBottom: selectedTab === item.name ? "2px solid #59636E" : "none"
+                borderBottom: selectedTab === item.name ? "2px solid #59636E" : "none",
+                position: "relative",
+                zIndex: 2
               }}
               onClick={() => handleTabClick(item.name)}
             >
@@ -944,6 +1126,58 @@ export default function Navigation({
                 />
                 {item.name}
               </div>
+              {(() => {
+                const currentTabIndex = navItems.findIndex(i => i.name === selectedTab);
+                const isNextTab = index === currentTabIndex + 1;
+                const isPrevTab = index === currentTabIndex - 1;
+                
+                if (item.name !== selectedTab && 
+                    ((isNextTab && currentTabIndex < navItems.length - 1) || // Next tab condition
+                     (isPrevTab && currentTabIndex > 0)) // Previous tab condition
+                ) {
+                  const rect = navItemRefs.current[item.name]?.getBoundingClientRect();
+                  if (!rect) return null;
+
+                  return (
+                    <div className="nav-tooltip" style={{
+                      left: `${rect.left + (rect.width / 2)}px`,
+                      top: `${rect.bottom + 2}px`
+                    }}>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '2px',
+                        justifyContent: 'center'
+                      }}>
+                        <div style={getKeyStyle(pressedKeys.shift)}>
+                          shift
+                        </div>
+                        <span style={{ 
+                          opacity: 0.5, 
+                          fontSize: '6px',
+                          color: '#fff',
+                          transform: 'translateY(-0.5px)'
+                        }}>+</span>
+                        <div style={getKeyStyle(pressedKeys.cmd)}>
+                          {isMac ? "⌘" : "ctrl"}
+                        </div>
+                        <span style={{ 
+                          opacity: 0.5, 
+                          fontSize: '6px',
+                          color: '#fff',
+                          transform: 'translateY(-0.5px)'
+                        }}>+</span>
+                        <div style={getKeyStyle(
+                          pressedKeys.arrow === (isPrevTab ? 'left' : 'right')
+                        )}>
+                          {isPrevTab ? "←" : "→"}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
             </div>
           ))}
         </div>}

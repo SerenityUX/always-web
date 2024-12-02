@@ -130,6 +130,20 @@ export const AnnouncementView = ({
                     </button>
                 </form>
 
+                {/* Empty state message */}
+                {(!selectedEvent?.announcements || selectedEvent.announcements.length === 0) && (
+                    <p style={{
+                        fontSize: 16,
+                        color: "#666",
+                        textAlign: "center",
+                        width: "100%", 
+                        opacity: 0.5,
+                        marginTop: 64
+                    }}>
+                        no announcements sent yet... if you send a message here your whole team will get a ping to check it
+                    </p>
+                )}
+
                 {/* Existing Announcements List */}
                 <div style={{display: "flex", flexDirection: "column"}}>
                     {selectedEvent?.announcements.map((announcement, index) => (

@@ -60,6 +60,10 @@ const calculateSnapEffect = (exactTime, scrollNumber) => {
   return exactTime;
 };
 
+// Add these constants at the top of the file
+const SCROLL_NUMBER_KEY = 'runOfShowScrollNumber';
+const SYNC_INTERVAL = 30000; // 30 seconds in milliseconds
+
 export const RunOfShow = ({
   selectedEvent,
   user,
@@ -91,7 +95,30 @@ export const RunOfShow = ({
   setIsInvitingNewUser
 }) => {
 
-  const [scrollNumber, setScrollNumber] = useState(100);
+  // Replace the existing scrollNumber state with this
+  const [scrollNumber, setScrollNumber] = useState(() => {
+    // Initialize from localStorage, fallback to 100
+    const saved = localStorage.getItem(SCROLL_NUMBER_KEY);
+    return saved ? parseInt(saved) : 100;
+  });
+
+  // Add this useEffect for persistence and cross-tab sync
+  useEffect(() => {
+    // Save to localStorage whenever scrollNumber changes
+    localStorage.setItem(SCROLL_NUMBER_KEY, scrollNumber.toString());
+
+    // Set up polling to check for updates
+    const intervalId = setInterval(() => {
+      const savedValue = localStorage.getItem(SCROLL_NUMBER_KEY);
+      if (savedValue && parseInt(savedValue) !== scrollNumber) {
+        setScrollNumber(parseInt(savedValue));
+      }
+    }, SYNC_INTERVAL);
+
+    // Cleanup interval on unmount
+    return () => clearInterval(intervalId);
+  }, [scrollNumber]);
+
   const [scrollLeft, setScrollLeft] = useState(0);
 
   const eventScheduleRef = useRef(null);
@@ -107,6 +134,8 @@ export const RunOfShow = ({
       const position = Math.max(0, Math.min(1, (clientX - startX) / width));
       const value = Math.round(64 + position * (150 - 64));
       setScrollNumber(value);
+      // Save immediately to localStorage for faster cross-tab sync
+      localStorage.setItem(SCROLL_NUMBER_KEY, value.toString());
     };
 
     const handleMouseMove = (moveEvent) => {
@@ -262,28 +291,24 @@ export const RunOfShow = ({
   // Add wheel event handler to prevent default zoom and control scrollNumber
   useEffect(() => {
     const handleWheel = (e) => {
-      // Check if it's a pinch-to-zoom gesture (ctrlKey is true for pinch gestures on Mac)
       if (e.ctrlKey) {
         e.preventDefault();
         
-        // Make delta more sensitive (5x) and exponential
         const delta = -e.deltaY * 10;
         const exponentialFactor = Math.sign(delta) * Math.pow(Math.abs(delta) / 10, 1.5);
         
         setScrollNumber(prevNumber => {
           const newValue = Math.min(310, Math.max(75, prevNumber + exponentialFactor));
-          return Math.round(newValue);
+          const roundedValue = Math.round(newValue);
+          // Save immediately to localStorage for faster cross-tab sync
+          localStorage.setItem(SCROLL_NUMBER_KEY, roundedValue.toString());
+          return roundedValue;
         });
       }
     };
 
-    // Add the event listener with passive: false to allow preventDefault
     document.addEventListener('wheel', handleWheel, { passive: false });
-
-    // Cleanup
-    return () => {
-      document.removeEventListener('wheel', handleWheel);
-    };
+    return () => document.removeEventListener('wheel', handleWheel);
   }, []); // Empty dependency array since we don't need to re-add the listener
 
   useEffect(() => {
@@ -1448,7 +1473,7 @@ export const RunOfShow = ({
 
                         // Ensure minimum duration
                         if (dragEndTime <= dragStartTime) {
-                          dragEndTime = new Date(dragStartTime.getTime() + (15 * 60 * 1000));
+                          dragEndTime = new Date(dragStartTime.getTime() + (15 * 60 * 1000)); // 15 minutes minimum
                         }
 
                         updatePreview(dragStartTime, dragEndTime);

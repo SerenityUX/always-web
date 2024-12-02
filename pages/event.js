@@ -1152,7 +1152,7 @@ useEffect(() => {
           paddingBottom: 12, 
           border: "1px solid #EBEBEB", 
           width: 250, 
-          zIndex: 2, 
+          zIndex: 99999999999998,
           borderRadius: 8,
           opacity: 1,
           transition: 'opacity 0.5s ease-out'
@@ -1226,7 +1226,7 @@ useEffect(() => {
               alignItems: "center",
               justifyContent: "center",
               position: "fixed",
-              zIndex: 101,
+              zIndex: 99999999999999,
               height: "100vh",
               display: "flex",
               backgroundColor: "rgba(0, 0, 0, 0.5)"
@@ -1526,7 +1526,7 @@ useEffect(() => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            zIndex: 1000
+            zIndex: 99999999999999
           }}
         >
           <div style={{
