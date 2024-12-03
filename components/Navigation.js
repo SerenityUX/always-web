@@ -643,44 +643,47 @@ export default function Navigation({
     return () => clearInterval(interval);
   }, []);
 
-  // Update the key handling useEffect to generate new colors on each press
+  // Update the key handling useEffect to ignore events when typing in an input
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (((e.metaKey || e.ctrlKey) || e.key === 'Meta' || e.key === 'Control') && 
-          (e.shiftKey || e.key === 'Shift') && 
-          (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+        return;
+      }
+
+      const isCmd = e.metaKey || e.ctrlKey;
+      const isShift = e.shiftKey;
+      const isArrowLeft = e.key === 'ArrowLeft';
+      const isArrowRight = e.key === 'ArrowRight';
+
+      if (isCmd && isShift && (isArrowLeft || isArrowRight)) {
         e.preventDefault();
         
-        // Get current tab index
         const currentTabIndex = navItems.findIndex(i => i.name === selectedTab);
         
-        // Handle navigation
-        if (e.key === 'ArrowLeft' && currentTabIndex > 0) {
+        if (isArrowLeft && currentTabIndex > 0) {
           handleTabClick(navItems[currentTabIndex - 1].name);
-        } else if (e.key === 'ArrowRight' && currentTabIndex < navItems.length - 1) {
+        } else if (isArrowRight && currentTabIndex < navItems.length - 1) {
           handleTabClick(navItems[currentTabIndex + 1].name);
         }
       }
 
-      // Generate new random colors for each key press
       setPressedKeys(prev => ({
         ...prev,
-        cmd: e.metaKey || e.ctrlKey || e.key === 'Meta' || e.key === 'Control' || prev.cmd,
-        shift: e.shiftKey || e.key === 'Shift' || prev.shift,
-        arrow: e.key === 'ArrowLeft' ? 'left' : 
-               e.key === 'ArrowRight' ? 'right' : 
-               prev.arrow,
-        cmdColor: getRandomColor(),
-        shiftColor: getRandomColor(),
-        arrowColor: getRandomColor()
+        cmd: isCmd,
+        shift: isShift,
+        arrow: isArrowLeft ? 'left' : isArrowRight ? 'right' : prev.arrow
       }));
     };
 
     const handleKeyUp = (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+        return;
+      }
+
       setPressedKeys(prev => ({
         ...prev,
-        cmd: !(e.key === 'Meta' || e.key === 'Control') && (e.metaKey || e.ctrlKey),
-        shift: !(e.key === 'Shift') && e.shiftKey,
+        cmd: e.metaKey || e.ctrlKey,
+        shift: e.shiftKey,
         arrow: (e.key === 'ArrowLeft' && prev.arrow === 'left') || 
                (e.key === 'ArrowRight' && prev.arrow === 'right') ? 
                false : prev.arrow
