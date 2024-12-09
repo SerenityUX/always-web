@@ -768,9 +768,16 @@ export const RunOfShow = ({
                     userSelect: "none"
                   }}
                   onMouseDown={(e) => {
+                    // First, check if we're clicking on a calendar event
+                    const calendarEventElement = e.target.closest('.calendar-event');
+                    if (calendarEventElement) {
+                      // If we clicked on a calendar event, don't create a new event
+                      return;
+                    }
+
                     // First, check if we're clicking on an existing calendar event or if there's a selected task
                     const existingEvent = e.target.closest('.calendar-event');
-                    if (existingEvent || selectedCalendarEvent !== null || selectedTask !== null) {  // Add selectedTask check
+                    if (existingEvent || selectedCalendarEvent !== null || selectedTask !== null) {
                       return;
                     }
 
@@ -1235,9 +1242,16 @@ export const RunOfShow = ({
                     userSelect: "none"
                   }}
                   onMouseDown={(e) => {
+                    // First, check if we're clicking on a calendar event
+                    const calendarEventElement = e.target.closest('.calendar-event');
+                    if (calendarEventElement) {
+                      // If we clicked on a calendar event, don't create a new event
+                      return;
+                    }
+
                     // First, check if we're clicking on an existing calendar event or if there's a selected task
                     const existingEvent = e.target.closest('.calendar-event');
-                    if (existingEvent || selectedCalendarEvent !== null || selectedTask !== null) {  // Add selectedTask check
+                    if (existingEvent || selectedCalendarEvent !== null || selectedTask !== null) {
                       return;
                     }
 

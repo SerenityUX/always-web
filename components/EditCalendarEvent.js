@@ -43,6 +43,53 @@ const formatLocationName = (buildings, locationId) => {
   return '';
 };
   
+// Add this near the top of the file, before the EditCalendarEvent component
+const useComponentPosition = (ref) => {
+  const [position, setPosition] = useState({ top: 0, left: 0 });
+
+  useEffect(() => {
+    if (!ref.current) return;
+
+    const updatePosition = () => {
+      const element = ref.current;
+      const rect = element.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      const viewportWidth = window.innerWidth;
+      
+      let newTop = parseInt(element.style.top);
+      let newLeft = parseInt(element.style.left);
+
+      // Check if the element goes below viewport
+      if (rect.bottom > viewportHeight) {
+        newTop -= (rect.bottom - viewportHeight + 20); // 20px padding
+      }
+
+      // Check if the element goes above viewport
+      if (rect.top < 0) {
+        newTop = 20; // 20px padding from top
+      }
+
+      // Check if the element goes beyond right edge
+      if (rect.right > viewportWidth) {
+        newLeft = viewportWidth - rect.width - 20; // 20px padding from right
+      }
+
+      // Check if the element goes beyond left edge
+      if (rect.left < 0) {
+        newLeft = 20; // 20px padding from left
+      }
+
+      setPosition({ top: newTop, left: newLeft });
+    };
+
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    return () => window.removeEventListener('resize', updatePosition);
+  }, [ref]);
+
+  return position;
+};
+  
 export const EditCalendarEvent = ({ 
   selectedCalendarEvent, 
   handleDeleteConfirmation, 
@@ -60,6 +107,8 @@ export const EditCalendarEvent = ({
   animatingColor 
 }) => {
   const [tagPulseActive, setTagPulseActive] = useState(false);
+  const editModalRef = useRef(null);
+  const { top, left } = useComponentPosition(editModalRef);
   
   const timeStringToDate = (timeString, baseDate) => {
     const [hours, minutes] = timeString.split(':');
@@ -128,7 +177,18 @@ export const EditCalendarEvent = ({
     }
   };
   
-    return <div style={{ position: "absolute", cursor: "auto", left: 200, borderRadius: 8, width: 400, backgroundColor: "#fff" }}>
+    return <div 
+      ref={editModalRef}
+      style={{ 
+        position: "absolute", 
+        cursor: "auto", 
+        left: left || 200, 
+        top: top || 0,
+        borderRadius: 8, 
+        width: 400, 
+        backgroundColor: "#fff",
+        transition: "top 0.2s ease, left 0.2s ease" // Smooth transition when position changes
+      }}>
       <div style={{ width: "calc(100% - 24px)", borderRadius: "16px 16px 0px 0px", paddingTop: 8, paddingBottom: 8, justifyContent: "space-between", paddingLeft: 16, paddingRight: 8, alignItems: "center", display: "flex", backgroundColor: "#F6F8FA" }}>
         <p
           onClick={() => console.log(new Date(selectedCalendarEvent.endTime))}

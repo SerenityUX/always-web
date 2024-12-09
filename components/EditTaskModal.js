@@ -1,5 +1,5 @@
 import CustomDateTimeSelect from './CustomDateTimeSelect';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 const getInitials = (name) => {
     return name
@@ -10,8 +10,79 @@ const getInitials = (name) => {
       .slice(0, 2);
   };
   
-export const editTaskModal = (user, handleDeleteTask, task, titleInputRef, localTitle, setLocalTitle, setSelectedTask, setEditingTaskTitle, handleTaskUpdate, formattedStartTime, taskStart, taskEnd, formattedEndTime, setSelectedEvent, dropdownTriggerRef, selectedEvent, localDescription, setLocalDescription, setEditingTaskDescription, isNoteFocused, setIsNoteFocused) => {
-    return <div style={{ position: "absolute", fontSize: "16", cursor: "auto", top: 16, left: 228, borderRadius: 8, width: 300, backgroundColor: "#fff" }}>
+const useComponentPosition = (ref) => {
+  const [position, setPosition] = useState({ top: 0 });
+
+  useEffect(() => {
+    if (!ref.current) return;
+
+    const updatePosition = () => {
+      const element = ref.current;
+      const rect = element.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      
+      let newTop = parseInt(element.style.top) || 16;
+
+      // Check if the element goes below viewport
+      if (rect.bottom > viewportHeight) {
+        newTop -= (rect.bottom - viewportHeight + 20);
+      }
+
+      // Check if the element goes above viewport
+      if (rect.top < 0) {
+        newTop = 20;
+      }
+
+      setPosition({ top: newTop });
+    };
+
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    return () => window.removeEventListener('resize', updatePosition);
+  }, [ref]);
+
+  return position;
+};
+
+export const EditTaskModal = ({ 
+  user, 
+  handleDeleteTask, 
+  task, 
+  titleInputRef, 
+  localTitle, 
+  setLocalTitle, 
+  setSelectedTask, 
+  setEditingTaskTitle, 
+  handleTaskUpdate, 
+  formattedStartTime, 
+  taskStart, 
+  taskEnd, 
+  formattedEndTime, 
+  setSelectedEvent, 
+  dropdownTriggerRef, 
+  selectedEvent, 
+  localDescription, 
+  setLocalDescription, 
+  setEditingTaskDescription, 
+  isNoteFocused, 
+  setIsNoteFocused 
+}) => {
+  const modalRef = useRef(null);
+  const { top } = useComponentPosition(modalRef);
+
+  return <div 
+    ref={modalRef}
+    style={{ 
+      position: "absolute", 
+      fontSize: "16", 
+      cursor: "auto", 
+      top: top || 16, 
+      left: 228,
+      borderRadius: 8, 
+      width: 300, 
+      backgroundColor: "#fff",
+      transition: "top 0.2s ease"
+    }}>
       <div style={{ width: "calc(100% - 24px)", borderRadius: "16px 16px 0px 0px", paddingTop: 8, paddingBottom: 8, justifyContent: "space-between", paddingLeft: 16, paddingRight: 8, alignItems: "center", display: "flex", backgroundColor: "#F6F8FA" }}>
         <p onClick={() => console.log(user)} style={{ margin: 0, fontSize: 14 }}>Edit Task</p>
         <img

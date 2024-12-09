@@ -50,8 +50,11 @@ export const CalendarEvent = ({
   useEffect(() => {
     if (titleRef.current && containerRef.current && !isShortEvent) {
       const observer = new ResizeObserver(() => {
-        const containerHeight = containerRef.current.clientHeight;
+        const containerHeight = containerRef?.current?.clientHeight;
         const titleElement = titleRef.current;
+        
+        if (!titleElement) return;
+        
         const lineHeight = parseInt(window.getComputedStyle(titleElement).lineHeight);
         const timeHeight = 24; // Height needed for time display
         
@@ -108,19 +111,24 @@ export const CalendarEvent = ({
     }}>
       <div 
         ref={containerRef}
+        className="calendar-event"
         onClick={() => {
           if (!isPreview) {
             setSelectedCalendarEvent(event);
             setLowerNav(true);
           }
         }}
-        style={getEventStyles(isPreview, backgroundColor, isShortEvent, isOneHourEvent)}>
+        style={{
+          ...getEventStyles(isPreview, backgroundColor, isShortEvent, isOneHourEvent),
+          pointerEvents: "all"
+        }}>
         <p
           ref={titleRef}
-          contentEditable={isPreview}
-          suppressContentEditableWarning={isPreview}
-          onClick={(e) => isPreview && e.stopPropagation()}
+          contentEditable={isPreview && showTime}
+          suppressContentEditableWarning={isPreview && showTime}
+          onClick={(e) => isPreview && showTime && e.stopPropagation()}
           onBlur={(e) => {
+            if (!showTime) return;
             const newTitle = e.target.innerText.trim();
             if (newTitle === '' && event.title === '') {
               handleDeleteCalendarEvent(event.id);
@@ -129,6 +137,7 @@ export const CalendarEvent = ({
             }
           }}
           onKeyDown={(e) => {
+            if (!showTime) return;
             if (e.key === 'Enter') {
               e.preventDefault();
               e.target.blur();
@@ -145,7 +154,7 @@ export const CalendarEvent = ({
             fontSize: 16,
             color: "#fff",
             outline: 'none',
-            cursor: "text",
+            cursor: showTime && isPreview ? "text" : "pointer",
             padding: 0,
             borderRadius: 4,
             transition: "background-color 0.2s",

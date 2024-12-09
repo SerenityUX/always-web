@@ -385,7 +385,7 @@ export const ScheduleView = ({
                             gap: isShortEvent ? 8 : 0,
                             justifyContent: "space-between",
                             height: "100%",
-                            padding: isShortEvent ? 8 : 16,
+                            padding: isShortEvent ? "8px 16px" : 16,
                             width: adjustedWidth,
                             border: "1px solid #fff",
                             marginLeft: leftOffset,

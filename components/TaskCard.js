@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 
-import { editTaskModal } from './EditTaskModal';
+import { EditTaskModal } from './EditTaskModal';
 
 const getInitials = (name) => {
     return name
@@ -303,7 +303,29 @@ export const TaskCard = ({
           zIndex: (isSelected) ? 103 : 'auto'
         }}>
           {isSelected &&           
-          editTaskModal(user, handleDeleteTask, task, titleInputRef, localTitle, setLocalTitle, setSelectedTask, setEditingTaskTitle, handleTaskUpdate, formattedStartTime, taskStart, taskEnd, formattedEndTime, setSelectedEvent, dropdownTriggerRef, selectedEvent, localDescription, setLocalDescription, setEditingTaskDescription, isNoteFocused, setIsNoteFocused)
+          <EditTaskModal 
+            user={user}
+            handleDeleteTask={handleDeleteTask}
+            task={task}
+            titleInputRef={titleInputRef}
+            localTitle={localTitle}
+            setLocalTitle={setLocalTitle}
+            setSelectedTask={setSelectedTask}
+            setEditingTaskTitle={setEditingTaskTitle}
+            handleTaskUpdate={handleTaskUpdate}
+            formattedStartTime={formattedStartTime}
+            taskStart={taskStart}
+            taskEnd={taskEnd}
+            formattedEndTime={formattedEndTime}
+            setSelectedEvent={setSelectedEvent}
+            dropdownTriggerRef={dropdownTriggerRef}
+            selectedEvent={selectedEvent}
+            localDescription={localDescription}
+            setLocalDescription={setLocalDescription}
+            setEditingTaskDescription={setEditingTaskDescription}
+            isNoteFocused={isNoteFocused}
+            setIsNoteFocused={setIsNoteFocused}
+          />
   
          }
         <div style={{
