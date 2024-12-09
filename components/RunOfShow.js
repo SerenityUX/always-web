@@ -66,6 +66,20 @@ const calculateSnapEffect = (exactTime, scrollNumber) => {
 const SCROLL_NUMBER_KEY = 'runOfShowScrollNumber';
 const SYNC_INTERVAL = 30000; // 30 seconds in milliseconds
 
+// Add this helper function at the top
+const enforceEventBounds = (startTime, endTime, mainEventStart, mainEventEnd) => {
+  // Ensure start time isn't before main event start
+  const boundedStartTime = new Date(Math.max(startTime, mainEventStart));
+  
+  // Ensure end time isn't after main event end
+  const boundedEndTime = new Date(Math.min(endTime, mainEventEnd));
+  
+  return {
+    startTime: boundedStartTime,
+    endTime: boundedEndTime
+  };
+};
+
 export const RunOfShow = ({
   selectedEvent,
   user,
@@ -934,17 +948,18 @@ export const RunOfShow = ({
 
                       try {
                         let finalStartTime, finalEndTime;
-
+                        
                         if (!isDragging) {
-                          // For single clicks - round to full hour block
                           const hourStart = Math.floor(clickExactHoursFromStart);
                           finalStartTime = new Date(startTime.getTime() + (hourStart * 60 * 60 * 1000));
                           finalEndTime = new Date(startTime.getTime() + ((hourStart + 1) * 60 * 60 * 1000));
                         } else {
-                          // For drags - use the existing 5-min snapping behavior
                           finalStartTime = dragStartTime < dragEndTime ? dragStartTime : dragEndTime;
                           finalEndTime = dragStartTime < dragEndTime ? dragEndTime : dragStartTime;
                         }
+
+                        // Single line to cap the end time at main event's end time
+                        finalEndTime = new Date(Math.min(finalEndTime, new Date(selectedEvent.endTime)));
 
                         const response = await fetch('https://serenidad.click/hacktime/createCalendarEvent', {
                           method: 'POST',
@@ -1407,18 +1422,18 @@ export const RunOfShow = ({
 
                       try {
                         let finalStartTime, finalEndTime;
-
+                        
                         if (!isDragging) {
-                          // For single clicks - round to full hour block
                           const hourStart = Math.floor(clickExactHoursFromStart);
                           finalStartTime = new Date(startTime.getTime() + (hourStart * 60 * 60 * 1000));
                           finalEndTime = new Date(startTime.getTime() + ((hourStart + 1) * 60 * 60 * 1000));
                         } else {
-                          // For drags - use the existing 5-min snapping behavior
                           finalStartTime = dragStartTime < dragEndTime ? dragStartTime : dragEndTime;
                           finalEndTime = dragStartTime < dragEndTime ? dragEndTime : dragStartTime;
                         }
 
+                        // Single line to cap the end time at main event's end time
+                        finalEndTime = new Date(Math.min(finalEndTime, new Date(selectedEvent.endTime)));
 
                         const response = await fetch('https://serenidad.click/hacktime/createCalendarEvent', {
                           method: 'POST',
