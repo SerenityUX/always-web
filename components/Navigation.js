@@ -643,10 +643,14 @@ export default function Navigation({
     return () => clearInterval(interval);
   }, []);
 
-  // Update the key handling useEffect to ignore events when typing in an input
+  // Update the key handling useEffect to be more strict about ignoring input fields
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+      // More comprehensive check for input elements
+      if (e.target.tagName === 'INPUT' || 
+          e.target.tagName === 'TEXTAREA' || 
+          e.target.isContentEditable ||
+          e.target.closest('input, textarea, [contenteditable]')) {
         return;
       }
 
@@ -676,7 +680,11 @@ export default function Navigation({
     };
 
     const handleKeyUp = (e) => {
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+      // Same comprehensive check for input elements
+      if (e.target.tagName === 'INPUT' || 
+          e.target.tagName === 'TEXTAREA' || 
+          e.target.isContentEditable ||
+          e.target.closest('input, textarea, [contenteditable]')) {
         return;
       }
 
