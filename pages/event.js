@@ -144,13 +144,13 @@ const getVenueIdentifier = (venue) => {
 
 // Add this constant at the top with other constants
 const venueTypeOptions = [
-  "Cafe",
-  "Startup Office",
-  "Corporate Office",
-  "Co-working Space",
-  "Makerspace",
   "Conference Center",
-  "Library"
+  "Makerspace",
+  "Co-working Space", 
+  "Corporate Office",
+  "Startup Office",
+  "Cafe",
+  "Library",
 ];
 
 export default function Event() {
