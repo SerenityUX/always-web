@@ -1,15 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import BlueprintView from './venue/BlueprintView';
+import TabSelector from './TabSelector';
+import VenueSearch from './venue/VenueSearch';
+import OutreachTable from './venue/OutreachTable';
 
 export default function VenueView({
   selectedEvent,
   selectedEventId,
   setSelectedEvent,
+  venues,
+  setVenues,
+  addedToOutreach,
+  handleVenueOutreach,
+  venueSearchState,
+  setVenueSearchState,
+  venueTypeOptions
 }) {
   const [buildings, setBuildings] = useState([]);
   const [focusedCell, setFocusedCell] = useState(null);
+  const [mode, setMode] = useState(null);
+  const [streamedVenues, setStreamedVenues] = useState([]);
+  const [isStreaming, setIsStreaming] = useState(false);
 
-  // Initialize buildings from selectedEvent
+  // Initialize buildings from selectedEvent and set initial mode
   useEffect(() => {
     if (selectedEvent?.buildings) {
       const formattedBuildings = selectedEvent.buildings.map(building => ({
@@ -22,6 +35,10 @@ export default function VenueView({
         }))
       }));
       setBuildings(formattedBuildings);
+      // Set mode to 'blueprint' if there are buildings, 'discovery' if not
+      setMode(formattedBuildings.length > 0 ? 'blueprint' : 'discovery');
+    } else {
+      setMode('discovery');
     }
   }, [selectedEvent?.buildings]);
 
@@ -48,19 +65,69 @@ export default function VenueView({
       flexDirection: "column",
       alignItems: "center"
     }}>
-      {/* <div style={{fontSize: 16, width: 700,}}>
-        <p style={{margin: 0}}>discovery</p>
-        <p style={{margin: 0}}>outreach</p>
-        <p style={{margin: 0}}>blueprint</p>
-      </div> */}
-      <BlueprintView
-        buildings={buildings}
-        setBuildings={setBuildings}
-        selectedEventId={selectedEventId}
-        setSelectedEvent={setSelectedEvent}
-        focusedCell={focusedCell}
-        setFocusedCell={setFocusedCell}
+      <TabSelector
+        options={['discovery', 'outreach', 'blueprint']}
+        value={mode}
+        onChange={setMode}
+        initialValue={mode}
+        style={{ marginTop: 16 }}
       />
+      {mode == "discovery" && 
+        <VenueSearch 
+          eventId={selectedEventId}
+          venues={streamedVenues}
+          setVenues={setStreamedVenues}
+          selectedEvent={selectedEvent}
+          setSelectedEvent={setSelectedEvent}
+          selectedEventId={selectedEventId}
+          venueSearchState={venueSearchState}
+          setVenueSearchState={setVenueSearchState}
+          venueTypeOptions={venueTypeOptions}
+          isStreaming={isStreaming}
+          setIsStreaming={setIsStreaming}
+        />
+      }
+      {mode == "outreach" && 
+        <OutreachTable 
+          venues={selectedEvent?.venueOutreach || []}
+          onSendEmail={(venue) => {
+            console.log('Sending email to venue:', venue);
+          }}
+          onDeleteOutreach={async (venue) => {
+            if (window.confirm(`Are you sure you want to remove ${venue.name} from outreach?`)) {
+              try {
+                const response = await fetch('https://serenidad.click/hacktime/removeOutreach', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    token: localStorage.getItem('token'),
+                    outreachId: venue.id
+                  })
+                });
+
+                if (response.ok) {
+                  setSelectedEvent(prev => ({
+                    ...prev,
+                    venueOutreach: prev.venueOutreach.filter(v => v.id !== venue.id)
+                  }));
+                }
+              } catch (error) {
+                console.error('Error removing outreach:', error);
+              }
+            }
+          }}
+        />
+      }
+      {mode == "blueprint" &&
+        <BlueprintView
+          buildings={buildings}
+          setBuildings={setBuildings}
+          selectedEventId={selectedEventId}
+          setSelectedEvent={setSelectedEvent}
+          focusedCell={focusedCell}
+          setFocusedCell={setFocusedCell}
+        />
+      }
     </div>
   );
 } 

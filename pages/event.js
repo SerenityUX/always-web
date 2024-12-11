@@ -125,6 +125,34 @@ const processEventWithRoundedTimes = (event) => {
   };
 };
 
+// Add this constant at the top of the file with other constants
+const timezoneToCity = {
+  'America/Los_Angeles': 'San Francisco',
+  'America/New_York': 'Burlington, Vermont',
+  'America/Chicago': 'Chicago',
+  'America/Denver': 'Denver',
+  'Europe/London': 'London',
+  'Europe/Paris': 'Paris',
+  'Asia/Tokyo': 'Tokyo',
+  'Asia/Shanghai': 'Shanghai',
+  'Australia/Sydney': 'Sydney'
+};
+
+const getVenueIdentifier = (venue) => {
+  return `${venue.name}__${venue.address}`.toLowerCase();
+};
+
+// Add this constant at the top with other constants
+const venueTypeOptions = [
+  "Cafe",
+  "Startup Office",
+  "Corporate Office",
+  "Co-working Space",
+  "Makerspace",
+  "Conference Center",
+  "Library"
+];
+
 export default function Event() {
   const router = useRouter();
   const { tab, eventId } = router.query;
@@ -1114,6 +1142,148 @@ useEffect(() => {
     setLowerNav(!!selectedCalendarEvent || !!selectedTask);
   }, [selectedCalendarEvent, selectedTask]);
 
+  // Add these new states near the top with other state declarations
+  const [venues, setVenues] = useState([]);
+  const [addedToOutreach, setAddedToOutreach] = useState([]);
+  const [venueSearchState, setVenueSearchState] = useState({
+    selectedVenueTypes: ['all'],
+    isVenueDropdownOpen: false,
+    userCity: timezoneToCity[Intl.DateTimeFormat().resolvedOptions().timeZone] || 'San Francisco',
+    needsPadding: false,
+    isGenerating: false,
+    error: '',
+    showError: false,
+    loadingDots: '',
+    searchText: ''
+  });
+
+  // Update the useEffect that loads from localStorage
+  useEffect(() => {
+    if (selectedEventId) {
+      const savedCity = localStorage.getItem(`lastSearchCity_${selectedEventId}`);
+      const savedPrompt = localStorage.getItem(`lastSearchPrompt_${selectedEventId}`);
+      
+      if (savedCity || savedPrompt) {
+        setVenueSearchState(prev => ({
+          ...prev,
+          userCity: savedCity || prev.userCity,
+          searchText: savedPrompt || prev.searchText
+        }));
+      }
+    }
+  }, [selectedEventId]);
+
+  // Add the venue outreach handler
+  const handleVenueOutreach = (venue) => {
+    if (addedToOutreach.some(v => getVenueIdentifier(v) === getVenueIdentifier(venue))) {
+      setAddedToOutreach(prev => prev.filter(v => 
+        getVenueIdentifier(v) !== getVenueIdentifier(venue)
+      ));
+      return `${venue.name} Removed from Outreach`;
+    } else {
+      setAddedToOutreach(prev => [...prev, venue]);
+      return `${venue.name} Added to Outreach`;
+    }
+  };
+
+  // Add the venue search handler
+  const handleVenueSearch = async () => {
+    setVenueSearchState(prev => ({
+      ...prev,
+      showError: false,
+      error: '',
+      isGenerating: true
+    }));
+
+    if (!venueSearchState.searchText) {
+      setVenueSearchState(prev => ({
+        ...prev,
+        error: 'Please describe your event needs',
+        showError: true,
+        isGenerating: false
+      }));
+      return;
+    }
+
+    if (venueSearchState.selectedVenueTypes.length === 0) {
+      setVenueSearchState(prev => ({
+        ...prev,
+        error: 'Please select at least one venue type',
+        showError: true,
+        isGenerating: false
+      }));
+      return;
+    }
+
+    if (!venueSearchState.userCity.trim()) {
+      setVenueSearchState(prev => ({
+        ...prev,
+        error: 'Please enter a city',
+        showError: true,
+        isGenerating: false
+      }));
+      return;
+    }
+
+    try {
+      const response = await fetch('https://serenidad.click/hacktime/findVenues', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          generalRequest: venueSearchState.searchText,
+          tags: venueSearchState.selectedVenueTypes.includes('all') 
+            ? venueTypeOptions.map(type => type.toLowerCase()) 
+            : venueSearchState.selectedVenueTypes.map(type => type.toLowerCase()),
+          cityName: venueSearchState.userCity
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setVenues(data.data);
+        
+        // Reset search state but keep the searchText and city
+        setVenueSearchState(prev => ({
+          ...prev,
+          selectedVenueTypes: ['all'],
+          isGenerating: false
+        }));
+      } else {
+        setVenueSearchState(prev => ({
+          ...prev,
+          error: 'Failed to find venues. Please try again.',
+          showError: true,
+          isGenerating: false
+        }));
+      }
+    } catch (err) {
+      console.error('Error generating venues:', err);
+      setVenueSearchState(prev => ({
+        ...prev,
+        error: 'Something went wrong. Please try again.',
+        showError: true,
+        isGenerating: false
+      }));
+    }
+  };
+
+  // Add this useEffect to handle loading dots animation
+  useEffect(() => {
+    if (!venueSearchState.isGenerating) return;
+    
+    const interval = setInterval(() => {
+      setVenueSearchState(prev => ({
+        ...prev,
+        loadingDots: prev.loadingDots === '...' ? '' : prev.loadingDots + '.'
+      }));
+    }, 500);
+
+    return () => clearInterval(interval);
+  }, [venueSearchState.isGenerating]);
+
   if (loading) {
     return <div></div>;
   }
@@ -1442,6 +1612,14 @@ useEffect(() => {
             selectedEvent={selectedEvent}
             selectedEventId={selectedEventId}
             setSelectedEvent={setSelectedEvent}
+            venues={venues}
+            setVenues={setVenues}
+            addedToOutreach={addedToOutreach}
+            handleVenueOutreach={handleVenueOutreach}
+            venueSearchState={venueSearchState}
+            setVenueSearchState={setVenueSearchState}
+            handleVenueSearch={handleVenueSearch}
+            venueTypeOptions={venueTypeOptions}
           />
         }
         {(selectedEvent != null && currentTab == "Team") && 
