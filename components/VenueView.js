@@ -8,6 +8,7 @@ export default function VenueView({
   selectedEvent,
   selectedEventId,
   setSelectedEvent,
+  user,
   venues,
   setVenues,
   addedToOutreach,
@@ -89,6 +90,7 @@ export default function VenueView({
       }
       {mode == "outreach" && 
         <OutreachTable 
+        user={user} // Pass the user object from your auth state
           venues={selectedEvent?.venueOutreach || []}
           onSendEmail={(venue) => {
             console.log('Sending email to venue:', venue);

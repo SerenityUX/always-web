@@ -5,7 +5,49 @@ const formatLocation = (location) => {
   return location.split(',')[0].trim();
 };
 
-export default function OutreachTable({ venues, onSendEmail, onDeleteOutreach }) {
+export default function OutreachTable({ venues, onSendEmail, onDeleteOutreach, user }) {
+  const handleEmailClick = (venue) => {
+    const email = venue.email || (venue.emails && venue.emails[0]);
+    const subject = `Booking inquiry for ${venue.name}`;
+    const body = `Hi,\n\nI came across ${venue.name} and I'm interested in potentially booking your venue for an upcoming event.\n\nWould you be available to discuss availability and pricing?\n\nBest regards,\n${user?.name || ''}`;
+    
+    // Gmail compose URL
+    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${email}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.open(gmailUrl, '_blank');
+  };
+
+  const handleCallClick = (venue) => {
+    // Log both possible phone number fields
+    console.log('Phone:', venue.phone);
+    console.log('PhoneNumber:', venue.phoneNumber);
+    
+    const phoneNumber = venue.phone || venue.phoneNumber;
+    
+    // Check if we have a valid phone number (not N/A or undefined)
+    if (!phoneNumber || phoneNumber === 'N/A') {
+      console.error('No valid phone number found');
+      return;
+    }
+    
+    // Log the phone number we're using
+    console.log('Using phone number:', phoneNumber);
+    
+    // Format phone number: remove all non-digits
+    const formattedNumber = phoneNumber.replace(/\D/g, '');
+    
+    // Log the formatted number
+    console.log('Formatted number:', formattedNumber);
+    
+    // Only proceed if we have digits
+    if (!formattedNumber) {
+      console.error('No valid digits in phone number');
+      return;
+    }
+    
+    // Simple tel: protocol without the extra formatting
+    window.location.href = `tel:${formattedNumber}`;
+  };
+
   if (!venues || venues.length === 0) {
     return (
       <div style={{
@@ -59,7 +101,8 @@ export default function OutreachTable({ venues, onSendEmail, onDeleteOutreach })
             border: "none",
             borderRadius: 8,
             cursor: "pointer",
-            fontSize: 14
+            fontSize: 14,
+            opacity: 0
           }}
         >
           Edit Outreach Template
@@ -190,7 +233,7 @@ export default function OutreachTable({ venues, onSendEmail, onDeleteOutreach })
               }}>
                 {((venue.email && venue.email.length > 0) || (venue.emails && venue.emails.length > 0)) && (
                   <button
-                    onClick={() => onSendEmail(venue)}
+                    onClick={() => handleEmailClick(venue)}
                     className="send-email-button"
                     style={{
                       padding: "6px 12px",
@@ -208,9 +251,9 @@ export default function OutreachTable({ venues, onSendEmail, onDeleteOutreach })
                     Email
                   </button>
                 )}
-                {(venue.phone || venue.phoneNumber) && (
+                {(venue.phone && venue.phone !== 'N/A') || (venue.phoneNumber && venue.phoneNumber !== 'N/A') ? (
                   <button
-                    onClick={() => window.open(`tel:${venue.phone || venue.phoneNumber}`)}
+                    onClick={() => handleCallClick(venue)}
                     className="send-email-button"
                     style={{
                       padding: "6px 12px",
@@ -227,7 +270,7 @@ export default function OutreachTable({ venues, onSendEmail, onDeleteOutreach })
                   >
                     Call
                   </button>
-                )}
+                ) : null}
                 {(venue.email?.length === 0 && venue.emails?.length === 0 && !venue.phone && !venue.phoneNumber) && (
                   <span style={{ color: "#666", fontSize: 13 }}>
                     No contact info

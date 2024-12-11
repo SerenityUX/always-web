@@ -1609,6 +1609,7 @@ useEffect(() => {
 
       {(selectedEvent != null && currentTab == "Venue") && 
           <VenueView
+          user={user}
             selectedEvent={selectedEvent}
             selectedEventId={selectedEventId}
             setSelectedEvent={setSelectedEvent}
