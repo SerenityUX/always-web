@@ -1146,7 +1146,7 @@ useEffect(() => {
   const [venues, setVenues] = useState([]);
   const [addedToOutreach, setAddedToOutreach] = useState([]);
   const [venueSearchState, setVenueSearchState] = useState({
-    selectedVenueTypes: ['all'],
+    selectedVenueTypes: [],
     isVenueDropdownOpen: false,
     userCity: timezoneToCity[Intl.DateTimeFormat().resolvedOptions().timeZone] || 'San Francisco',
     needsPadding: false,

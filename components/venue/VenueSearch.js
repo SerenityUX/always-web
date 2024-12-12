@@ -16,6 +16,8 @@ export default function VenueSearch({
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [isToastLeaving, setIsToastLeaving] = useState(false);
+  const [isPulsing, setIsPulsing] = useState(false);
+  const [isHoveringGenerate, setIsHoveringGenerate] = useState(false);
   const tagsContainerRef = useRef(null);
   const streamParser = useRef(null);
 
@@ -43,6 +45,23 @@ export default function VenueSearch({
     console.log('Search venues:', venues);
     console.log('Outreach venues:', selectedEvent?.venueOutreach);
   }, [venues, selectedEvent]);
+
+  useEffect(() => {
+    if (selectedEventId) {
+      const savedCity = localStorage.getItem(`lastSearchCity_${selectedEventId}`);
+      const savedPrompt = localStorage.getItem(`lastSearchPrompt_${selectedEventId}`);
+      const savedVenueTypes = localStorage.getItem(`lastVenueTypes_${selectedEventId}`);
+      
+      if (savedCity || savedPrompt || savedVenueTypes) {
+        setVenueSearchState(prev => ({
+          ...prev,
+          userCity: savedCity || prev.userCity,
+          searchText: savedPrompt || prev.searchText,
+          selectedVenueTypes: savedVenueTypes ? JSON.parse(savedVenueTypes) : prev.selectedVenueTypes
+        }));
+      }
+    }
+  }, [selectedEventId]);
 
   const handleVenueOutreach = async (venue) => {
     if (!selectedEvent) {
@@ -294,6 +313,61 @@ export default function VenueSearch({
     }
   };
 
+  const handlePromptBlur = async () => {
+    // Only proceed if there's text and no venue types are currently selected
+    if (!venueSearchState.searchText.trim() || venueSearchState.selectedVenueTypes.length > 0) {
+      return;
+    }
+
+    try {
+      const response = await fetch('https://serenidad.click/hacktime/autoVenueTypes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: venueSearchState.searchText,
+          availableVenueTypes: venueTypeOptions
+        })
+      });
+
+      const data = await response.json();
+      
+      if (response.ok && data.venueTypes && Array.isArray(data.venueTypes) && data.venueTypes.length > 0) {
+        setVenueSearchState(prev => ({
+          ...prev,
+          selectedVenueTypes: data.venueTypes
+        }));
+        
+        // Save to localStorage
+        localStorage.setItem(`lastVenueTypes_${eventId}`, JSON.stringify(data.venueTypes));
+        
+        setIsPulsing(true);
+        setTimeout(() => {
+          setIsPulsing(false);
+        }, 750);
+      }
+    } catch (error) {
+      console.log('Auto venue types not available:', error);
+    }
+  };
+
+  const handleCancel = () => {
+    setVenueSearchState(prev => ({
+      ...prev,
+      isGenerating: false,
+      searchText: '',
+      selectedVenueTypes: [],
+      error: '',
+      showError: false,
+      loadingDots: ''
+    }));
+    setVenues([]);
+    setIsStreaming(false);
+    
+    // Clear from localStorage
+    localStorage.removeItem(`lastSearchPrompt_${eventId}`);
+    localStorage.removeItem(`lastVenueTypes_${eventId}`);
+  };
+
   return (
     <div style={{marginTop: 24, width: 800, display: "flex", flexDirection: "column", alignItems: "center"}}>
       <p style={{margin: 0, fontSize: 24}}>Venue Search (beta)</p>
@@ -314,6 +388,7 @@ export default function VenueSearch({
         disabled={venueSearchState.isGenerating}
         placeholder="describe your event, target # of attendees, & event space needs..."
         className="venue-search-input"
+        onBlur={handlePromptBlur}
         onChange={(e) => {
           const newText = e.target.value;
           setVenueSearchState(prev => ({
@@ -334,7 +409,7 @@ export default function VenueSearch({
         opacity: venueSearchState.isGenerating ? 0.6 : 1,
         pointerEvents: venueSearchState.isGenerating ? 'none' : 'auto'
       }}>
-        <div className="venue-dropdown" style={{
+        <div className={`venue-dropdown ${isPulsing ? 'pulse' : ''}`} style={{
           width: "100%", 
           padding: "0 12px", 
           display: 'flex', 
@@ -368,22 +443,27 @@ export default function VenueSearch({
                 alignItems: "center"
               }}
             >
-              {venueSearchState.selectedVenueTypes.includes('all') ? (
-                <p style={{margin: 0, color: "#000"}}>All Venue Types</p>
-              ) : venueSearchState.selectedVenueTypes.length === 0 ? (
+              {venueSearchState.selectedVenueTypes.length === 0 ? (
                 <p style={{margin: 0, color: "#949596"}}>Select venue types</p>
+              ) : venueSearchState.selectedVenueTypes.includes('all') ? (
+                <p style={{margin: 0, color: "#000"}}>All Venue Types</p>
               ) : (
-                venueSearchState.selectedVenueTypes.map(type => (
+                venueSearchState.selectedVenueTypes.map((type, index) => (
                   <span 
                     key={type}
                     onClick={(e) => {
                       e.stopPropagation();
+                      const newTypes = venueSearchState.selectedVenueTypes.filter(t => t !== type);
                       setVenueSearchState(prev => ({
                         ...prev,
-                        selectedVenueTypes: prev.selectedVenueTypes.filter(t => t !== type)
+                        selectedVenueTypes: newTypes
                       }));
+                      localStorage.setItem(`lastVenueTypes_${eventId}`, JSON.stringify(newTypes));
                     }}
                     className="venue-tag"
+                    style={{
+                      animationDelay: `${index * 0.1}s`
+                    }}
                   >
                     {type}
                   </span>
@@ -513,6 +593,8 @@ export default function VenueSearch({
         </div>
       </div>
       <div 
+        onMouseEnter={() => setIsHoveringGenerate(true)}
+        onMouseLeave={() => setIsHoveringGenerate(false)}
         onClick={!venueSearchState.isGenerating ? handleVenueSearch : undefined}
         className="generate-button"
         style={{
@@ -524,11 +606,25 @@ export default function VenueSearch({
           padding: 12, 
           marginTop: 16, 
           width: 600, 
-          borderRadius: 16
+          borderRadius: 16,
+          transition: "background-color 0.2s ease"
         }}
       >
-        <p style={{margin: 0, fontSize: 16, color: "#fff"}}>
-          {venueSearchState.isGenerating ? `Generating${venueSearchState.loadingDots}` : 'Bulk Generate Results'}
+        <p 
+          onClick={venueSearchState.isGenerating ? handleCancel : undefined}
+          style={{
+            margin: 0, 
+            fontSize: 16, 
+            color: "#fff",
+            cursor: venueSearchState.isGenerating ? "pointer" : "default"
+          }}
+        >
+          {venueSearchState.isGenerating 
+            ? isHoveringGenerate 
+              ? "Cancel" 
+              : `Generating${venueSearchState.loadingDots}`
+            : 'Bulk Generate Results'
+          }
         </p>
       </div>
 

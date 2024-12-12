@@ -162,6 +162,17 @@ tr:hover .trash-icon {
   background-color: rgba(0, 0, 0, 0.05);
 }
 
+@keyframes popIn {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
 .venue-tag {
   background-color: #E8E9EA;
   padding: 2px 8px;
@@ -172,6 +183,10 @@ tr:hover .trash-icon {
   cursor: pointer;
   transition: all 0.2s ease;
   max-height: 24px;
+  opacity: 0;
+  animation: popIn 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  transform-origin: center;
+  will-change: transform;
 }
 
 .venue-tag:hover {
@@ -319,4 +334,12 @@ tr:hover .trash-icon {
 
 .send-email-button:hover {
   opacity: 0.8;
+}
+
+.venue-dropdown {
+  transition: border-color 0.25s ease;
+}
+
+.venue-dropdown.pulse {
+  border-color: rgba(142, 8, 164, 0.6) !important;
 }
