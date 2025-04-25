@@ -78,7 +78,7 @@ END:VEVENT
 
     // Set headers for ICS file
     res.setHeader('Content-Type', 'text/calendar');
-    res.setHeader('Content-Disposition', `attachment; filename="always-calendar.ics"`);
+    res.setHeader('Content-Disposition', `attachment; filename="always-${event.event.title.toLowerCase().replace(/[^a-z0-9]/g, '_')}-feed.ics"`);
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
