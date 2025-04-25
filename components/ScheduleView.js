@@ -56,21 +56,91 @@ export const ScheduleView = ({
               marginTop: 24
             }}>
               <div style={{display: "flex", width: "100%", alignItems: "center", justifyContent: "space-between"}}>
-                <p style={{margin: 0}}>Event Schedule</p>
-<div style={{display: "flex", flexDirection: "row", gap: 16}}>
-<div 
-                  onClick={() => window.open(`/viewschedule?id=${selectedEvent.id}`, '_blank')}
+                <div style={{display: "flex", alignItems: "center", gap: 16}}>
+                  <p style={{margin: 0}}>Event Schedule</p>
+                  <div style={{display: "flex", alignItems: "center", gap: 8}}>
+                    <button
+                      onClick={async (e) => {
+                        const url = `${window.location.origin}/api/ical/${selectedEvent.id}`;
+                        await navigator.clipboard.writeText(url);
+                        e.target.innerHTML = '<span>✅</span> copied! paste it into your calendar app!';
+                        e.target.style.backgroundColor = '#4CAF50';
+                        e.target.style.color = 'white';
+                        setTimeout(() => {
+                          e.target.innerHTML = '<span>📅</span> get calendar feed';
+                          e.target.style.backgroundColor = '#f5f5f5';
+                          e.target.style.color = '#333';
+                        }, 2000);
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        padding: '4px 8px',
+                        backgroundColor: '#f5f5f5',
+                        border: '1px solid #ebebeb',
+                        borderRadius: 4,
+                        cursor: 'pointer',
+                        fontSize: 14,
+                        color: '#333',
+                        transition: 'all 0.2s ease'
+                      }}
+                    >
+                      <span>📅</span>
+                      get calendar feed
+                    </button>
+                    <span style={{fontSize: 12, color: "#A2A2A2"}}>
+                    (<a href="#"
+                      onClick={(e) => {
+                        const helpDiv = document.getElementById('calendar-feed-help');
+                        if (helpDiv.style.display === 'none') {
+                          helpDiv.style.display = 'block';
+                          e.target.innerHTML = 'ok!';
+                        } else {
+                          helpDiv.style.display = 'none';
+                          e.target.innerHTML = 'huh?';
+                        }
+                      }}
+                    >
+                      huh?
+                    </a>)</span>
+                  </div>
+                </div>
+                <div style={{display: "flex", flexDirection: "row", gap: 16}}>
+                  <div 
+                    onClick={() => window.open(`/viewschedule?id=${selectedEvent.id}`, '_blank')}
+                    style={{width: 24, height: 24, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 16, cursor: "pointer", backgroundColor: "#737373"}}>
+                    <img style={{height: 16, width: 16, filter: "brightness(0) invert(1)"}} src="./icons/share.svg"/>
+                  </div>
+                  <div 
+                    onClick={() => window.open(`https://serenidad.click/hacktime/getSchedule/${selectedEvent.id}`, '_blank')}
+                    style={{width: 24, height: 24, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 16, cursor: "pointer", backgroundColor: "#737373"}}>
+                    <p style={{fontSize: 8, margin: 0, color: "#fff", fontWeight: 800}}>API</p>
+                  </div>
+                </div>
+              </div>
 
-                style={{width: 24, height: 24, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 16, cursor: "pointer", backgroundColor: "#737373"}}>
-                  <img style={{height: 16, width: 16, filter: "brightness(0) invert(1)"}} src="./icons/share.svg"/>
-                </div>
-                <div 
-                  onClick={() => window.open(`https://serenidad.click/hacktime/getSchedule/${selectedEvent.id}`, '_blank')}
-
-                style={{width: 24, height: 24, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 16, cursor: "pointer", backgroundColor: "#737373"}}>
-                  <p style={{fontSize: 8, margin: 0, color: "#fff", fontWeight: 800}}>API</p>
-                </div>
-                </div>
+              <div
+                id="calendar-feed-help"
+                style={{
+                  display: 'none',
+                  marginTop: 8,
+                  padding: 12,
+                  backgroundColor: '#f8f9fa',
+                  border: '1px solid #ebebeb',
+                  borderRadius: 4,
+                  fontSize: 14,
+                  lineHeight: 1.5
+                }}
+              >
+                {/* Add your help content here */}
+                <p style={{margin: 0}}>you can add this event's schedule to your calendar app – it'll update automatically!</p>
+                <p style={{margin: '8px 0 0 0'}}>to add it to your calendar:</p>
+                <ul style={{margin: '8px 0', paddingLeft: 16}}>
+                  <li>Google Calendar: click Settings → Add Calendar → From URL</li>
+                  <li>Apple Calendar (on Mac): click File → New Calendar Subscription</li>
+                  <li>Apple Calendar (on iOS): tap Calendar → Add Calendar → Add Subscription Calendar</li>
+                </ul>
               </div>
 
               <div 
