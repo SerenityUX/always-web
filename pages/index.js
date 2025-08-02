@@ -40,6 +40,7 @@ export default function Landing() {
     <>
       <Head>
         <title>Always</title>
+        <script defer data-domain="always.sh" src="http://plausible-j80w0c4gg0gco4gwo0ocgsss.5.78.111.174.sslip.io/js/script.js"></script>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
         
