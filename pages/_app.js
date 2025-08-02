@@ -10,11 +10,6 @@ export default function App({ Component, pageProps }) {
         <link rel="icon" href="/favicon.ico" />
         
         {/* Plausible Analytics */}
-        <script
-          defer
-          data-domain="always.sh"
-          src="https://plausible.io/js/script.js"
-        />
 
         <script defer data-domain="always.sh" src="http://plausible-j80w0c4gg0gco4gwo0ocgsss.5.78.111.174.sslip.io/js/script.js"></script>
 
